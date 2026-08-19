@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shear and Moment Diagrams · MCE 323</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+<div class="sheet">
+
+<header class="mod-head">
+  <span class="eyebrow">Shigley ch. 3 · Load and stress analysis</span>
+  <h1>Shear and Moment Diagrams</h1>
+  <p>Move the loads and watch V and M rebuild underneath. The moment diagram here is not solved symbolically — it is the running integral of the shear diagram, computed step by step, which is exactly the relationship you are trying to teach.</p>
+</header>
+
+<div class="wrap">
+  <div class="presets" id="presets"></div>
+
+  <div class="controls">
+    <div class="field"><label for="sup">Support</label>
+      <select id="sup"><option value="ss">Simply supported</option><option value="cant">Cantilever, fixed left</option></select>
+    </div>
+    <div class="field"><label for="L">span mm</label><input type="number" id="L" step="50" value="600" style="width:80px"></div>
+    <div class="divider"></div>
+    <div class="field" style="flex:1 1 250px"><label for="p1">P₁ N</label>
+      <input type="range" id="a1" min="0" max="1" step="0.01" value="0.33"><span class="readout" id="a1v">200</span></div>
+    <div class="field"><input type="number" id="p1" step="100" value="1000" style="width:78px"></div>
+    <div class="field" style="flex:1 1 250px"><label for="p2">P₂ N</label>
+      <input type="range" id="a2" min="0" max="1" step="0.01" value="0.7"><span class="readout" id="a2v">420</span></div>
+    <div class="field"><input type="number" id="p2" step="100" value="0" style="width:78px"></div>
+    <div class="divider"></div>
+    <div class="field"><label for="w">w N/mm</label><input type="number" id="w" step="0.5" value="0" style="width:72px"></div>
+    <div class="field" style="flex:1 1 220px"><label for="wa">from–to</label>
+      <input type="range" id="wa" min="0" max="1" step="0.01" value="0">
+      <input type="range" id="wb" min="0" max="1" step="0.01" value="1"></div>
+    <div class="divider"></div>
+    <button id="predict">Predict mode</button>
+  </div>
+
+  <div class="grid g2">
+    <div class="panel">
+      <h2>Beam, shear and moment <span class="hint">M is the running area under V</span></h2>
+      <svg id="dia" viewBox="0 0 660 620" role="img" aria-label="Loading, shear and bending moment diagrams"></svg>
+    </div>
+    <div>
+      <div class="panel" style="margin-bottom:16px">
+        <h2>Critical values</h2>
+        <div class="cells" id="out"></div>
+        <div class="callout" id="note"></div>
+      </div>
+      <div class="panel">
+        <h2>Bending stress, if you sized it now</h2>
+        <div class="controls" style="margin:0 0 12px">
+          <div class="field"><label for="sec">Section</label>
+            <select id="sec"><option value="round">Solid round</option><option value="rect">Rectangular</option></select>
+          </div>
+          <div class="field"><label for="d1">d or b</label><input type="number" id="d1" step="2" value="30" style="width:72px"></div>
+          <div class="field" id="fh"><label for="d2">h</label><input type="number" id="d2" step="2" value="50" style="width:72px"></div>
+        </div>
+        <div class="cells" id="out2"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="notice">
+    <h2>What to notice</h2>
+    <ol>
+      <li><b>Every jump in V is a point load; every slope in V is a distributed load.</b> Turn w on and watch the flat shear become a ramp. Nothing else can change the shear diagram.</li>
+      <li><b>M is the area under V, accumulated left to right.</b> Where V crosses zero, M is at a maximum — because that is where the accumulation stops growing and starts shrinking. That is the whole reason we draw V first.</li>
+      <li><b>Integration raises the order.</b> A step in V integrates to a ramp in M; a ramp in V integrates to a parabola. If your M diagram has the wrong shape, check the order.</li>
+      <li><b>The critical section is not always mid-span.</b> Drag P₁ around and watch M<sub>max</sub> move. This is the whole point of drawing the diagrams instead of guessing.</li>
+    </ol>
+    <p class="foot"><kbd>←</kbd> <kbd>→</kbd> move P₁ along the beam · loads are drawn downward-positive, sagging moment is positive</p>
+  </div>
+</div>
+
+<div id="tb"></div>
+</div>
+
+<script src="../assets/instrument.js"></script>
+<script>
+"use strict";
+let sup="ss", L=600, P1=1000, a1f=0.33, P2=0, a2f=0.7, w=0, waf=0, wbf=1;
+let predict=false, revealed=false;
+
+mountTopbar({});
+$("tb").innerHTML = titleblock({ sheet:"08", title:"Shear and moment diagrams", ch:"3" });
+const hiding=()=>predict&&!revealed, q=v=>hiding()?"—":v;
+
+/* ---------- solve, by numeric integration -------------------------------- */
+const NPT = 1200;
+function solve(){
+  const a1=a1f*L, a2=a2f*L, wa=Math.min(waf,wbf)*L, wb=Math.max(waf,wbf)*L;
+  const W = w*(wb-wa), wc = (wa+wb)/2;
+  let RA, RB, MA=0;
+  if (sup==="ss"){
+    RB = L>0 ? (P1*a1 + P2*a2 + W*wc)/L : 0;
+    RA = P1+P2+W-RB;
+  } else {
+    RA = P1+P2+W; RB = 0;
+    MA = -(P1*a1 + P2*a2 + W*wc);
+  }
+  const dx=L/NPT, xs=[], V=[], M=[];
+  let v=RA, m=MA;
+  for(let i=0;i<=NPT;i++){
+    const x=i*dx;
+    /* point loads act at their station */
+    if(i>0){
+      if(a1>=(i-1)*dx && a1<x) v-=P1;
+      if(a2>=(i-1)*dx && a2<x) v-=P2;
+      const ov = Math.max(0, Math.min(x,wb)-Math.max((i-1)*dx,wa));
+      v -= w*ov;
+      m += v*dx;                       /* M is the running integral of V */
+    }
+    xs.push(x); V.push(v); M.push(m);
+  }
+  if (sup==="ss"){ /* close the diagram: the residue is numerical drift */
+    const drift=M[NPT];
+    for(let i=0;i<=NPT;i++) M[i]-=drift*xs[i]/(L||1);
+  }
+  let iVmax=0,iMmax=0;
+  for(let i=0;i<=NPT;i++){
+    if(Math.abs(V[i])>Math.abs(V[iVmax])) iVmax=i;
+    if(Math.abs(M[i])>Math.abs(M[iMmax])) iMmax=i;
+  }
+  return {xs,V,M,RA,RB,MA,a1,a2,wa,wb,W,
+          Vmax:V[iVmax], Mmax:M[iMmax], xM:xs[iMmax], xV:xs[iVmax]};
+}
+
+/* ---------- draw ---------------------------------------------------------- */
+function draw(){
+  const S=solve();
+  const l=70, r=26, pw=660-l-r;
+  const X = x => l + (L>0 ? x/L : 0)*pw;
+  let g="";
+
+  /* --- the beam --- */
+  const by=86;
+  g += SVG.line(X(0),by,X(L),by,"#46545f",4);
+  if(sup==="ss"){
+    g += `<polygon points="${X(0)},${by} ${X(0)-11},${by+18} ${X(0)+11},${by+18}" fill="#8493a0"/>`;
+    g += `<polygon points="${X(L)},${by} ${X(L)-11},${by+18} ${X(L)+11},${by+18}" fill="none" stroke="#8493a0" stroke-width="2"/>`;
+    g += SVG.circle(X(L),by+22,3.5,"#8493a0");
+  } else {
+    g += SVG.rect(X(0)-14,by-26,14,52,"#8493a0");
+    for(let y=by-26;y<by+26;y+=8) g += SVG.line(X(0)-14,y,X(0)-24,y+8,"#8493a0",1.2);
+  }
+  /* distributed load */
+  if(w>0.001){
+    const x0=X(S.wa), x1=X(S.wb);
+    g += SVG.rect(x0,by-34,x1-x0,26,"rgba(39,72,140,.10)");
+    for(let x=x0;x<=x1+0.1;x+=Math.max(14,(x1-x0)/8)) g += SVG.arrow(x,by-34,x,by-8,"var(--dye)",1.4,7);
+    g += SVG.text((x0+x1)/2,by-42,`w = ${fmt(w,2)} N/mm`,{col:"var(--dye)",size:12,mono:true,weight:700});
+  }
+  /* point loads */
+  [[S.a1,P1,"P₁"],[S.a2,P2,"P₂"]].forEach(([a,P,lab])=>{
+    if(Math.abs(P)<1) return;
+    g += SVG.arrow(X(a),by-56,X(a),by-4,"var(--aus)",2.4,10);
+    g += SVG.text(X(a),by-62,`${lab} = ${fmt(P,0)} N`,{col:"var(--aus)",size:12,mono:true,weight:700});
+  });
+  /* reactions */
+  g += SVG.arrow(X(0),by+46,X(0),by+6,"var(--jade)",2.2,9);
+  g += SVG.text(X(0)-14,by+46,q(fmt(S.RA,0)),{col:"var(--jade)",size:12,mono:true,weight:700});
+  if(sup==="ss"){
+    g += SVG.arrow(X(L),by+46,X(L),by+6,"var(--jade)",2.2,9);
+    g += SVG.text(X(L),by+60,q(fmt(S.RB,0)),{col:"var(--jade)",size:12,mono:true,weight:700});
+  } else {
+    g += SVG.text(X(0)+30,by+60,"M₀ = "+q(fmt(S.MA/1000,1)+" N·m"),{col:"var(--jade)",size:12,anchor:"start",mono:true,weight:700});
+  }
+
+  /* --- shear --- */
+  const vTop=150, vH=180, vmax=Math.max(1,Math.max(...S.V.map(Math.abs))*1.25);
+  const VY = v => vTop + vH/2 - v/vmax*(vH/2);
+  g += SVG.rect(l,vTop,pw,vH,"#fbfcfd","#e6eaee",1);
+  g += SVG.line(l,VY(0),l+pw,VY(0),"#b9c4ce",1.4);
+  let dv=`M ${X(0)} ${VY(0)}`;
+  for(let i=0;i<=NPT;i++) dv += ` L ${X(S.xs[i]).toFixed(1)} ${VY(S.V[i]).toFixed(1)}`;
+  dv += ` L ${X(L)} ${VY(0)} Z`;
+  g += SVG.path(dv,"var(--dye)",2.2,"rgba(39,72,140,.13)");
+  g += SVG.text(l+64,vTop+16,"V  shear (N)",{col:"var(--dye)",size:12,anchor:"start",mono:true,weight:700});
+  if(!hiding()){
+    g += SVG.circle(X(S.xV),VY(S.Vmax),4.5,"var(--dye)");
+    g += SVG.text(X(S.xV),VY(S.Vmax)+(S.Vmax>0?-10:16),fmt(S.Vmax,0),{col:"var(--dye)",size:12,mono:true,weight:700});
+  }
+
+  /* --- moment --- */
+  const mTop=372, mH=200, mmax=Math.max(1,Math.max(...S.M.map(Math.abs))*1.25);
+  const MY = v => mTop + mH/2 - v/mmax*(mH/2);
+  g += SVG.rect(l,mTop,pw,mH,"#fbfcfd","#e6eaee",1);
+  g += SVG.line(l,MY(0),l+pw,MY(0),"#b9c4ce",1.4);
+  let dm=`M ${X(0)} ${MY(0)}`;
+  for(let i=0;i<=NPT;i++) dm += ` L ${X(S.xs[i]).toFixed(1)} ${MY(S.M[i]).toFixed(1)}`;
+  dm += ` L ${X(L)} ${MY(0)} Z`;
+  g += SVG.path(dm,"var(--aus)",2.2,"rgba(168,50,46,.12)");
+  g += SVG.text(l+6,mTop+16,"M  bending moment (N·m)",{col:"var(--aus)",size:12,anchor:"start",mono:true,weight:700});
+  if(!hiding()){
+    g += SVG.line(X(S.xM),mTop,X(S.xM),mTop+mH,"var(--aus)",1.3,"4 4");
+    g += SVG.circle(X(S.xM),MY(S.Mmax),5,"var(--aus)");
+    g += SVG.text(X(S.xM),MY(S.Mmax)+(S.Mmax>0?-12:18),fmt(S.Mmax/1000,1)+" N·m",{col:"var(--aus)",size:12.5,mono:true,weight:700});
+    /* the same station on the shear diagram — where V crosses zero */
+    g += SVG.line(X(S.xM),vTop,X(S.xM),vTop+vH,"var(--aus)",1.3,"4 4");
+    g += SVG.text(X(S.xM),vTop+vH-8,"V = 0 here",{col:"var(--aus)",size:11,mono:true,weight:700});
+  }
+  g += SVG.text(l+pw/2,608,"position along the beam (mm)",{col:"#46545f",size:12.5});
+  for(let i=0;i<=4;i++){
+    const x=L*i/4;
+    g += SVG.text(X(x),588,fmt(x,0),{col:"#8493a0",size:11.5,mono:true,weight:500});
+  }
+  $("dia").innerHTML=g;
+  return S;
+}
+
+/* ---------- readouts ------------------------------------------------------ */
+function out(S){
+  cells("out",[
+    {k:"RA", v:q(fmt(S.RA,0)+" N"), tone:"jade"},
+    {k:sup==="ss"?"RB":"M at wall", v:q(sup==="ss"?fmt(S.RB,0)+" N":fmt(S.MA/1000,1)+" N·m"), tone:"jade"},
+    {k:"V max", v:q(fmt(S.Vmax,0)+" N"), tone:"blue"},
+    {k:"M max", v:q(fmt(S.Mmax/1000,2)+" N·m"), tone:"red"},
+    {k:"at x =", v:q(fmt(S.xM,0)+" mm"), tone:"red", n:"the critical section"},
+    {k:"total load", v:q(fmt(P1+P2+S.W,0)+" N")}
+  ]);
+  const sec=$("sec").value, d1=parseFloat($("d1").value)||1, d2=parseFloat($("d2").value)||1;
+  const I = sec==="round" ? Math.PI*Math.pow(d1,4)/64 : d1*Math.pow(d2,3)/12;
+  const c = sec==="round" ? d1/2 : d2/2;
+  const Z = I/c, sig = Math.abs(S.Mmax)/Z;
+  cells("out2",[
+    {k:"I", v:q(I.toExponential(2))+" mm⁴"},
+    {k:"Z = I/c", v:q(fmt(Z,0)+" mm³"), n:"section modulus"},
+    {k:"σ = M/Z", v:q(fmt(sig,1)+" MPa"), tone:"red"},
+    {k:"needs Sy >", v:q(fmt(sig*2,0)+" MPa"), n:"at a design factor of 2"}
+  ]);
+  let msg=null;
+  if(hiding()) msg=["<b>Predict mode.</b> Ask where the maximum moment is before revealing — and ask why V crossing zero is the clue.","neutral"];
+  else if(Math.abs(S.Mmax)<1) msg=["<b>No bending.</b> Add a load to see anything happen.","neutral"];
+  else if(sup==="cant") msg=[`<b>Cantilever.</b> Maximum moment is always at the wall for downward loads — ${fmt(Math.abs(S.MA)/1000,1)} N·m here — and the moment is negative because the beam hogs.`,"neutral"];
+  else msg=[`<b>M<sub>max</sub> = ${fmt(S.Mmax/1000,2)} N·m at x = ${fmt(S.xM,0)} mm.</b> Look at the shear diagram directly above: V passes through zero at that same station. It always does.`];
+  callout("note",msg[0],msg[1]);
+}
+
+/* ---------- wiring --------------------------------------------------------- */
+function redraw(){
+  $("a1v").textContent=fmt(a1f*L,0); $("a2v").textContent=fmt(a2f*L,0);
+  $("fh").hidden = $("sec").value!=="rect";
+  out(draw());
+}
+function read(){
+  sup=$("sup").value; L=Math.max(50,parseFloat($("L").value)||600);
+  P1=parseFloat($("p1").value)||0; P2=parseFloat($("p2").value)||0;
+  a1f=parseFloat($("a1").value); a2f=parseFloat($("a2").value);
+  w=Math.max(0,parseFloat($("w").value)||0);
+  waf=parseFloat($("wa").value); wbf=parseFloat($("wb").value);
+  redraw();
+}
+["sup","L","p1","p2","a1","a2","w","wa","wb","sec","d1","d2"].forEach(id=>$(id).addEventListener("input",read));
+$("predict").addEventListener("click",()=>{
+  if(predict&&!revealed){revealed=true;predict=false;$("predict").textContent="Predict mode";$("predict").classList.remove("active");}
+  else {predict=true;revealed=false;$("predict").textContent="Reveal";$("predict").classList.add("active");}
+  redraw();
+});
+keyboard("a1",()=>{ a1f=parseFloat($("a1").value); redraw(); });
+
+const PRESETS=[
+  ["Single load, off-centre","ss",600,1000,0.33,0,0.7,0,0,1],
+  ["Two point loads","ss",600,800,0.25,1200,0.65,0,0,1],
+  ["Uniform load only","ss",600,0,0.33,0,0.7,3,0,1],
+  ["Cantilever tip load","cant",400,600,1,0,0.7,0,0,1],
+  ["Cantilever with UDL","cant",400,0,0.5,0,0.7,4,0,1],
+  ["Partial UDL + load","ss",800,1500,0.2,0,0.7,2.5,0.4,0.9]
+];
+$("presets").innerHTML=PRESETS.map((p,i)=>`<button class="chip" data-i="${i}">${p[0]}</button>`).join("");
+$("presets").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b)return;
+  const [,s,l,p1,x1,p2,x2,ww,wa,wb]=PRESETS[+b.dataset.i];
+  $("sup").value=s; $("L").value=l; $("p1").value=p1; $("a1").value=x1;
+  $("p2").value=p2; $("a2").value=x2; $("w").value=ww; $("wa").value=wa; $("wb").value=wb;
+  read();
+});
+read();
+</script>
+</body>
+</html>

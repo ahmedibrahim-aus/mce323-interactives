@@ -1,0 +1,282 @@
+/* ==========================================================================
+   MCE 323 — Interactive Modules
+   Design system. The vernacular is the engineering drawing: sheet ground,
+   graphite ink, hairline rules, layout-dye blue, brass, and an institutional
+   red. Monospace carries anything that is a measurement or an identifier;
+   the sans carries prose. Nothing else is decorative.
+   ========================================================================== */
+
+:root{
+  /* ink + ground */
+  --ink:      #10151b;
+  --ink-2:    #46545f;
+  --tick:     #8493a0;
+  --sheet:    #ffffff;
+  --ground:   #eceff2;
+  --ground-2: #f6f8f9;
+  --rule:     #d4dae0;
+  --rule-2:   #e6eaee;
+
+  /* signal colours — each one means a fixed thing across every module */
+  --aus:    #a8322e;   /* institutional red — principal / governing result */
+  --dye:    #27488c;   /* machinist layout blue — primary quantity        */
+  --dye-2:  #4b8fd1;   /* lighter blue — secondary quantity               */
+  --jade:   #157f4a;   /* shear                                           */
+  --brass:  #a8801b;   /* maximum shear / warnings that are not failures   */
+
+  --aus-wash:   #fbf3f2;
+  --dye-wash:   #f1f5fb;
+  --brass-wash: #fbf7ec;
+  --jade-wash:  #eff7f2;
+
+  /* type */
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Consolas, "Liberation Mono", monospace;
+  --sans: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+
+  /* spacing — 4px base */
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px; --s8:72px;
+
+  --r: 5px;   /* precision, not pillowy */
+  --shadow: 0 1px 2px rgba(16,21,27,.05), 0 8px 24px -14px rgba(16,21,27,.22);
+}
+
+*,*::before,*::after{ box-sizing:border-box }
+html{ -webkit-text-size-adjust:100% }
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font:16px/1.55 var(--sans);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing:antialiased;
+}
+a{ color:var(--dye); text-underline-offset:3px }
+:focus-visible{ outline:2px solid var(--aus); outline-offset:2px; border-radius:3px }
+
+/* ---------- the mono voice: identifiers and measurements ---------------- */
+.mono, .tag, .val, .axis, kbd { font-family:var(--mono) }
+.tag{
+  font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--tick);
+}
+.eyebrow{
+  font-family:var(--mono); font-size:11.5px; font-weight:700;
+  letter-spacing:.18em; text-transform:uppercase; color:var(--aus);
+}
+
+/* ---------- sheet frame: the page sits on a drawing sheet -------------- */
+.sheet{
+  max-width:1560px; margin:0 auto; background:var(--sheet);
+  border-left:1px solid var(--rule); border-right:1px solid var(--rule);
+  min-height:100vh;
+}
+
+/* ---------- top rule ---------------------------------------------------- */
+.topbar{
+  display:flex; align-items:center; gap:var(--s4);
+  padding:0 var(--s5); height:46px;
+  border-bottom:1px solid var(--rule);
+  background:var(--sheet); position:sticky; top:0; z-index:20;
+}
+.topbar .code{ font-family:var(--mono); font-weight:700; font-size:13px; letter-spacing:.1em }
+.topbar .name{ font-family:var(--mono); font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--tick) }
+.topbar .spacer{ flex:1 }
+.topbar a.back{
+  font-family:var(--mono); font-size:12px; letter-spacing:.08em; text-decoration:none;
+  color:var(--ink-2); border:1px solid var(--rule); border-radius:var(--r);
+  padding:5px 10px; background:var(--ground-2);
+}
+.topbar a.back:hover{ border-color:var(--tick); color:var(--ink) }
+.topbar .inst{ font-family:var(--mono); font-size:11px; letter-spacing:.14em; color:var(--aus); font-weight:700 }
+
+/* ---------- module page shell ------------------------------------------ */
+.mod-head{ padding:var(--s6) var(--s5) var(--s4); border-bottom:1px solid var(--rule-2) }
+.mod-head h1{
+  margin:6px 0 6px; font-size:clamp(26px,3.2vw,40px); line-height:1.08;
+  letter-spacing:-.022em; font-weight:700;
+}
+.mod-head p{ margin:0; color:var(--ink-2); max-width:74ch; font-size:16.5px }
+
+.wrap{ padding:var(--s5) }
+
+/* ---------- controls ---------------------------------------------------- */
+.controls{
+  display:flex; flex-wrap:wrap; gap:var(--s3) var(--s4); align-items:center;
+  background:var(--ground-2); border:1px solid var(--rule);
+  border-radius:var(--r); padding:var(--s3) var(--s4); margin-bottom:var(--s4);
+}
+.field{ display:flex; align-items:center; gap:var(--s2) }
+.field > label{
+  font-family:var(--mono); font-size:12px; font-weight:700; letter-spacing:.05em;
+  color:var(--ink-2); white-space:nowrap;
+}
+input[type=number], select{
+  font:600 15px/1 var(--mono); color:var(--ink); background:var(--sheet);
+  border:1px solid var(--rule); border-radius:var(--r); padding:7px 8px; width:86px;
+}
+select{ width:auto; padding-right:26px }
+input[type=range]{ accent-color:var(--aus); height:26px; min-width:130px; flex:1 }
+.divider{ width:1px; align-self:stretch; background:var(--rule) }
+
+button{
+  font:600 13px/1 var(--sans); color:var(--ink); background:var(--sheet);
+  border:1px solid var(--rule); border-radius:var(--r); padding:8px 12px; cursor:pointer;
+  transition:border-color .12s, background .12s, color .12s;
+}
+button:hover{ border-color:var(--tick); background:var(--ground-2) }
+button.primary{ background:var(--ink); border-color:var(--ink); color:#fff }
+button.primary:hover{ background:#1c2530; border-color:#1c2530 }
+button.active{ background:var(--aus); border-color:var(--aus); color:#fff }
+button.chip{ font-family:var(--mono); font-size:12px; letter-spacing:.04em; padding:7px 10px }
+
+.presets{ display:flex; flex-wrap:wrap; gap:var(--s2); margin-bottom:var(--s4) }
+
+.readout{
+  font-family:var(--mono); font-weight:700; font-size:19px; min-width:78px; text-align:right;
+}
+
+/* ---------- panels ------------------------------------------------------ */
+.grid{ display:grid; gap:var(--s4) }
+.g2{ grid-template-columns:repeat(auto-fit,minmax(620px,1fr)) }
+.g3{ grid-template-columns:repeat(auto-fit,minmax(320px,1fr)) }
+
+.panel{
+  background:var(--sheet); border:1px solid var(--rule); border-radius:var(--r);
+  padding:var(--s3) var(--s4) var(--s4);
+}
+.panel > h2{
+  margin:0 0 var(--s2); font-family:var(--mono); font-size:11.5px; font-weight:700;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--tick);
+  display:flex; align-items:baseline; gap:var(--s2);
+}
+.panel > h2 .hint{ text-transform:none; letter-spacing:0; font-weight:400; color:var(--tick); font-size:12px; flex:1 1 auto }
+.panel svg{ display:block; width:100%; height:auto; overflow:visible }
+/* Labels sit on top of lines constantly in these drawings. Give every one of them
+   the break a draughtsman would leave in the line underneath. */
+.panel svg text{ paint-order:stroke fill; stroke:var(--halo,#fff); stroke-width:3px;
+                 stroke-linejoin:round; stroke-linecap:round }
+/* a label sitting on a dark fill is already legible — a white halo would erase it */
+.panel svg text.onfill{ stroke:none }
+
+/* ---------- data cells -------------------------------------------------- */
+.cells{ display:grid; grid-template-columns:repeat(auto-fit,minmax(152px,1fr)); gap:var(--s2) }
+.cell{
+  border:1px solid var(--rule); border-left-width:3px; border-radius:var(--r);
+  padding:8px 11px; background:var(--ground-2);
+}
+.cell .k{ font-family:var(--mono); font-size:11px; font-weight:700; letter-spacing:.06em; color:var(--tick) }
+.cell .v{ font-family:var(--mono); font-weight:700; font-size:21px; line-height:1.25; margin-top:2px }
+.cell .n{ font-size:11.5px; color:var(--tick); margin-top:2px; line-height:1.35 }
+.cell.red   { border-left-color:var(--aus);   background:var(--aus-wash)   } .cell.red   .v{ color:var(--aus) }
+.cell.blue  { border-left-color:var(--dye);   background:var(--dye-wash)   } .cell.blue  .v{ color:var(--dye) }
+.cell.brass { border-left-color:var(--brass); background:var(--brass-wash) } .cell.brass .v{ color:var(--brass) }
+.cell.jade  { border-left-color:var(--jade);  background:var(--jade-wash)  } .cell.jade  .v{ color:var(--jade) }
+.cell.plain { border-left-color:var(--rule) }
+
+/* ---------- callout ----------------------------------------------------- */
+.callout{
+  margin-top:var(--s3); border:1px solid var(--rule); border-left:3px solid var(--aus);
+  background:var(--aus-wash); border-radius:var(--r); padding:10px 13px; font-size:14.5px;
+  display:none;
+}
+.callout.show{ display:block }
+.callout b{ color:var(--aus) }
+.callout.neutral{ border-left-color:var(--dye); background:var(--dye-wash) }
+.callout.neutral b{ color:var(--dye) }
+
+/* ---------- notice list ------------------------------------------------- */
+.notice{
+  margin-top:var(--s4); background:var(--sheet); border:1px solid var(--rule);
+  border-radius:var(--r); padding:var(--s4);
+}
+.notice h2{
+  margin:0 0 var(--s3); font-family:var(--mono); font-size:11.5px; font-weight:700;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--tick);
+}
+.notice ol{ margin:0; padding-left:20px }
+.notice li{ margin:7px 0; font-size:15px }
+.notice li b{ color:var(--ink) }
+kbd{
+  font-size:11.5px; font-weight:600; border:1px solid var(--rule); border-bottom-width:2px;
+  border-radius:4px; padding:2px 5px; background:var(--ground-2);
+}
+.foot{ margin-top:var(--s3); color:var(--tick); font-size:13px }
+
+/* ---------- title block: the signature ---------------------------------- */
+.titleblock{
+  margin:var(--s7) var(--s5) var(--s5); margin-left:auto; width:min(520px,calc(100% - 48px));
+  border:1.5px solid var(--ink); border-radius:2px; background:var(--sheet);
+  font-family:var(--mono); font-size:11px; overflow:hidden;
+}
+.titleblock .row{ display:grid; border-bottom:1px solid var(--ink) }
+.titleblock .row:last-child{ border-bottom:0 }
+.titleblock .r3{ grid-template-columns:1fr 1fr 1fr }
+.titleblock .r2{ grid-template-columns:2fr 1fr }
+.titleblock .c{ padding:6px 9px; border-right:1px solid var(--ink) }
+.titleblock .c:last-child{ border-right:0 }
+.titleblock .lab{ font-size:9px; letter-spacing:.14em; color:var(--tick); text-transform:uppercase; display:block }
+.titleblock .big{ font-size:14px; font-weight:700; letter-spacing:.04em }
+
+/* ---------- landing ----------------------------------------------------- */
+.hero{
+  display:grid; grid-template-columns:1.05fr .95fr; gap:var(--s7);
+  align-items:center; padding:var(--s8) var(--s5) var(--s7);
+  border-bottom:1px solid var(--rule);
+}
+.hero h1{
+  margin:var(--s3) 0 var(--s4);
+  font-size:clamp(38px,5.6vw,74px); line-height:.98; letter-spacing:-.035em; font-weight:700;
+}
+.hero h1 em{ font-style:normal; color:var(--aus) }
+.hero p{ margin:0 0 var(--s5); font-size:18.5px; line-height:1.5; color:var(--ink-2); max-width:52ch }
+.hero .stats{ display:flex; gap:var(--s6); border-top:1px solid var(--rule); padding-top:var(--s4) }
+.hero .stat .n{ font-family:var(--mono); font-size:27px; font-weight:700; letter-spacing:-.02em }
+.hero .stat .l{ font-family:var(--mono); font-size:10.5px; letter-spacing:.13em; text-transform:uppercase; color:var(--tick); margin-top:2px }
+.instrument{
+  background:var(--ground-2); border:1px solid var(--rule); border-radius:var(--r);
+  padding:var(--s4); position:relative;
+}
+.instrument .cap{
+  position:absolute; left:var(--s4); bottom:var(--s3);
+  font-family:var(--mono); font-size:10.5px; letter-spacing:.12em; color:var(--tick);
+}
+/* uppercasing turns sigma into Sigma and tau into T — never apply it to a
+   readout that carries symbols */
+.instrument .cap .lit{ text-transform:uppercase }
+
+.section{ padding:var(--s7) var(--s5) }
+.section > header{ margin-bottom:var(--s5); border-bottom:1px solid var(--rule); padding-bottom:var(--s3) }
+.section > header h2{ margin:6px 0 0; font-size:27px; letter-spacing:-.02em }
+.section > header p{ margin:6px 0 0; color:var(--ink-2); max-width:70ch }
+
+.cards{ display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:var(--s4) }
+.card{
+  display:flex; flex-direction:column; text-decoration:none; color:inherit;
+  background:var(--sheet); border:1px solid var(--rule); border-radius:var(--r);
+  overflow:hidden; transition:border-color .14s, transform .14s, box-shadow .14s;
+}
+.card:hover{ border-color:var(--ink); transform:translateY(-2px); box-shadow:var(--shadow) }
+.card .thumb{ background:var(--ground-2); border-bottom:1px solid var(--rule-2); padding:var(--s3) }
+.card .thumb svg{ display:block; width:100%; height:auto }
+.card .body{ padding:var(--s3) var(--s4) var(--s4); display:flex; flex-direction:column; gap:6px; flex:1 }
+.card .ch{
+  font-family:var(--mono); font-size:10.5px; font-weight:700; letter-spacing:.14em;
+  color:var(--aus); text-transform:uppercase;
+}
+.card h3{ margin:0; font-size:19px; letter-spacing:-.012em }
+.card p{ margin:0; font-size:14.5px; color:var(--ink-2); line-height:1.45 }
+.card .go{
+  margin-top:auto; padding-top:var(--s2); font-family:var(--mono); font-size:11.5px;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--tick);
+}
+.card:hover .go{ color:var(--aus) }
+.card.soon{ opacity:.62 }
+.card.soon:hover{ transform:none; border-color:var(--rule); box-shadow:none; cursor:default }
+
+@media (max-width:1000px){
+  .hero{ grid-template-columns:1fr; gap:var(--s5); padding:var(--s6) var(--s4) var(--s5) }
+  .g2,.g3{ grid-template-columns:1fr }
+  .wrap,.section{ padding-left:var(--s4); padding-right:var(--s4) }
+  .titleblock{ margin-left:var(--s4); margin-right:var(--s4); width:auto }
+}
+@media (prefers-reduced-motion:reduce){
+  *{ animation-duration:.001ms !important; transition-duration:.001ms !important }
+}

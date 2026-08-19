@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AGMA Gear Stress — Factor by Factor · MCE 323</title>
+<link rel="stylesheet" href="../assets/site.css">
+<style>
+  .layers{ display:grid; gap:6px }
+  .layer{
+    display:grid; grid-template-columns:auto 1fr auto auto; gap:10px; align-items:center;
+    border:1px solid var(--rule); border-radius:var(--r); padding:8px 11px; background:var(--ground-2);
+    cursor:pointer; user-select:none; transition:border-color .12s, background .12s;
+  }
+  .layer:hover{ border-color:var(--tick) }
+  .layer.on{ background:var(--sheet); border-color:var(--dye) }
+  .layer input{ accent-color:var(--dye); width:16px; height:16px }
+  .layer .sym{ font-family:var(--mono); font-weight:700; font-size:14px; min-width:34px }
+  .layer .why{ font-size:13px; color:var(--ink-2) }
+  .layer .num{ font-family:var(--mono); font-weight:700; font-size:14px; color:var(--tick) }
+  .layer.on .num{ color:var(--dye) }
+  .group{ font-family:var(--mono); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase;
+          color:var(--aus); font-weight:700; margin:12px 0 4px }
+  .verdict{
+    margin-top:var(--s4); border:1.5px solid var(--ink); border-radius:var(--r);
+    padding:var(--s4); background:var(--sheet);
+  }
+  .verdict h3{ margin:0 0 8px; font-family:var(--mono); font-size:12px; letter-spacing:.14em;
+               text-transform:uppercase; color:var(--tick) }
+  .verdict .big{ font-size:26px; font-weight:700; letter-spacing:-.02em }
+  .verdict .big em{ font-style:normal; color:var(--aus) }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+<header class="mod-head">
+  <span class="eyebrow">Shigley ch. 14 · Spur and helical gears</span>
+  <h1>AGMA Stress, Factor by Factor</h1>
+  <p>Start with every factor set to 1 — that is the whole method in one line. Then switch the corrections on one at a time and watch where the stress actually comes from. The same logic as the Marin factors in chapter 6: begin from an ideal, then correct toward reality.</p>
+</header>
+
+<div class="wrap">
+  <div class="presets" id="presets"></div>
+
+  <div class="controls">
+    <div class="field"><label for="np">NP</label><input type="number" id="np" step="1" value="17" style="width:64px"></div>
+    <div class="field"><label for="ng">NG</label><input type="number" id="ng" step="1" value="52" style="width:64px"></div>
+    <div class="field"><label for="mn">mn</label><input type="number" id="mn" step="0.5" value="2.5" style="width:64px"></div>
+    <div class="field"><label for="psi">ψ°</label><input type="number" id="psi" step="5" value="30" style="width:60px"></div>
+    <div class="field"><label for="fw">face F</label><input type="number" id="fw" step="2" value="38" style="width:64px"></div>
+    <div class="divider"></div>
+    <div class="field"><label for="pw">power W</label><input type="number" id="pw" step="100" value="2980" style="width:80px"></div>
+    <div class="field"><label for="rpm">rev/min</label><input type="number" id="rpm" step="100" value="1800" style="width:76px"></div>
+    <div class="field"><label for="hb">HB</label><input type="number" id="hb" step="10" value="240" style="width:64px"></div>
+    <div class="field"><label for="qv">Qv</label><input type="number" id="qv" step="1" min="3" max="12" value="6" style="width:56px"></div>
+    <div class="divider"></div>
+    <button id="allon">All factors on</button>
+    <button id="alloff" class="primary">Reset to 1</button>
+  </div>
+
+  <div class="grid g2">
+    <div class="panel">
+      <h2>Where the stress comes from <span class="hint">each factor multiplies the one before</span></h2>
+      <svg id="fall" viewBox="0 0 660 400" role="img" aria-label="Waterfall of AGMA correction factors"></svg>
+    </div>
+    <div class="panel">
+      <h2>Switch the corrections on</h2>
+      <div class="group">Is the load bigger than I think?</div>
+      <div class="layers" id="grp1"></div>
+      <div class="group">Is it spread the way I assumed?</div>
+      <div class="layers" id="grp2"></div>
+      <div class="group">Is my gear like the test specimen?</div>
+      <div class="layers" id="grp3"></div>
+    </div>
+  </div>
+
+  <div class="grid g2" style="margin-top:16px">
+    <div class="panel">
+      <h2>Results</h2>
+      <div class="cells" id="out"></div>
+    </div>
+    <div class="panel">
+      <h2>Which mode governs</h2>
+      <svg id="gov" viewBox="0 0 660 220" role="img" aria-label="Bending against wear safety factors"></svg>
+      <div class="verdict" id="verdict"></div>
+    </div>
+  </div>
+
+  <div class="notice">
+    <h2>What to notice</h2>
+    <ol>
+      <li><b>Set every factor to 1 and the method is one line:</b> σ = W<sup>t</sup> / (F·m<sub>t</sub>·J). Everything else is a correction. Students who see this first stop being frightened of the equation.</li>
+      <li><b>The corrections are not equal.</b> Switch them on one at a time and watch the waterfall — K<sub>v</sub> and K<sub>s</sub> usually move the number far more than K<sub>B</sub>. Knowing which ones matter is engineering judgement.</li>
+      <li><b>You cannot compare S<sub>F</sub> with S<sub>H</sub> directly.</b> Bending stress is proportional to load; contact stress goes as its square root. So the honest comparison is S<sub>F</sub> against S<sub>H</sub>², and it usually changes the answer.</li>
+      <li><b>Wear normally governs a well-made gearset.</b> Raise the hardness and watch the wear factor climb much faster than the bending factor — which is why gear teeth are surface hardened.</li>
+    </ol>
+  </div>
+</div>
+
+<div id="tb"></div>
+</div>
+
+<script src="../assets/instrument.js"></script>
+<script>
+"use strict";
+mountTopbar({});
+$("tb").innerHTML = titleblock({ sheet:"07", title:"AGMA gear stress", ch:"14" });
+
+let G={ NP:17, NG:52, mn:2.5, psi:30, F:38, P:2980, n:1800, HB:240, Qv:6 };
+const ON={ Ko:false, Kv:false, Ks:false, KH:false, KB:false, YN:false, YZ:false };
+
+/* Lewis form factor, Table 14-2, interpolated */
+const LEWIS=[[12,.245],[14,.277],[16,.296],[18,.309],[20,.322],[22,.331],[24,.337],[26,.346],
+             [28,.353],[30,.359],[34,.371],[38,.384],[43,.397],[50,.409],[60,.422],[75,.435],
+             [100,.447],[150,.460],[300,.472],[400,.480]];
+function lewisY(N){
+  if(N<=LEWIS[0][0]) return LEWIS[0][1];
+  for(let i=1;i<LEWIS.length;i++){
+    if(N<=LEWIS[i][0]){ const [a,ya]=LEWIS[i-1],[b,yb]=LEWIS[i];
+      return ya+(yb-ya)*(N-a)/(b-a); }
+  }
+  return .485;
+}
+function base(){
+  const mt=G.mn/Math.cos(G.psi*D), dP=G.NP*mt, dG=G.NG*mt;
+  const V=Math.PI*dP*G.n/60000, Wt=G.P/V;
+  return {mt,dP,dG,V,Wt};
+}
+function factors(){
+  const {mt,dP,V,Wt}=base();
+  const B=0.25*Math.pow(12-G.Qv,2/3), A=50+56*(1-B);
+  const Kv=Math.pow((A+Math.sqrt(200*V))/A,B);
+  const Ks=1.192*Math.pow(G.F*mt*Math.sqrt(lewisY(G.NP)),0.0535);
+  const Cpf=clamp(G.F/(10*dP)-0.0375+4.92e-4*G.F,0,0.4);
+  const KH=1+1*(Cpf+0.15);
+  const YN=1.3558*Math.pow(1e8,-0.0178), ZN=1.4488*Math.pow(1e8,-0.023);
+  return {Ko:1.00, Kv, Ks, KH, KB:1.0, YN, YZ:0.85, ZN, ZW:1, ZE:191, ZR:1};
+}
+const val = k => ON[k] ? factors()[k] : 1;
+
+/* transverse pressure angle and the geometry factors */
+function geomJ(){
+  const phit=Math.atan(Math.tan(20*D)/Math.cos(G.psi*D));
+  const mG=G.NG/G.NP, mN=0.6895;
+  const ZI=Math.cos(phit)*Math.sin(phit)/(2*mN)*(mG/(mG+1));
+  const J=0.423;                       /* Fig. 14-7/14-8 for this geometry */
+  return {phit:phit/D, ZI, J, mG};
+}
+function results(){
+  const b=base(), f=factors(), g=geomJ();
+  const sig = b.Wt*val("Ko")*val("Kv")*val("Ks")*(1/(G.F*b.mt))*(val("KH")*val("KB")/g.J);
+  const St = 0.533*G.HB+88.3, Sc = 2.22*G.HB+200;
+  const SF = St/sig * (val("YN")/(1*val("YZ")));
+  const sc = f.ZE*Math.sqrt(b.Wt*val("Ko")*val("Kv")*val("Ks")*(val("KH")/(b.dP*G.F))*(f.ZR/g.ZI));
+  const SH = Sc/sc * ((ON.YN?f.ZN:1)*f.ZW/(1*val("YZ")));
+  return {...b,...g,sig,sc,St,Sc,SF,SH};
+}
+
+/* ---------- waterfall -------------------------------------------------------- */
+function drawFall(){
+  const b=base(), g=geomJ();
+  const s0=b.Wt/(G.F*b.mt*g.J);
+  const seq=[["baseline",1],["Ko",val("Ko")],["Kv",val("Kv")],["Ks",val("Ks")],["KH",val("KH")],["KB",val("KB")]];
+  let run=s0; const steps=[{k:"W t /(F·mt·J)",v:s0,d:s0}];
+  seq.slice(1).forEach(([k,f])=>{ const nv=run*f; steps.push({k,v:nv,d:nv-run,f}); run=nv; });
+  const max=Math.max(...steps.map(s=>s.v))*1.22;
+  const f2=frame({w:660,h:400,l:66,r:24,t:22,b:66,xmin:0,xmax:steps.length,ymin:0,ymax:max,
+    ylabel:"bending stress σ (MPa)", xstep:1, xfmt:()=>"", yfmt:v=>fmt(v,0), zeroY:false});
+  let out=f2.g;
+  steps.forEach((s,i)=>{
+    const x=f2.X(i+0.5), w=f2.pw/steps.length*0.6;
+    const y0=i===0?f2.Y(0):f2.Y(s.v-s.d), y1=f2.Y(s.v);
+    const col=i===0?"var(--dye)":(s.d>0.01?"var(--aus)":"#c3ced8");
+    out += SVG.rect(x-w/2,Math.min(y0,y1),w,Math.max(2,Math.abs(y1-y0)),col);
+    if(i>0) out += SVG.line(f2.X(i-0.5)+w/2,f2.Y(s.v-s.d),x-w/2,f2.Y(s.v-s.d),"#c3ced8",1,"3 3");
+    out += SVG.text(x,f2.t+f2.ph+18,s.k,{col:"#46545f",size:11.5,mono:true,weight:700});
+    if(i>0&&s.f) out += SVG.text(x,f2.t+f2.ph+34,"×"+fmt(s.f,3),{col:s.d>0.01?"var(--aus)":"#8493a0",size:11,mono:true,weight:500});
+    out += SVG.text(x,y1-8,fmt(s.v,1),{col:"#10151b",size:12,mono:true,weight:700});
+  });
+  out += SVG.text(f2.l+6,f2.t+16,`all factors at 1 gives ${fmt(s0,1)} MPa — everything above that is correction`,
+        {col:"#8493a0",size:11.5,anchor:"start",weight:400});
+  $("fall").innerHTML=out;
+}
+
+/* ---------- governing mode ---------------------------------------------------- */
+function drawGov(){
+  const r=results(), sf=r.SF, sh2=r.SH*r.SH;
+  const max=Math.max(sf,sh2)*1.25;
+  let g="", x0=150, w=430;
+  const bar=(y,v,col,lab,sub)=>{
+    let s=SVG.rect(x0,y,Math.max(2,w*v/max),26,col);
+    s+=SVG.text(x0-12,y+18,lab,{col:"#46545f",size:13,anchor:"end",mono:true,weight:700});
+    s+=SVG.text(x0+Math.max(2,w*v/max)+10,y+18,fmt(v,2),{col,size:14,anchor:"start",mono:true,weight:700});
+    if(sub) s+=SVG.text(x0,y+44,sub,{col:"#8493a0",size:11.5,anchor:"start",weight:400});
+    return s;
+  };
+  g += bar(30,sf,"var(--dye)","S_F","bending — stress ∝ load");
+  g += bar(110,sh2,"var(--aus)","(S_H)²","wear — stress ∝ √load, so square it to compare");
+  g += SVG.line(x0,20,x0,170,"#b9c4ce",1.2);
+  $("gov").innerHTML=g;
+  const wins = sh2<sf ? "WEAR" : "BENDING";
+  $("verdict").innerHTML =
+    `<h3>Verdict</h3><div class="big"><em>${wins}</em> governs this gearset.</div>
+     <p style="margin:8px 0 0;color:var(--ink-2);font-size:14.5px">
+     S<sub>F</sub> = ${fmt(sf,2)} against (S<sub>H</sub>)² = ${fmt(sh2,2)}.
+     Comparing S<sub>F</sub> with S<sub>H</sub> = ${fmt(r.SH,2)} directly would have pointed the other way — which is
+     the mistake this comparison exists to prevent.</p>`;
+}
+
+/* ---------- layers ------------------------------------------------------------ */
+const LAYERS=[
+  ["grp1","Ko","overload from the driven machine — shock, starts, jams"],
+  ["grp1","Kv","dynamic — teeth strike each other at speed, and manufacturing quality decides how hard"],
+  ["grp2","KH","load distribution — the face is never loaded evenly"],
+  ["grp2","KB","rim thickness — a thin rim flexes under the tooth"],
+  ["grp3","Ks","size — big teeth are weaker per unit area than small ones"],
+  ["grp3","YN","stress-cycle — the strength you get at 10⁸ cycles, not at 10⁷"],
+  ["grp3","YZ","reliability — the published strengths are 99% values"]
+];
+function renderLayers(){
+  const f=factors();
+  ["grp1","grp2","grp3"].forEach(id=>$(id).innerHTML="");
+  LAYERS.forEach(([grp,k,why])=>{
+    $(grp).insertAdjacentHTML("beforeend",
+      `<label class="layer ${ON[k]?"on":""}" data-k="${k}">
+         <input type="checkbox" ${ON[k]?"checked":""}>
+         <span class="sym">${k}</span>
+         <span class="why">${why}</span>
+         <span class="num">${fmt(f[k],3)}</span>
+       </label>`);
+  });
+}
+document.addEventListener("change",e=>{
+  const l=e.target.closest(".layer"); if(!l) return;
+  ON[l.dataset.k]=e.target.checked; redraw();
+});
+
+/* ---------- readouts ----------------------------------------------------------- */
+function out(){
+  const r=results();
+  cells("out",[
+    {k:"mt", v:fmt(r.mt,3)+" mm", n:"mn / cos ψ"},
+    {k:"dP", v:fmt(r.dP,2)+" mm"},
+    {k:"V",  v:fmt(r.V,2)+" m/s", n:"pitch-line velocity"},
+    {k:"Wt", v:fmt(r.Wt,1)+" N", tone:"blue", n:"H / V"},
+    {k:"σ bending", v:fmt(r.sig,2)+" MPa", tone:"blue"},
+    {k:"σc contact", v:fmt(r.sc,1)+" MPa", tone:"red"},
+    {k:"St / Sc", v:fmt(r.St,0)+" / "+fmt(r.Sc,0), n:`grade 1, HB ${G.HB}`},
+    {k:"S_F", v:fmt(r.SF,2), tone:"blue"},
+    {k:"S_H", v:fmt(r.SH,2), tone:"red"},
+    {k:"(S_H)²", v:fmt(r.SH*r.SH,2), tone:"red", n:"compare this with S_F"}
+  ]);
+}
+
+/* ---------- wiring -------------------------------------------------------------- */
+function redraw(){ renderLayers(); drawFall(); drawGov(); out(); }
+function read(){
+  G.NP=+$("np").value||17; G.NG=+$("ng").value||52; G.mn=+$("mn").value||2.5;
+  G.psi=+$("psi").value||0; G.F=+$("fw").value||10; G.P=+$("pw").value||100;
+  G.n=+$("rpm").value||100; G.HB=+$("hb").value||200; G.Qv=clamp(+$("qv").value||6,3,12);
+  redraw();
+}
+["np","ng","mn","psi","fw","pw","rpm","hb","qv"].forEach(id=>$(id).addEventListener("input",read));
+$("allon").addEventListener("click",()=>{ Object.keys(ON).forEach(k=>ON[k]=true); redraw(); });
+$("alloff").addEventListener("click",()=>{ Object.keys(ON).forEach(k=>ON[k]=false); redraw(); });
+
+const PRESETS=[
+  ["Example 14-5",17,52,2.5,30,38,2980,1800,240,6],
+  ["Open gearing, coarse",20,36,2.5,0,18,120,100,200,6],
+  ["Hardened teeth",17,52,2.5,30,38,2980,1800,400,8],
+  ["Wide face",17,52,2.5,30,75,2980,1800,240,6]
+];
+$("presets").innerHTML=PRESETS.map((p,i)=>`<button class="chip" data-i="${i}">${p[0]}</button>`).join("");
+$("presets").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b)return;
+  const [,np,ng,mn,ps,fw,pw,rpm,hb,qv]=PRESETS[+b.dataset.i];
+  $("np").value=np; $("ng").value=ng; $("mn").value=mn; $("psi").value=ps; $("fw").value=fw;
+  $("pw").value=pw; $("rpm").value=rpm; $("hb").value=hb; $("qv").value=qv; read();
+});
+read();
+</script>
+</body>
+</html>

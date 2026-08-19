@@ -1,0 +1,13 @@
+{
+  "name": "mce323-interactives",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Interactive modules for MCE 323 Mechanical Design",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0"
+  },
+  "type": "module"
+}

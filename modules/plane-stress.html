@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plane Stress Transformation · MCE 323</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+<div class="sheet">
+
+<header class="mod-head">
+  <span class="eyebrow">Shigley ch. 3 · Load and stress analysis</span>
+  <h1>Plane Stress Transformation</h1>
+  <p>One stress state, three views. Rotate the cutting plane and watch the element, the θ&#8209;sweep and Mohr's circle move together — because they are the same information drawn three ways.</p>
+</header>
+
+<div class="wrap">
+
+  <div class="presets" id="presets"></div>
+
+  <div class="controls">
+    <div class="field"><label for="sx">σx</label><input type="number" id="sx" step="5" value="10"></div>
+    <div class="field"><label for="sy">σy</label><input type="number" id="sy" step="5" value="0"></div>
+    <div class="field"><label for="txy">τxy</label><input type="number" id="txy" step="5" value="5"></div>
+    <button id="sense" class="chip" title="Shigley's convention: a counter-clockwise shear couple is positive">ccw (+)</button>
+    <div class="divider"></div>
+    <div class="field" style="flex:1 1 300px">
+      <label for="th">θ</label>
+      <input type="range" id="th" min="0" max="180" step="0.5" value="0">
+      <span class="readout" id="thv">0.0°</span>
+    </div>
+    <div class="divider"></div>
+    <button id="play" class="primary">▶&nbsp; Sweep</button>
+    <button id="toP">Jump to θp</button>
+    <button id="toS">Jump to θs</button>
+    <button id="predict">Predict mode</button>
+  </div>
+
+  <div class="grid g2">
+    <div class="panel">
+      <h2>Element on the rotated plane</h2>
+      <svg id="elem" viewBox="0 0 500 440" role="img" aria-label="Stress element rotated by theta"></svg>
+    </div>
+    <div class="panel">
+      <h2>Stress vs plane orientation</h2>
+      <svg id="plot" viewBox="0 0 620 420" role="img" aria-label="Stress components against theta"></svg>
+    </div>
+    <div class="panel">
+      <h2>Mohr's circle <span class="hint">τ positive downward, so the point turns with the element — through 2θ</span></h2>
+      <svg id="mohr" viewBox="0 0 620 420" role="img" aria-label="Mohr's circle"></svg>
+    </div>
+    <div class="panel">
+      <h2>Readouts</h2>
+      <div class="cells" id="out"></div>
+      <div class="callout" id="note"></div>
+    </div>
+  </div>
+
+  <div class="notice">
+    <h2>What to notice</h2>
+    <ol>
+      <li><b>Principal planes are the planes of zero shear.</b> Sweep θ and stop where the shear curve crosses zero — σ<sub>x′</sub> is simultaneously at an extreme. That coincidence <em>is</em> the definition, not a consequence of it.</li>
+      <li><b>σ<sub>x′</sub> + σ<sub>y′</sub> never changes.</b> Watch the invariant while everything else moves. It is the reason the centre of Mohr's circle sits still.</li>
+      <li><b>Maximum shear is always 45° from the principal planes</b> — for every state you can type in. And there, σ<sub>x′</sub> = σ<sub>y′</sub> = σ<sub>avg</sub>.</li>
+      <li><b>Mohr's circle turns twice as fast.</b> Rotate the element θ and the point travels 2θ. Try <em>Pure torsion</em>: principal planes land at 45°, which is why a twisted piece of chalk breaks on a 45° helix.</li>
+    </ol>
+    <p class="foot"><kbd>←</kbd> <kbd>→</kbd> step θ · <kbd>Shift</kbd> for a larger step · <kbd>Space</kbd> to sweep · <b>Predict mode</b> hides the answers so the class commits before the reveal.</p>
+  </div>
+</div>
+
+<div id="tb"></div>
+</div>
+
+<script src="../assets/instrument.js"></script>
+<script>
+"use strict";
+/* Sign convention follows Shigley: τxy is positive when the shear couple on
+   the vertical faces is counter-clockwise. "50 MPa cw" is therefore −50. */
+
+const S = { sx:10, sy:0, txy:5 };
+let theta = 0, ccw = true, predict = false, revealed = false;
+
+mountTopbar({});
+$("tb").innerHTML = titleblock({ sheet:"01", title:"Plane stress transformation", ch:"3" });
+
+const at = th => {
+  const t = th*D, avg=(S.sx+S.sy)/2, dif=(S.sx-S.sy)/2, c=Math.cos(2*t), s=Math.sin(2*t);
+  return { sxp: avg+dif*c+S.txy*s, syp: avg-dif*c-S.txy*s, txp: -dif*s+S.txy*c };
+};
+const principal = () => {
+  const avg=(S.sx+S.sy)/2, dif=(S.sx-S.sy)/2, R=Math.hypot(dif,S.txy);
+  const thp = 0.5*Math.atan2(S.txy,dif)/D;
+  return { avg, R, s1:avg+R, s2:avg-R, thp, ths:thp+45 };
+};
+const n180 = a => ((a%180)+180)%180;
+const hiding = () => predict && !revealed;
+const q = v => hiding() ? "—" : v;
+function angLab(a){ const n=n180(a); return n>90 ? `${fmt(n,1)}° <tspan>≡</tspan> ${fmt(n-180,1)}°` : `${fmt(n,1)}°`; }
+function angPlain(a){ const n=n180(a); return n>90 ? `${fmt(n,1)}° (≡ ${fmt(n-180,1)}°)` : `${fmt(n,1)}°`; }
+
+/* ---------- element ------------------------------------------------------ */
+function drawElement(){
+  const cx=250, cy=196, a=66, st=at(theta), P=principal();
+  const scale = 48 / Math.max(1, Math.abs(P.avg)+P.R);
+  const t=theta*D, ct=Math.cos(t), sn=Math.sin(t);
+  const X=(u,v)=>cx+(u*ct-v*sn), Y=(u,v)=>cy-(u*sn+v*ct);
+  let g="";
+
+  g += SVG.centre(cx-172,cy,cx+172,cy) + SVG.centre(cx,cy-160,cx,cy+160);
+  g += SVG.text(cx+180,cy+4,"x",{col:"#8493a0",size:13,anchor:"start",mono:true});
+  g += SVG.text(cx-13,cy-168,"y",{col:"#8493a0",size:13,anchor:"end",mono:true});
+
+  g += SVG.line(X(-136,0),Y(-136,0),X(136,0),Y(136,0),"#b9c4ce",1.4);
+  g += SVG.line(X(0,-128),Y(0,-128),X(0,128),Y(0,128),"#b9c4ce",1.4);
+  g += SVG.text(X(170,0),Y(170,0)+4,"x′",{col:"#46545f",size:14,mono:true});
+  g += SVG.text(X(0,158),Y(0,158),"y′",{col:"#46545f",size:14,mono:true});
+
+  g += `<polygon points="${X(-a,-a)},${Y(-a,-a)} ${X(a,-a)},${Y(a,-a)} ${X(a,a)},${Y(a,a)} ${X(-a,a)},${Y(-a,a)}" fill="#eef2f5" stroke="#46545f" stroke-width="2"/>`;
+
+  if (theta > 0.4){
+    const r=112;
+    g += SVG.path(`M ${cx+r} ${cy} A ${r} ${r} 0 ${theta>180?1:0} 0 ${X(r,0)} ${Y(r,0)}`,"var(--aus)",1.8);
+    const m=(theta/2)*D;
+    g += SVG.text(cx+(r+17)*Math.cos(m), cy-(r+17)*Math.sin(m)+4, "θ", {col:"var(--aus)",size:15,mono:true,weight:700});
+  }
+
+  const L = v => Math.abs(v)*scale;
+  const LIVE = 0.05;                       /* a zero stress gets no arrow at all */
+  const nx=L(st.sxp), gx=st.sxp>=0?1:-1, hasX=Math.abs(st.sxp)>LIVE;
+  if(hasX){
+    g += SVG.arrow(X(a*gx,0),Y(a*gx,0),X((a+nx)*gx,0),Y((a+nx)*gx,0),"var(--dye)",3);
+    g += SVG.arrow(X(-a*gx,0),Y(-a*gx,0),X(-(a+nx)*gx,0),Y(-(a+nx)*gx,0),"var(--dye)",3);
+  }
+  const ny=L(st.syp), gy=st.syp>=0?1:-1, hasY=Math.abs(st.syp)>LIVE;
+  if(hasY){
+    g += SVG.arrow(X(0,a*gy),Y(0,a*gy),X(0,(a+ny)*gy),Y(0,(a+ny)*gy),"var(--dye-2)",3);
+    g += SVG.arrow(X(0,-a*gy),Y(0,-a*gy),X(0,-(a+ny)*gy),Y(0,-(a+ny)*gy),"var(--dye-2)",3);
+  }
+
+  const tl=Math.min(54,Math.abs(st.txp)*scale), ts=st.txp>=0?1:-1;
+  if (tl>3){
+    const h=tl*0.5;
+    g += SVG.arrow(X(a,-h*ts),Y(a,-h*ts),X(a,h*ts),Y(a,h*ts),"var(--jade)",2.8,9);
+    g += SVG.arrow(X(-a,h*ts),Y(-a,h*ts),X(-a,-h*ts),Y(-a,-h*ts),"var(--jade)",2.8,9);
+    g += SVG.arrow(X(-h*ts,a),Y(-h*ts,a),X(h*ts,a),Y(h*ts,a),"var(--jade)",2.8,9);
+    g += SVG.arrow(X(h*ts,-a),Y(h*ts,-a),X(-h*ts,-a),Y(-h*ts,-a),"var(--jade)",2.8,9);
+  }
+
+  if (!hiding()){
+    if(hasX) g += SVG.text(X((a+nx+8)*gx,20),Y((a+nx+8)*gx,20),fmt(st.sxp,1),{col:"var(--dye)",size:14,mono:true,weight:700});
+    if(hasY) g += SVG.text(X(22,(a+ny+10)*gy),Y(22,(a+ny+10)*gy),fmt(st.syp,1),{col:"var(--dye-2)",size:14,mono:true,weight:700});
+    if(tl>3) g += SVG.text(X(a+30,42),Y(a+30,42),fmt(st.txp,1),{col:"var(--jade)",size:13.5,mono:true,weight:700});
+    if (Math.abs(st.txp)<0.3)
+      g += SVG.text(14,24,"τ = 0 — a principal plane",{col:"var(--aus)",size:15,weight:700,anchor:"start"});
+  }
+
+  const ly=396;
+  g += SVG.line(24,ly,46,ly,"var(--dye)",3)+SVG.text(52,ly+4,"σx′",{col:"#46545f",size:12.5,anchor:"start",mono:true});
+  g += SVG.line(104,ly,126,ly,"var(--dye-2)",3)+SVG.text(132,ly+4,"σy′",{col:"#46545f",size:12.5,anchor:"start",mono:true});
+  g += SVG.line(184,ly,206,ly,"var(--jade)",3)+SVG.text(212,ly+4,"τx′y′",{col:"#46545f",size:12.5,anchor:"start",mono:true});
+  g += SVG.text(250,ly+22,"arrow length ∝ magnitude · arrows reverse in compression",{col:"#8493a0",size:11.5,weight:400});
+  $("elem").innerHTML=g;
+}
+
+/* ---------- θ sweep ------------------------------------------------------ */
+let PF=null, plotBase="";
+function buildPlot(){
+  const P=principal(), M=Math.max(1,Math.abs(P.avg)+P.R)*1.2;
+  const f=frame({w:620,h:420,xmin:0,xmax:180,ymin:-M,ymax:M,
+    xlabel:"plane orientation θ (degrees)", ylabel:"stress",
+    xstep:30, xfmt:v=>v+"°", yfmt:v=>fmt(v,0)});
+  let g=f.g;
+  g += SVG.line(f.l,f.Y(P.avg),f.l+f.pw,f.Y(P.avg),"var(--dye)",1.3,"7 5");
+  g += SVG.text(f.l+6,f.Y(P.avg)-9,"σavg",{col:"var(--dye)",size:11.5,anchor:"start",mono:true,weight:700});
+  g += f.clip(
+        SVG.path(curve(th=>at(th).sxp,0,180,f.X,f.Y,360),"var(--dye)",2.6)
+      + SVG.path(curve(th=>at(th).syp,0,180,f.X,f.Y,360),"var(--dye-2)",2.6)
+      + SVG.path(curve(th=>at(th).txp,0,180,f.X,f.Y,360),"var(--jade)",2.6));
+  if (!hiding()){
+    [n180(P.thp),n180(P.thp+90)].forEach(A=>{
+      g += SVG.line(f.X(A),f.t,f.X(A),f.t+f.ph,"var(--aus)",1.4,"4 4");
+      g += SVG.circle(f.X(A),f.Y(0),4.5,"var(--aus)");
+    });
+    [n180(P.ths),n180(P.ths+90)].forEach(A=>
+      g += SVG.circle(f.X(A),f.Y(at(A).txp),4.5,"var(--brass)"));
+    g += SVG.text(f.X(n180(P.thp)),f.t+13,"θp",{col:"var(--aus)",size:12.5,mono:true,weight:700});
+    g += SVG.text(f.X(n180(P.ths)),f.t+13,"θs",{col:"var(--brass)",size:12.5,mono:true,weight:700});
+  }
+  plotBase=g; PF=f;
+}
+function drawPlot(){
+  const st=at(theta); let g=plotBase;
+  g += SVG.line(PF.X(theta),PF.t,PF.X(theta),PF.t+PF.ph,"#10151b",1.6);
+  [["sxp","var(--dye)"],["syp","var(--dye-2)"],["txp","var(--jade)"]].forEach(([k,c])=>
+    g += SVG.circle(PF.X(theta),PF.Y(st[k]),5.5,"#fff",c,2.6));
+  $("plot").innerHTML=g;
+}
+
+/* ---------- Mohr --------------------------------------------------------- */
+let MG=null, mohrBase="";
+function buildMohr(){
+  const cx=310, cy=200, P=principal();
+  const span=Math.max(P.R,Math.abs(P.avg)+P.R,1), k=138/span;
+  const MX=s=>cx+(s-P.avg)*k, MY=t=>cy+t*k;
+  let g="";
+  g += SVG.line(48,cy,596,cy,"#b9c4ce",1.5);
+  g += SVG.text(600,cy+4,"σ",{col:"#46545f",size:14,anchor:"start",mono:true});
+  g += SVG.centre(MX(P.avg),36,MX(P.avg),372);
+  g += SVG.text(MX(P.avg)-10,388,"τ ↓ positive",{col:"#8493a0",size:11.5,anchor:"end",mono:true});
+  g += SVG.circle(MX(P.avg),cy,P.R*k,"none","#8493a0",2.2);
+  g += SVG.circle(MX(P.avg),cy,3,"#8493a0");
+  if (!hiding()){
+    if (P.R < 0.5){
+      /* Equal biaxial: the circle degenerates to a point. Three labels would sit
+         on top of each other — say the one thing that is actually true instead. */
+      g += SVG.circle(MX(P.avg),cy,5,"var(--aus)");
+      g += SVG.text(MX(P.avg),cy-16,"σ1 = σ2 = "+fmt(P.s1,1),{col:"var(--aus)",size:12.5,mono:true,weight:700});
+      g += SVG.text(MX(P.avg),cy+26,"the circle is a point — no shear on any plane",
+                    {col:"var(--brass)",size:12,mono:true,weight:700});
+    } else {
+      [[P.s1,"σ1"],[P.s2,"σ2"]].forEach(([v,l])=>{
+        g += SVG.circle(MX(v),cy,5,"var(--aus)");
+        g += SVG.text(MX(v),cy-14,l+" = "+fmt(v,1),{col:"var(--aus)",size:12.5,mono:true,weight:700});
+      });
+      g += SVG.circle(MX(P.avg),MY(P.R),4.5,"var(--brass)");
+      g += SVG.text(MX(P.avg)+9,MY(P.R)+19,"τmax = "+fmt(P.R,1),{col:"var(--brass)",size:12,anchor:"start",mono:true,weight:700});
+    }
+  }
+  mohrBase=g; MG={cx,cy,MX,MY,k,P};
+}
+function drawMohr(){
+  const {cy,MX,MY,k,P}=MG, st=at(theta); let g=mohrBase;
+  const x=MX(st.sxp), y=MY(st.txp), xc=MX(st.syp), yc=MY(-st.txp);
+  if (theta>0.4){
+    const R=P.R*k, ar=Math.max(26,R*0.3), a1=2*theta*D;
+    g += SVG.path(`M ${MX(P.avg)+ar} ${cy} A ${ar} ${ar} 0 ${2*theta>180?1:0} 1 ${MX(P.avg)+ar*Math.cos(a1)} ${cy+ar*Math.sin(a1)}`,"var(--aus)",1.8);
+    const m=a1/2;
+    g += SVG.text(MX(P.avg)+(ar+17)*Math.cos(m),cy+(ar+17)*Math.sin(m)+4,"2θ",{col:"var(--aus)",size:14,mono:true,weight:700});
+  }
+  g += SVG.line(MX(P.avg),cy,x,y,"#10151b",1.8);
+  g += SVG.line(MX(P.avg),cy,xc,yc,"#c3ced8",1.4,"4 4");
+  g += SVG.circle(xc,yc,4.5,"#fff","#9fadba",2.2);
+  g += SVG.circle(x,y,7,"#fff","#10151b",3);
+  if (!hiding()){
+    g += SVG.text(x+16,y+4,"(σx′, τx′y′)",{col:"#10151b",size:12,mono:true,anchor:"start"});
+    if (P.R >= 0.5) g += SVG.text(xc-16,yc+4,"(σy′, −τ)",{col:"#9fadba",size:11.5,mono:true,anchor:"end"});
+  }
+  g += SVG.text(310,406,"rotate the element θ and this point travels 2θ",{col:"#8493a0",size:12,weight:400});
+  $("mohr").innerHTML=g;
+}
+
+/* ---------- readouts ----------------------------------------------------- */
+function drawOut(){
+  const st=at(theta), P=principal();
+  cells("out",[
+    {k:"σx′",       v:q(fmt(st.sxp)),           tone:"blue"},
+    {k:"σy′",       v:q(fmt(st.syp))},
+    {k:"τx′y′",     v:q(fmt(st.txp)),           tone:"jade"},
+    {k:"σx′ + σy′", v:q(fmt(st.sxp+st.syp)),    tone:"blue", n:"invariant — never changes"},
+    {k:"σ1",        v:q(fmt(P.s1)),             tone:"red"},
+    {k:"σ2",        v:q(fmt(P.s2)),             tone:"red"},
+    {k:"θp",        v:q(angPlain(P.thp)),       tone:"red",  n:"planes of zero shear"},
+    {k:"τmax",      v:q(fmt(P.R)),              tone:"brass"},
+    {k:"θs",        v:q(angPlain(P.ths)),       tone:"brass",n:"45° from θp"},
+    {k:"σavg",      v:q(fmt(P.avg)),                         n:"centre of Mohr's circle"}
+  ]);
+  if (hiding())
+    callout("note","<b>Predict mode.</b> Ask where the principal planes are and take a vote on the angle before you press Reveal.","neutral");
+  else if (Math.abs(st.txp)<0.3)
+    callout("note","<b>Zero shear.</b> This is a principal plane, and σ<sub>x′</sub> is at an extreme here. That is the definition, not a coincidence.");
+  else if (Math.abs(Math.abs(st.txp)-P.R)<0.3)
+    callout("note","<b>Maximum shear.</b> 45° from the principal orientation — and σ<sub>x′</sub> = σ<sub>y′</sub> = σ<sub>avg</sub> right here.","neutral");
+  else callout("note","");
+}
+
+/* ---------- wiring -------------------------------------------------------- */
+function rebuild(){ buildPlot(); buildMohr(); redraw(); }
+function redraw(){
+  $("thv").textContent=fmt(theta,1)+"°"; $("th").value=theta;
+  drawElement(); drawPlot(); drawMohr(); drawOut();
+}
+function readInputs(){
+  S.sx=parseFloat($("sx").value)||0;
+  S.sy=parseFloat($("sy").value)||0;
+  S.txy=(ccw?1:-1)*(parseFloat($("txy").value)||0);
+  rebuild();
+}
+
+const PRESETS=[
+  ["Slide 30 example",10,0,5,true],
+  ["Worked example 3-4",80,0,50,false],
+  ["Pure torsion — the chalk demo",0,0,60,true],
+  ["Uniaxial tension",100,0,0,true],
+  ["Equal biaxial",60,60,0,true],
+  ["Shaft: bending + torsion",112,0,37,false]
+];
+$("presets").innerHTML=PRESETS.map((p,i)=>`<button class="chip" data-i="${i}">${p[0]}</button>`).join("");
+$("presets").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  const [,sx,sy,txy,c]=PRESETS[+b.dataset.i];
+  $("sx").value=sx; $("sy").value=sy; $("txy").value=txy;
+  ccw=c; $("sense").textContent=ccw?"ccw (+)":"cw (−)";
+  theta=0; revealed=false; predict=false;
+  $("predict").textContent="Predict mode"; $("predict").classList.remove("active");
+  readInputs();
+});
+["sx","sy","txy"].forEach(id=>$(id).addEventListener("input",readInputs));
+$("sense").addEventListener("click",()=>{ ccw=!ccw; $("sense").textContent=ccw?"ccw (+)":"cw (−)"; readInputs(); });
+$("th").addEventListener("input",e=>{ theta=parseFloat(e.target.value); redraw(); });
+$("toP").addEventListener("click",()=>{ theta=n180(principal().thp); redraw(); });
+$("toS").addEventListener("click",()=>{ theta=n180(principal().ths); redraw(); });
+$("predict").addEventListener("click",()=>{
+  if(predict&&!revealed){ revealed=true; predict=false; $("predict").textContent="Predict mode"; $("predict").classList.remove("active"); }
+  else { predict=true; revealed=false; $("predict").textContent="Reveal"; $("predict").classList.add("active"); }
+  rebuild();
+});
+const sweep=sweeper("play",dt=>{ theta=(theta+dt*22)%180; redraw(); });
+keyboard("th",()=>{ theta=parseFloat($("th").value); redraw(); }, sweep.toggle);
+
+readInputs();
+</script>
+</body>
+</html>

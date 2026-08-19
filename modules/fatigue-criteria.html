@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fatigue Failure Criteria · MCE 323</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+<div class="sheet">
+
+<header class="mod-head">
+  <span class="eyebrow">Shigley ch. 6 · Failure from variable loading</span>
+  <h1>Fatigue Failure Criteria</h1>
+  <p>Two parts can carry the same stress amplitude and have completely different lives. Drag the load point and watch mean stress do the damage — then watch five criteria argue about how much.</p>
+</header>
+
+<div class="wrap">
+  <div class="presets" id="presets"></div>
+
+  <div class="controls">
+    <div class="field"><label for="se">Se</label><input type="number" id="se" step="10" value="186.9"></div>
+    <div class="field"><label for="sut">Sut</label><input type="number" id="sut" step="10" value="724"></div>
+    <div class="field"><label for="sy">Sy</label><input type="number" id="sy" step="10" value="565"></div>
+    <div class="divider"></div>
+    <div class="field"><label for="sm">σm</label><input type="number" id="sm" step="10" value="200"></div>
+    <div class="field"><label for="sa">σa</label><input type="number" id="sa" step="10" value="120"></div>
+    <div class="divider"></div>
+    <button id="ray" class="primary">▶&nbsp; Push out along the load line</button>
+    <button id="predict">Predict mode</button>
+  </div>
+
+  <div class="grid g2">
+    <div class="panel">
+      <h2>Constant-life diagram <span class="hint">drag the load point</span></h2>
+      <svg id="dia" viewBox="0 0 660 500" role="img" aria-label="Fatigue criteria on the mean-alternating stress plane"></svg>
+    </div>
+    <div>
+      <div class="panel" style="margin-bottom:16px">
+        <h2>Factors of safety</h2>
+        <div class="cells" id="out"></div>
+        <div class="callout" id="note"></div>
+      </div>
+      <div class="panel">
+        <h2>The cycle you are describing</h2>
+        <svg id="wave" viewBox="0 0 660 200" role="img" aria-label="Stress against time for this cycle"></svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="notice">
+    <h2>What to notice</h2>
+    <ol>
+      <li><b>Mean stress is what hurts.</b> Set σa = 100 and slide σm from 0 outward. The amplitude never changes, yet every factor of safety falls. A part cycling 0→200 MPa is in more danger than one cycling −100→+100 MPa.</li>
+      <li><b>The load line matters, not just the point.</b> Press <em>Push out</em>: the point travels along a fixed R-ratio and the safety factor is the ratio of where it crosses the envelope to where it sits now.</li>
+      <li><b>Two failure modes, not one.</b> The Langer line is first-cycle yielding. At high mean stress it cuts in front of every fatigue criterion — the part yields before it ever gets the chance to fatigue.</li>
+      <li><b>The criteria fan out to the right.</b> Near σm = 0 they agree. Push σm toward Sut and Soderberg is far below Gerber. Choosing between them is a real design decision, not bookkeeping.</li>
+    </ol>
+    <p class="foot"><kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> nudge the point · <kbd>Space</kbd> pushes along the load line</p>
+  </div>
+</div>
+
+<div id="tb"></div>
+</div>
+
+<script src="../assets/instrument.js"></script>
+<script>
+"use strict";
+let Se=186.9, Sut=724, Sy=565, sm=200, sa=120;
+let predict=false, revealed=false, rayK=1;
+
+mountTopbar({});
+$("tb").innerHTML = titleblock({ sheet:"03", title:"Fatigue failure criteria", ch:"6" });
+const hiding=()=>predict&&!revealed, q=v=>hiding()?"—":v;
+
+/* ---------- criteria ------------------------------------------------------ */
+const nGoodman  = () => 1/(sa/Se + sm/Sut);
+const nSoderberg= () => 1/(sa/Se + sm/Sy);
+const nASME     = () => 1/Math.sqrt((sa/Se)**2 + (sm/Sy)**2);
+const nLanger   = () => Sy/(sa+sm);
+function nGerber(){
+  if (sm<=1e-9) return Se/sa;
+  const r=(Sut/sm)**2*(sa/Se)*0.5;
+  return r*(-1+Math.sqrt(1+(2*sm*Se/(Sut*sa))**2));
+}
+const CRIT=[
+  {k:"Goodman",   f:nGoodman,   col:"var(--aus)",   env:m=>Se*(1-m/Sut),           note:"linear, conservative"},
+  {k:"Gerber",    f:nGerber,    col:"var(--jade)",  env:m=>Se*(1-(m/Sut)**2),      note:"parabolic, best data fit"},
+  {k:"Soderberg", f:nSoderberg, col:"var(--dye-2)", env:m=>Se*(1-m/Sy),            note:"most conservative"},
+  {k:"ASME-ell.", f:nASME,      col:"var(--brass)", env:m=>Se*Math.sqrt(Math.max(0,1-(m/Sy)**2)), note:"ASME shafting"}
+];
+
+/* ---------- diagram ------------------------------------------------------- */
+let F=null;
+function draw(){
+  const xm=Sut*1.12, ym=Math.max(Se,Sy*0.55)*1.5;
+  const f=frame({w:660,h:500,l:66,r:26,t:26,b:56,
+    xmin:0,xmax:xm,ymin:0,ymax:ym,
+    xlabel:"mean stress σm", ylabel:"alternating σa",
+    xfmt:v=>fmt(v,0), yfmt:v=>fmt(v,0), zeroY:false});
+  F=f; let g=f.g;
+
+  /* everything that can run past the axes gets clipped to the plot */
+  let inner = "";
+  inner += SVG.path(curve(m=>Math.max(0,Sy-m),0,Math.min(Sy,xm),f.X,f.Y,80),"#10151b",2,"none","7 4");
+  CRIT.forEach(c=>{
+    const lim = c.k==="Soderberg" ? Sy : (c.k==="ASME-ell." ? Sy : Sut);
+    inner += SVG.path(curve(m=>Math.max(0,c.env(m)),0,Math.min(lim,xm),f.X,f.Y,180),c.col,2.4);
+  });
+  g += f.clip(inner);
+  const lx = clamp(Sy*0.55, xm*0.06, xm*0.72);
+  g += SVG.text(f.X(lx),f.Y(Math.max(0,Sy-lx)+ym*0.05),"Langer — first-cycle yield",
+        {col:"#10151b",size:11.5,mono:true,weight:700,rot:-30});
+  g += SVG.text(f.X(Sut*0.60),f.Y(Se*0.52),"Goodman",{col:"var(--aus)",size:12,mono:true,weight:700});
+  g += SVG.text(f.X(Sut*0.72),f.Y(Se*0.60),"Gerber",{col:"var(--jade)",size:12,mono:true,weight:700});
+  g += SVG.text(f.X(Sy*0.42),f.Y(Se*0.42),"Soderberg",{col:"var(--dye-2)",size:12,mono:true,weight:700});
+  g += SVG.text(f.X(Sy*0.66),f.Y(Se*0.80),"ASME",{col:"var(--brass)",size:12,mono:true,weight:700});
+  g += SVG.circle(f.X(0),f.Y(Se),4,"#46545f");
+  g += SVG.text(f.X(0)+8,f.Y(Se)+16,"Se",{col:"#46545f",size:12,anchor:"start",mono:true,weight:700});
+
+  /* load line through the origin */
+  if (sm>0.5||sa>0.5){
+    const s=Math.min(xm/Math.max(sm,1e-6), ym/Math.max(sa,1e-6));
+    g += f.clip(SVG.line(f.X(0),f.Y(0),f.X(sm*s),f.Y(sa*s),"#c3ced8",1.4,"5 4"));
+    g += SVG.text(f.X(sm*s*0.9),f.Y(sa*s*0.9)-8,"load line",{col:"#9fadba",size:11,mono:true,anchor:"end"});
+  }
+
+  /* governing crossing */
+  if(!hiding()){
+    let gov=null;
+    CRIT.concat([{k:"Langer",f:nLanger,col:"#10151b"}]).forEach(c=>{
+      const n=c.f(); if(isFinite(n)&&n>0&&(!gov||n<gov.n)) gov={...c,n};
+    });
+    if(gov&&isFinite(gov.n)){
+      g += SVG.circle(f.X(sm*gov.n),f.Y(sa*gov.n),6,"none",gov.col,2.4);
+      g += SVG.text(f.X(sm*gov.n)+12,f.Y(sa*gov.n)-14,"n = "+fmt(gov.n,2),{col:gov.col,size:12.5,mono:true,weight:700,anchor:"start"});
+    }
+  }
+
+  const px=f.X(sm), py=f.Y(sa);
+  g += SVG.line(f.X(0),py,px,py,"#dde3e8",1,"3 3");
+  g += SVG.line(px,f.Y(0),px,py,"#dde3e8",1,"3 3");
+  g += SVG.circle(px,py,9,"#fff","#10151b",3);
+  g += SVG.circle(px,py,3.5,"#10151b");
+  const lbl = px < f.l + f.pw*0.6 ? 1 : -1;   /* keep the label off the axis */
+  if(!hiding()) g += SVG.text(px+lbl*14,py+5,`(${fmt(sm,0)}, ${fmt(sa,0)})`,{col:"#10151b",size:12.5,mono:true,weight:700,anchor:lbl>0?"start":"end"});
+  $("dia").innerHTML=g;
+}
+
+/* ---------- the cycle ----------------------------------------------------- */
+function drawWave(){
+  const f=frame({w:660,h:200,l:66,r:26,t:16,b:40,
+    xmin:0,xmax:3,ymin:Math.min(0,sm-sa)-Math.max(20,sa*0.3),ymax:sm+sa+Math.max(20,sa*0.3),
+    xlabel:"time (cycles)", ylabel:"σ", xstep:1, xfmt:v=>fmt(v,0), yfmt:v=>fmt(v,0)});
+  let g=f.g;
+  g += SVG.line(f.l,f.Y(sm),f.l+f.pw,f.Y(sm),"var(--aus)",1.4,"6 4");
+  g += SVG.text(f.l+f.pw-4,f.Y(sm)+16,"σm = "+fmt(sm,0),{col:"var(--aus)",size:11.5,anchor:"end",mono:true,weight:700});
+  g += SVG.path(curve(t=>sm+sa*Math.sin(2*Math.PI*t),0,3,f.X,f.Y,300),"var(--dye)",2.4);
+  if(!hiding()){
+    g += SVG.line(f.X(0.25),f.Y(sm),f.X(0.25),f.Y(sm+sa),"var(--jade)",2);
+    g += SVG.text(f.X(0.25)+7,f.Y(sm+sa/2)+4,"σa",{col:"var(--jade)",size:12,anchor:"start",mono:true,weight:700});
+    const R = (sm-sa)===0 ? 0 : (sm-sa)/(sm+sa);
+    g += SVG.text(f.l+f.pw-4,f.t+14,`σmax ${fmt(sm+sa,0)}   σmin ${fmt(sm-sa,0)}   R ${fmt(R,2)}`,
+      {col:"#46545f",size:12,anchor:"end",mono:true});
+  }
+  $("wave").innerHTML=g;
+}
+
+/* ---------- readouts ------------------------------------------------------ */
+function out(){
+  const rows=CRIT.map(c=>{
+    const n=c.f();
+    return {k:"n — "+c.k, v:q(isFinite(n)?fmt(n,2):"∞"),
+            tone:c.col==="var(--aus)"?"red":c.col==="var(--jade)"?"jade":c.col==="var(--brass)"?"brass":"blue",
+            n:c.note};
+  });
+  const ny=nLanger();
+  rows.push({k:"ny — Langer", v:q(isFinite(ny)?fmt(ny,2):"∞"), n:"first-cycle yielding"});
+  cells("out",rows);
+
+  let msg=null;
+  if (hiding()) msg=["<b>Predict mode.</b> Ask which criterion governs, and whether the part yields before it fatigues.","neutral"];
+  else {
+    const g=nGoodman(), ny2=nLanger();
+    if (ny2<g) msg=[`<b>Yielding governs.</b> n<sub>y</sub> = ${fmt(ny2,2)} is below the fatigue numbers. At this mean stress the part yields on the first cycle — it never survives long enough to fatigue.`];
+    else if (sm<1e-6) msg=["<b>Fully reversed.</b> With σm = 0 every criterion collapses to the same answer, n = Se/σa. This is the only case where the choice of criterion does not matter.","neutral"];
+    else if (g<1) msg=[`<b>Below one.</b> Goodman gives n = ${fmt(g,2)}. This point sits outside the envelope — infinite life is not available here.`];
+  }
+  callout("note", msg?msg[0]:"", msg?msg[1]:null);
+}
+
+/* ---------- interaction --------------------------------------------------- */
+function sync(){ $("sm").value=fmt(sm,0); $("sa").value=fmt(sa,0); draw(); drawWave(); out(); }
+const svg=$("dia"); let dragging=false;
+function toData(e){
+  const r=svg.getBoundingClientRect(), vb=svg.viewBox.baseVal;
+  const x=(e.clientX-r.left)/r.width*vb.width, y=(e.clientY-r.top)/r.height*vb.height;
+  const xm=Sut*1.12, ym=Math.max(Se,Sy*0.55)*1.5;
+  sm=clamp(Math.round((x-F.l)/F.pw*xm),0,xm);
+  sa=clamp(Math.round(ym-(y-F.t)/F.ph*ym),0,ym);
+}
+svg.style.cursor="crosshair";
+svg.addEventListener("pointerdown",e=>{dragging=true;svg.setPointerCapture(e.pointerId);toData(e);sync();});
+svg.addEventListener("pointermove",e=>{if(dragging){toData(e);sync();}});
+svg.addEventListener("pointerup",()=>dragging=false);
+
+["sm","sa"].forEach(id=>$(id).addEventListener("input",()=>{
+  sm=parseFloat($("sm").value)||0; sa=parseFloat($("sa").value)||0; draw(); drawWave(); out(); }));
+["se","sut","sy"].forEach(id=>$(id).addEventListener("input",()=>{
+  Se=parseFloat($("se").value)||1; Sut=parseFloat($("sut").value)||1; Sy=parseFloat($("sy").value)||1;
+  draw(); drawWave(); out(); }));
+$("predict").addEventListener("click",()=>{
+  if(predict&&!revealed){revealed=true;predict=false;$("predict").textContent="Predict mode";$("predict").classList.remove("active");}
+  else {predict=true;revealed=false;$("predict").textContent="Reveal";$("predict").classList.add("active");}
+  draw(); drawWave(); out();
+});
+
+const PRESETS=[
+  ["Fully reversed",0,150],["Zero to 200",100,100],["Ex 7-1 shaft",0,131],
+  ["High mean stress",420,60],["Near yield",380,150],["Gentle duty",90,40]
+];
+$("presets").innerHTML=PRESETS.map((p,i)=>`<button class="chip" data-i="${i}">${p[0]}</button>`).join("");
+$("presets").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b)return;
+  const [,m,a]=PRESETS[+b.dataset.i]; sm=m; sa=a; sync();
+});
+
+const base={sm:200,sa:120};
+const ray=sweeper("ray",dt=>{
+  rayK+=dt*0.55; if(rayK>2.6) rayK=0.25;
+  sm=Math.round(base.sm*rayK); sa=Math.round(base.sa*rayK); sync();
+});
+$("ray").addEventListener("click",()=>{ base.sm=sm||200; base.sa=sa||120; rayK=1; });
+addEventListener("keydown",e=>{
+  if(e.target.tagName==="INPUT")return;
+  const s=e.shiftKey?25:5;
+  if(e.key==="ArrowRight"){sm+=s;sync();e.preventDefault();}
+  if(e.key==="ArrowLeft"){sm=Math.max(0,sm-s);sync();e.preventDefault();}
+  if(e.key==="ArrowUp"){sa+=s;sync();e.preventDefault();}
+  if(e.key==="ArrowDown"){sa=Math.max(0,sa-s);sync();e.preventDefault();}
+  if(e.code==="Space"){ray.toggle();e.preventDefault();}
+});
+sync();
+</script>
+</body>
+</html>

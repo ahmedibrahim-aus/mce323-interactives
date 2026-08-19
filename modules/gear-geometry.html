@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gear Geometry and the Involute · MCE 323</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+<div class="sheet">
+
+<header class="mod-head">
+  <span class="eyebrow">Shigley ch. 13 · Gears — general</span>
+  <h1>Gear Geometry and the Involute</h1>
+  <p>Build a tooth from the module, the tooth count and the pressure angle — the only three numbers a spur gear needs. Then mesh it, and watch the contact point run along a straight pressure line, which is the whole reason gears deliver constant velocity ratio.</p>
+</header>
+
+<div class="wrap">
+  <div class="presets" id="presets"></div>
+
+  <div class="controls">
+    <div class="field"><label for="m">module mm</label><input type="number" id="m" step="0.5" min="0.5" value="5"></div>
+    <div class="field" style="flex:1 1 220px">
+      <label for="n1">N pinion</label>
+      <input type="range" id="n1" min="8" max="40" step="1" value="18">
+      <span class="readout" id="n1v">18</span>
+    </div>
+    <div class="field" style="flex:1 1 220px">
+      <label for="n2">N gear</label>
+      <input type="range" id="n2" min="10" max="80" step="1" value="36">
+      <span class="readout" id="n2v">36</span>
+    </div>
+    <div class="field"><label for="phi">φ</label>
+      <select id="phi"><option>14.5</option><option selected>20</option><option>25</option></select>
+    </div>
+    <div class="divider"></div>
+    <button id="run" class="primary">▶&nbsp; Mesh</button>
+    <button id="showline" class="active">Pressure line</button>
+    <button id="showcircles" class="active">Circles</button>
+  </div>
+
+  <div class="grid g2">
+    <div class="panel">
+      <h2>Tooth construction <span class="hint">involute of the base circle</span></h2>
+      <svg id="tooth" viewBox="0 0 620 430" role="img" aria-label="Single tooth built from the base circle involute"></svg>
+    </div>
+    <div>
+      <div class="panel" style="margin-bottom:16px">
+        <h2>The gearset</h2>
+        <div class="cells" id="out"></div>
+        <div class="callout" id="note"></div>
+      </div>
+      <div class="panel">
+        <h2>In mesh</h2>
+        <svg id="mesh" viewBox="0 0 620 460" role="img" aria-label="Two gears in mesh"></svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="notice">
+    <h2>What to notice</h2>
+    <ol>
+      <li><b>Two gears mesh if they share a module and a pressure angle.</b> Nothing else has to match — not the diameter, not the tooth count. Change N and watch the pitch circles resize while the teeth still fit.</li>
+      <li><b>The pressure line is straight, and contact runs along it.</b> That straightness is conjugate action: the velocity ratio stays constant through the whole engagement, which is why the involute won and other profiles did not.</li>
+      <li><b>Drop the pinion below about 18 teeth at φ = 20°</b> and the flank gets undercut at the root — material removed where the bending stress is highest. The warning appears automatically. Raise φ to 25° and the limit falls to 12.</li>
+      <li><b>The base circle is the generator, not a construction line.</b> Below it there is no involute at all, only a radial flank. Watch it cross the dedendum circle as the tooth count drops — that is the moment undercutting begins.</li>
+    </ol>
+    <p class="foot"><kbd>←</kbd> <kbd>→</kbd> change the pinion tooth count · <kbd>Space</kbd> runs the mesh</p>
+  </div>
+</div>
+
+<div id="tb"></div>
+</div>
+
+<script src="../assets/instrument.js"></script>
+<script>
+"use strict";
+let m=5, N1=18, N2=36, phi=20, psi=0, showLine=true, showCirc=true;
+
+mountTopbar({});
+$("tb").innerHTML = titleblock({ sheet:"06", title:"Gear geometry and the involute", ch:"13" });
+
+const inv = a => Math.tan(a) - a;
+const geom = N => {
+  const p = phi*D, r = m*N/2;
+  return { N, r, rb:r*Math.cos(p), ra:r+m, rf:r-1.25*m, p };
+};
+const Nmin = () => Math.ceil(2/Math.pow(Math.sin(phi*D),2));   /* full-depth, meshing a rack */
+
+/* One closed outline for a whole gear, in millimetres, centred on the origin. */
+function gearPath(N){
+  const g=geom(N), {r,rb,ra,rf}=g;
+  const half = Math.PI/(2*N) + inv(phi*D);          /* flank angle at the base circle */
+  const flank = (rr) => {                            /* left flank angle at radius rr */
+    if (rr<=rb) return half;
+    const al = Math.acos(clamp(rb/rr,-1,1));
+    return half - inv(al);
+  };
+  const STEP=9, start=Math.max(rb,rf);
+  let d="";
+  for(let k=0;k<N;k++){
+    const b = 2*Math.PI*k/N;
+    const pt=(rr,th)=>[(rr*Math.cos(b+th)).toFixed(2),(rr*Math.sin(b+th)).toFixed(2)];
+    /* right flank, root -> tip */
+    if (rf<rb) d += (k?" L ":"M ")+pt(rf,-half).join(" ")+" L "+pt(rb,-half).join(" ");
+    else       d += (k?" L ":"M ")+pt(start,-flank(start)).join(" ");
+    for(let i=1;i<=STEP;i++){ const rr=start+(ra-start)*i/STEP; d+=" L "+pt(rr,-flank(rr)).join(" "); }
+    /* top land */
+    d += ` A ${ra.toFixed(2)} ${ra.toFixed(2)} 0 0 1 `+pt(ra,flank(ra)).join(" ");
+    /* left flank, tip -> root */
+    for(let i=STEP-1;i>=1;i--){ const rr=start+(ra-start)*i/STEP; d+=" L "+pt(rr,flank(rr)).join(" "); }
+    if (rf<rb) d += " L "+pt(rb,half).join(" ")+" L "+pt(rf,half).join(" ");
+    /* root arc to the next tooth */
+    const nb = 2*Math.PI*(k+1)/N;
+    d += ` A ${rf.toFixed(2)} ${rf.toFixed(2)} 0 0 1 ${(rf*Math.cos(nb-half)).toFixed(2)} ${(rf*Math.sin(nb-half)).toFixed(2)}`;
+  }
+  return d+" Z";
+}
+
+/* ---------- tooth construction -------------------------------------------- */
+function drawTooth(){
+  const g1=geom(N1), cx=310;
+  const k  = 520/(2.6*Math.PI*m);        /* about 2.6 tooth pitches across the panel */
+  const cy = 118 + g1.ra*k;              /* put the addendum circle near the top     */
+  const b0 = Math.PI/2;                  /* the middle tooth points straight up      */
+  const PX = (r,th) => cx - r*Math.sin(th)*k;
+  const PY = (r,th) => cy - r*Math.cos(th)*k;
+  let g="";
+
+  const band=(rr,col,w,dash,lab)=>{
+    const R=rr*k, dx=Math.min(298,R*0.94);
+    if(R<=dx) return "";
+    const ye=cy-Math.sqrt(R*R-dx*dx);
+    let out=SVG.path(`M ${(cx-dx).toFixed(1)} ${ye.toFixed(1)} A ${R.toFixed(1)} ${R.toFixed(1)} 0 0 1 ${(cx+dx).toFixed(1)} ${ye.toFixed(1)}`,col,w,"none",dash);
+    if(lab) out+=SVG.text(cx-dx+2, ye-8, lab, {col,size:11.5,mono:true,weight:700,anchor:"start"});
+    return out;
+  };
+  if(showCirc){
+    g += band(g1.ra,"#8493a0",1.2,"5 3","addendum");
+    g += band(g1.r ,"var(--aus)",1.8,null,"pitch");
+    g += band(g1.rb,"var(--dye)",1.6,"7 4","base");
+    g += band(g1.rf,"#8493a0",1.2,"5 3","dedendum");
+  }
+  g += SVG.centre(cx,90,cx,cy-g1.rf*k+52);
+
+  /* three teeth, the middle one highlighted */
+  const half=Math.PI/(2*N1)+inv(phi*D);
+  const flank=rr=>rr<=g1.rb?half:half-inv(Math.acos(clamp(g1.rb/rr,-1,1)));
+  const r0=Math.max(g1.rb,g1.rf), SEG=16;
+  for(let t=-1;t<=1;t++){
+    const off=t*2*Math.PI/N1;
+    const P=(rr,th)=>`${PX(rr,off+th).toFixed(1)} ${PY(rr,off+th).toFixed(1)}`;
+    let d="M "+P(g1.rf,-half);
+    if(g1.rf<g1.rb) d+=" L "+P(g1.rb,-half);
+    for(let i=1;i<=SEG;i++){ const rr=r0+(g1.ra-r0)*i/SEG; d+=" L "+P(rr,-flank(rr)); }
+    for(let i=SEG;i>=1;i--){ const rr=r0+(g1.ra-r0)*i/SEG; d+=" L "+P(rr, flank(rr)); }
+    if(g1.rf<g1.rb) d+=" L "+P(g1.rb,half);
+    d+=" L "+P(g1.rf,half)+" Z";
+    g += SVG.path(d,"#46545f",1.8,t===0?"#dde5ec":"#f1f4f7");
+  }
+
+  /* dimension the addendum and dedendum off the middle tooth */
+  const xr = cx + 150;
+  const yA = PY(g1.ra,0), yP = PY(g1.r,0), yF = PY(g1.rf,0);
+  g += SVG.line(cx+40,yA,xr+8,yA,"#c3ced8",1);
+  g += SVG.line(cx+40,yP,xr+8,yP,"#c3ced8",1);
+  g += SVG.line(cx+40,yF,xr+8,yF,"#c3ced8",1);
+  g += SVG.arrow(xr,yP-16,xr,yA,"#8493a0",1.3,7)+SVG.arrow(xr,yA+16,xr,yP,"#8493a0",1.3,7);
+  g += SVG.text(xr+10,(yA+yP)/2+4,"a = m = "+fmt(m,2),{col:"#8493a0",size:12,anchor:"start",mono:true});
+  g += SVG.arrow(xr,yF-16,xr,yP,"#8493a0",1.3,7)+SVG.arrow(xr,yP+16,xr,yF,"#8493a0",1.3,7);
+  g += SVG.text(xr+10,(yP+yF)/2+4,"b = 1.25m = "+fmt(1.25*m,2),{col:"#8493a0",size:12,anchor:"start",mono:true});
+
+  /* tooth thickness on the pitch circle */
+  const xl=PX(g1.r,-half+inv(phi*D)), xr2=PX(g1.r,half-inv(phi*D));
+  g += SVG.line(xl,yP,xr2,yP,"var(--aus)",2.4);
+  g += SVG.text(cx,yP-12,"t = p/2 = "+fmt(Math.PI*m/2,2),{col:"var(--aus)",size:12.5,mono:true,weight:700});
+
+  if (N1 < Nmin())
+    g += SVG.text(310,34,"undercut — the base circle has risen above the dedendum circle",
+        {col:"var(--aus)",size:14,weight:700});
+  else
+    g += SVG.text(310,34,`${N1} teeth · module ${fmt(m,2)} mm · φ ${phi}°`,
+        {col:"#8493a0",size:13,mono:true,weight:500});
+  $("tooth").innerHTML=g;
+}
+
+/* ---------- mesh ------------------------------------------------------------ */
+function drawMesh(){
+  const g1=geom(N1), g2=geom(N2), C=g1.r+g2.r;
+  const k=Math.min(196/Math.max(g2.ra,1), 578/(g1.ra+C+g2.ra));
+  const x1=21+g1.ra*k, cy=230, x2=x1+C*k;
+  let g="";
+  g += SVG.centre(20,cy,600,cy);
+  const rot1=psi, rot2=-psi*N1/N2 + Math.PI/N2;      /* half-tooth phase so they interleave */
+
+  if(showCirc){
+    [[x1,g1],[x2,g2]].forEach(([cx,gg])=>{
+      g += SVG.circle(cx,cy,gg.r*k,"none","var(--aus)",1.4);
+      g += SVG.circle(cx,cy,gg.rb*k,"none","var(--dye)",1.2,"6 4");
+    });
+  }
+  g += `<g transform="translate(${x1} ${cy}) scale(${k} ${-k}) rotate(${rot1*180/Math.PI})">`
+     + SVG.path(gearPath(N1),"#46545f",1.6/k,"#eef2f5") + `</g>`;
+  g += `<g transform="translate(${x2} ${cy}) scale(${k} ${-k}) rotate(${rot2*180/Math.PI})">`
+     + SVG.path(gearPath(N2),"#46545f",1.6/k,"#e6ecf2") + `</g>`;
+
+  g += SVG.circle(x1,cy,3,"#10151b"); g += SVG.circle(x2,cy,3,"#10151b");
+  const pitchX=x1+g1.r*k;
+  g += SVG.circle(pitchX,cy,4.5,"var(--aus)");
+  g += SVG.text(pitchX,cy+22,"P",{col:"var(--aus)",size:13,mono:true,weight:700});
+
+  if(showLine){
+    const p=phi*D, L=Math.max(g1.rb,g2.rb)*k*1.9;
+    const dx=Math.cos(p), dy=Math.sin(p);
+    g += SVG.line(pitchX-L*dx,cy+L*dy,pitchX+L*dx,cy-L*dy,"var(--jade)",2);
+    g += SVG.text(pitchX+L*dx*0.72,cy-L*dy*0.72-10,"pressure line",{col:"var(--jade)",size:12,mono:true,weight:700});
+    g += SVG.path(`M ${pitchX+40} ${cy} A 40 40 0 0 0 ${pitchX+40*Math.cos(p)} ${cy-40*Math.sin(p)}`,"var(--jade)",1.4);
+    g += SVG.text(pitchX+56,cy-14,"φ "+phi+"°",{col:"var(--jade)",size:12,anchor:"start",mono:true});
+  }
+  g += SVG.text(x1,cy+g1.ra*k+26,`${N1}T`,{col:"#46545f",size:13,mono:true,weight:700});
+  g += SVG.text(x2,cy+g2.ra*k+26,`${N2}T`,{col:"#46545f",size:13,mono:true,weight:700});
+  g += SVG.text(310,438,`centre distance C = ${fmt(C,1)} mm`,{col:"#8493a0",size:12.5,mono:true});
+  $("mesh").innerHTML=g;
+}
+
+/* ---------- readouts --------------------------------------------------------- */
+function out(){
+  const g1=geom(N1), g2=geom(N2), nm=Nmin();
+  cells("out",[
+    {k:"d pinion", v:fmt(g1.r*2,1)+" mm", tone:"red", n:"d = mN"},
+    {k:"d gear",   v:fmt(g2.r*2,1)+" mm", tone:"red"},
+    {k:"C",        v:fmt(g1.r+g2.r,1)+" mm", n:"(dp + dg)/2"},
+    {k:"p",        v:fmt(Math.PI*m,2)+" mm", tone:"blue", n:"circular pitch, πm"},
+    {k:"db pinion",v:fmt(g1.rb*2,1)+" mm", tone:"blue", n:"d cos φ"},
+    {k:"a / b",    v:fmt(m,2)+" / "+fmt(1.25*m,2), n:"addendum / dedendum"},
+    {k:"ratio",    v:fmt(N2/N1,3)+" : 1", n:`${N1} → ${N2} teeth`},
+    {k:"min teeth",v:String(nm), tone:N1<nm?"red":"jade", n:`at φ = ${phi}°`}
+  ]);
+  if (N1<nm)
+    callout("note",`<b>Interference.</b> ${N1} teeth is below the ${nm}-tooth limit at φ = ${phi}°, so the mating tips gouge the pinion flank below its base circle. Fixes: raise the tooth count, go to φ = 25° (limit drops to ${Math.ceil(2/Math.pow(Math.sin(25*D),2))}), or use stub teeth.`);
+  else if (N1===nm)
+    callout("note",`<b>Exactly at the limit.</b> ${nm} teeth is the smallest full-depth pinion that avoids interference at φ = ${phi}°. One tooth fewer and the flank is undercut.`,"neutral");
+  else callout("note","");
+}
+
+/* ---------- wiring ------------------------------------------------------------ */
+function redraw(){ $("n1v").textContent=N1; $("n2v").textContent=N2; drawTooth(); drawMesh(); out(); }
+function read(){
+  m=parseFloat($("m").value)||1; N1=parseInt($("n1").value); N2=parseInt($("n2").value);
+  phi=parseFloat($("phi").value); redraw();
+}
+["m","n1","n2","phi"].forEach(id=>$(id).addEventListener("input",read));
+$("showline").addEventListener("click",e=>{ showLine=!showLine; e.target.classList.toggle("active",showLine); drawMesh(); });
+$("showcircles").addEventListener("click",e=>{ showCirc=!showCirc; e.target.classList.toggle("active",showCirc); drawTooth(); drawMesh(); });
+
+const run=sweeper("run",dt=>{ psi+=dt*0.55; drawMesh(); });
+keyboard("n1",()=>{ N1=parseInt($("n1").value); redraw(); }, run.toggle);
+
+const PRESETS=[
+  ["Standard 18 × 36",5,18,36,"20"],
+  ["Undercut — 12 teeth",5,12,36,"20"],
+  ["φ = 25° fixes it",5,12,36,"25"],
+  ["Fine pitch, m = 2",2,24,48,"20"],
+  ["Example 13-1",12,16,40,"20"],
+  ["Old 14.5° system",5,32,64,"14.5"]
+];
+$("presets").innerHTML=PRESETS.map((p,i)=>`<button class="chip" data-i="${i}">${p[0]}</button>`).join("");
+$("presets").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b)return;
+  const [,mm,a,bb,p]=PRESETS[+b.dataset.i];
+  $("m").value=mm; $("n1").value=a; $("n2").value=bb; $("phi").value=p; read();
+});
+read();
+</script>
+</body>
+</html>

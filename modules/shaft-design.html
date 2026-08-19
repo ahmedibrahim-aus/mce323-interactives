@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shaft Sizing — DE-Goodman · MCE 323</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+<div class="sheet">
+
+<header class="mod-head">
+  <span class="eyebrow">Shigley ch. 7 · Shafts and shaft components</span>
+  <h1>Shaft Sizing — DE&#8209;Goodman</h1>
+  <p>The design equation of the course. Everything from chapters 3, 5 and 6 converges here: a rotating shaft carries a fully reversed bending stress and a steady shear stress at the same time, and one diameter has to answer for both.</p>
+</header>
+
+<div class="wrap">
+  <div class="presets" id="presets"></div>
+
+  <div class="controls">
+    <div class="field"><label for="ma">Ma N·m</label><input type="number" id="ma" step="10" value="142.35"></div>
+    <div class="field"><label for="tm">Tm N·m</label><input type="number" id="tm" step="10" value="124.28"></div>
+    <div class="field"><label for="kf">Kf</label><input type="number" id="kf" step="0.05" value="1.58"></div>
+    <div class="field"><label for="kfs">Kfs</label><input type="number" id="kfs" step="0.05" value="1.37"></div>
+    <div class="divider"></div>
+    <div class="field"><label for="se">Se</label><input type="number" id="se" step="10" value="186.9"></div>
+    <div class="field"><label for="sut">Sut</label><input type="number" id="sut" step="10" value="724"></div>
+    <div class="field"><label for="sy">Sy</label><input type="number" id="sy" step="10" value="565"></div>
+    <div class="divider"></div>
+    <div class="field" style="flex:1 1 280px">
+      <label for="d">d mm</label>
+      <input type="range" id="d" min="10" max="90" step="0.5" value="27.94">
+      <span class="readout" id="dv">27.9</span>
+    </div>
+    <button id="predict">Predict mode</button>
+    <button id="solve" class="primary">Solve d for n = <span id="ntgt">1.5</span></button>
+    <div class="field"><label for="ntarget">target n</label><input type="number" id="ntarget" step="0.25" value="1.5" style="width:70px"></div>
+  </div>
+
+  <div class="grid g2">
+    <div class="panel">
+      <h2>Shaft at the critical section <span class="hint">drawn to scale</span></h2>
+      <svg id="shaft" viewBox="0 0 640 300" role="img" aria-label="Stepped shaft section"></svg>
+      <h2 style="margin-top:14px">Where the diameter is going</h2>
+      <svg id="bars" viewBox="0 0 640 150" role="img" aria-label="Bending and torsion contributions"></svg>
+    </div>
+    <div>
+      <div class="panel" style="margin-bottom:16px">
+        <h2>Result</h2>
+        <div class="cells" id="out"></div>
+        <div class="callout" id="note"></div>
+      </div>
+      <div class="panel">
+        <h2>Factor of safety against diameter</h2>
+        <svg id="curve" viewBox="0 0 640 320" role="img" aria-label="Safety factor against diameter"></svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="notice">
+    <h2>What to notice</h2>
+    <ol>
+      <li><b>Stress goes as 1/d³.</b> Drag the diameter and watch the curve — a 10% larger shaft buys about 33% more factor of safety. That cubic is the single most useful number in shaft design.</li>
+      <li><b>Two checks, and the lower one wins.</b> Fatigue usually governs, but the first-cycle yield check is not optional. Push the loads up and watch which one crosses 1 first.</li>
+      <li><b>Look at the split.</b> The bar shows how much of the required diameter comes from the alternating bending term A/S<sub>e</sub> versus the steady torsion term B/S<sub>ut</sub>. In most rotating shafts bending dominates heavily — and if it does not, check your units.</li>
+      <li><b>Round up, then re-check.</b> Solve for d and you get a decimal. Real shafts come in stock sizes, so specify the next size up and confirm n has not fallen below target.</li>
+    </ol>
+    <p class="foot"><kbd>←</kbd> <kbd>→</kbd> step the diameter · <kbd>Shift</kbd> for a larger step</p>
+  </div>
+</div>
+
+<div id="tb"></div>
+</div>
+
+<script src="../assets/instrument.js"></script>
+<script>
+"use strict";
+let predict=false, revealed=false;
+const hiding=()=>predict&&!revealed, q_=v=>hiding()?"—":v;
+let P={ Ma:142.35, Tm:124.28, Kf:1.58, Kfs:1.37, Se:186.9, Sut:724, Sy:565 };
+let d=27.94;
+
+mountTopbar({});
+$("tb").innerHTML = titleblock({ sheet:"04", title:"Shaft sizing — DE-Goodman", ch:"7" });
+
+/* A collects the alternating terms, B the steady ones.  Ma, Tm arrive in
+   N·m and are used in N·mm; Mm = Ta = 0 for a rotating shaft with steady torque. */
+const A = () => 2 * P.Kf  * P.Ma * 1000;
+const B = () => Math.sqrt(3) * P.Kfs * P.Tm * 1000;
+const nFat = dd => (Math.PI*dd**3/16) / (A()/P.Se + B()/P.Sut);
+function nYld(dd){
+  const k = Math.PI*dd**3;
+  const sig = 32*P.Kf*P.Ma*1000/k, tau = 16*P.Kfs*P.Tm*1000/k;
+  const vm = Math.sqrt(sig*sig + 3*tau*tau);
+  return vm<1e-9 ? Infinity : P.Sy/vm;
+}
+const solveD = n => Math.cbrt((16*n/Math.PI)*(A()/P.Se + B()/P.Sut));
+
+/* ---------- shaft drawing ------------------------------------------------- */
+function drawShaft(){
+  const cx=320, cy=150, px=2.6;              // px per mm
+  const dd=d*px, DD=1.5*d*px, r=0.1*d*px;
+  let g="";
+  g += SVG.centre(30,cy,610,cy);
+  const x0=110, x1=320, x2=560;
+  /* the larger shoulder */
+  g += SVG.rect(x0,cy-DD/2,x1-x0,DD,"#eef2f5","#46545f",1.8);
+  /* the sized section, with fillet radius shown */
+  g += SVG.path(`M ${x1} ${cy-DD/2} L ${x1} ${cy-dd/2-r} A ${r} ${r} 0 0 1 ${x1+r} ${cy-dd/2} L ${x2} ${cy-dd/2} L ${x2} ${cy+dd/2} L ${x1+r} ${cy+dd/2} A ${r} ${r} 0 0 1 ${x1} ${cy+dd/2+r} L ${x1} ${cy+DD/2} Z`,"#46545f",1.8,"#f6f8f9");
+  /* hatching on the sized section */
+  for(let x=x1+8;x<x2;x+=13)
+    g += SVG.line(x,cy-dd/2+2,x-9,cy+dd/2-2,"#c3ced8",1);
+
+  /* dimension lines, drawing-style */
+  const dimY=cy+DD/2+42;
+  g += SVG.line(x1,cy+dd/2,x1,dimY+8,"#8493a0",1);
+  g += SVG.line(x2,cy+dd/2,x2,dimY+8,"#8493a0",1);
+  g += SVG.arrow(x1+22,dimY,x1,dimY,"#8493a0",1.2,7)+SVG.arrow(x2-22,dimY,x2,dimY,"#8493a0",1.2,7);
+  g += SVG.line(x1,dimY,x2,dimY,"#8493a0",1);
+  g += SVG.text((x1+x2)/2,dimY-7,"critical section",{col:"#8493a0",size:11.5,mono:true});
+
+  const dx=x2+34;
+  g += SVG.line(x2,cy-dd/2,dx+10,cy-dd/2,"#8493a0",1);
+  g += SVG.line(x2,cy+dd/2,dx+10,cy+dd/2,"#8493a0",1);
+  g += SVG.arrow(dx,cy-dd/2-20,dx,cy-dd/2,"var(--aus)",1.4,7);
+  g += SVG.arrow(dx,cy+dd/2+20,dx,cy+dd/2,"var(--aus)",1.4,7);
+  g += SVG.text(dx+16,cy+4,"⌀"+fmt(d,1),{col:"var(--aus)",size:14,anchor:"start",mono:true,weight:700});
+
+  g += SVG.text(x0+40,cy+5,"D = 1.5d",{col:"#8493a0",size:11.5,mono:true,anchor:"start"});
+  g += SVG.text(x1+30,cy-dd/2-16,"r = 0.1d",{col:"#8493a0",size:11.5,mono:true,anchor:"start"});
+
+  /* loads */
+  g += SVG.text(150,44,"M",{col:"var(--dye)",size:15,mono:true,weight:700});
+  g += SVG.path(`M 120 60 A 34 34 0 1 1 178 62`,"var(--dye)",2);
+  g += SVG.arrow(174,54,180,66,"var(--dye)",2,8);
+  g += SVG.text(150,84,fmt(P.Ma,0)+" N·m",{col:"var(--dye)",size:11.5,mono:true});
+  g += SVG.text(500,44,"T",{col:"var(--jade)",size:15,mono:true,weight:700});
+  g += SVG.path(`M 470 60 A 34 34 0 1 1 528 62`,"var(--jade)",2);
+  g += SVG.arrow(524,54,530,66,"var(--jade)",2,8);
+  g += SVG.text(500,84,fmt(P.Tm,0)+" N·m",{col:"var(--jade)",size:11.5,mono:true});
+  $("shaft").innerHTML=g;
+}
+
+/* ---------- contribution bars --------------------------------------------- */
+function drawBars(){
+  const a=A()/P.Se, b=B()/P.Sut, tot=a+b;
+  const x0=120, w=470, y=44, h=30;
+  let g="";
+  const wa=w*a/tot;
+  g += SVG.rect(x0,y,wa,h,"var(--dye)");
+  g += SVG.rect(x0+wa,y,w-wa,h,"var(--jade)");
+  g += SVG.rect(x0,y,w,h,"none","#46545f",1.2);
+  g += SVG.text(x0-10,y+20,"required d³",{col:"#46545f",size:12,anchor:"end",mono:true,weight:700});
+  if(wa>70) g += SVG.text(x0+wa/2,y+20,fmt(100*a/tot,0)+"% bending",{col:"#fff",size:12.5,mono:true,weight:700,onfill:true});
+  if(w-wa>70) g += SVG.text(x0+wa+(w-wa)/2,y+20,fmt(100*b/tot,0)+"% torsion",{col:"#fff",size:12.5,mono:true,weight:700,onfill:true});
+  g += SVG.text(x0,y+52,"A / Se = "+fmt(a,0),{col:"var(--dye)",size:12.5,anchor:"start",mono:true,weight:700});
+  g += SVG.text(x0+w,y+52,"B / Sut = "+fmt(b,0),{col:"var(--jade)",size:12.5,anchor:"end",mono:true,weight:700});
+  g += SVG.text(x0,y+76,"A = 2·Kf·Ma (alternating)   ·   B = √3·Kfs·Tm (steady)",{col:"#8493a0",size:11.5,anchor:"start",weight:400});
+  $("bars").innerHTML=g;
+}
+
+/* ---------- n against d ---------------------------------------------------- */
+function drawCurve(){
+  const dmax=Math.max(60,d*1.9), nmax=Math.max(4,nFat(dmax)*1.05);
+  const f=frame({w:640,h:320,l:64,r:24,t:20,b:52,
+    xmin:10,xmax:dmax,ymin:0,ymax:nmax,
+    xlabel:"diameter d (mm)", ylabel:"factor of safety",
+    xfmt:v=>fmt(v,0), yfmt:v=>fmt(v,1), zeroY:false});
+  let g=f.g;
+  g += SVG.line(f.l,f.Y(1),f.l+f.pw,f.Y(1),"var(--aus)",1.6,"6 4");
+  g += SVG.text(f.l+6,f.Y(1)-7,"n = 1 — failure",{col:"var(--aus)",size:11.5,anchor:"start",mono:true,weight:700});
+  const nt=parseFloat($("ntarget").value)||1.5;
+  g += SVG.line(f.l,f.Y(nt),f.l+f.pw,f.Y(nt),"#8493a0",1.2,"4 4");
+  g += SVG.text(f.l+f.pw-4,f.Y(nt)-7,"target n = "+fmt(nt,2),{col:"#8493a0",size:11.5,anchor:"end",mono:true});
+  g += f.clip(
+        SVG.path(curve(x=>nFat(x),10,dmax,f.X,f.Y,220),"var(--dye)",2.6)
+      + SVG.path(curve(x=>Math.min(nYld(x),nmax*1.5),10,dmax,f.X,f.Y,220),"var(--brass)",2.2,"none","6 4"));
+  g += SVG.text(f.X(dmax*0.80),f.Y(nFat(dmax*0.80))-12,"fatigue",{col:"var(--dye)",size:12,mono:true,weight:700});
+  g += SVG.text(f.X(dmax*0.62),f.Y(Math.min(nYld(dmax*0.62),nmax))+16,"yield",{col:"var(--brass)",size:12,mono:true,weight:700});
+  g += SVG.line(f.X(d),f.t,f.X(d),f.t+f.ph,"#10151b",1.5);
+  g += f.clip(SVG.circle(f.X(d),f.Y(Math.min(nFat(d),nmax)),6,"#fff","var(--dye)",3));
+  $("curve").innerHTML=g;
+}
+
+/* ---------- readouts ------------------------------------------------------- */
+function out(){
+  const nf=nFat(d), ny=nYld(d), nt=parseFloat($("ntarget").value)||1.5;
+  const req=solveD(nt);
+  const gov = nf<=ny ? "fatigue" : "first-cycle yielding";
+  const rows=[
+    {k:"n fatigue", v:fmt(nf,2), tone:"blue"},
+    {k:"n yield",   v:isFinite(ny)?fmt(ny,2):"∞", tone:"brass"},
+    {k:"governs",   v:gov==="fatigue"?"FATIGUE":"YIELD", tone:"red", n:"the lower of the two"},
+    {k:"d required", v:fmt(req,2)+" mm", tone:"red", n:`for n = ${fmt(nt,2)}`},
+    {k:"specify",   v:Math.ceil(req)+" mm", n:"round up, never down"},
+    {k:"A", v:sig(A(),4), n:"N·mm, alternating"},
+    {k:"B", v:sig(B(),4), n:"N·mm, steady"},
+    {k:"σ′max", v:fmt(Math.sqrt((32*P.Kf*P.Ma*1000/(Math.PI*d**3))**2 + 3*(16*P.Kfs*P.Tm*1000/(Math.PI*d**3))**2),1), n:"MPa, for the yield check"}
+  ];
+  cells("out", hiding() ? rows.map(r=>({...r, v:"—"})) : rows);
+  let msg=null;
+  if (nf<1) msg=[`<b>Below one.</b> At ⌀${fmt(d,1)} mm this shaft does not survive. It needs at least ⌀${fmt(solveD(1),1)} mm just to reach n = 1, and ⌀${Math.ceil(req)} mm for your target.`];
+  else if (ny<nf) msg=[`<b>Yielding governs here.</b> n<sub>y</sub> = ${fmt(ny,2)} is below the fatigue factor. Check the peak load case — something is overloading this shaft on the first revolution.`];
+  else if (nf<nt) msg=[`<b>Short of target.</b> n = ${fmt(nf,2)} against a target of ${fmt(nt,2)}. Specify ⌀${Math.ceil(req)} mm.`,"neutral"];
+  else msg=[`<b>Adequate.</b> n = ${fmt(nf,2)} on fatigue and ${fmt(ny,2)} on yielding, both above the target. Fatigue is ${fmt(ny/nf,1)}× more critical than yielding here.`,"neutral"];
+  callout("note",msg[0],msg[1]);
+}
+
+/* ---------- wiring --------------------------------------------------------- */
+function redraw(){ $("dv").textContent=fmt(d,1); $("d").value=d; drawShaft(); drawBars(); drawCurve(); out(); }
+function read(){
+  P.Ma=parseFloat($("ma").value)||0;  P.Tm=parseFloat($("tm").value)||0;
+  P.Kf=parseFloat($("kf").value)||1;  P.Kfs=parseFloat($("kfs").value)||1;
+  P.Se=parseFloat($("se").value)||1;  P.Sut=parseFloat($("sut").value)||1; P.Sy=parseFloat($("sy").value)||1;
+  redraw();
+}
+["ma","tm","kf","kfs","se","sut","sy"].forEach(id=>$(id).addEventListener("input",read));
+$("d").addEventListener("input",e=>{ d=parseFloat(e.target.value); redraw(); });
+$("ntarget").addEventListener("input",()=>{ $("ntgt").textContent=fmt(parseFloat($("ntarget").value)||1.5,2); redraw(); });
+$("solve").addEventListener("click",()=>{
+  const nt=parseFloat($("ntarget").value)||1.5;
+  d=Math.min(90,Math.max(10,solveD(nt))); redraw();
+});
+keyboard("d",()=>{ d=parseFloat($("d").value); redraw(); });
+
+const PRESETS=[
+  ["Example 7-1",142.35,124.28,1.58,1.37,186.9,724,565,27.94],
+  ["Belt-driven shaft",482.4,340,2.36,2.08,183,560,420,45],
+  ["Light duty",40,25,1.6,1.4,200,600,450,20],
+  ["Torque-dominated",30,300,1.5,1.4,190,700,550,35]
+];
+$("presets").innerHTML=PRESETS.map((p,i)=>`<button class="chip" data-i="${i}">${p[0]}</button>`).join("");
+$("presets").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b)return;
+  const [,ma,tm,kf,kfs,se,sut,sy,dd]=PRESETS[+b.dataset.i];
+  $("ma").value=ma; $("tm").value=tm; $("kf").value=kf; $("kfs").value=kfs;
+  $("se").value=se; $("sut").value=sut; $("sy").value=sy; d=dd; read();
+});
+$("predict").addEventListener("click",()=>{
+  if(predict&&!revealed){revealed=true;predict=false;$("predict").textContent="Predict mode";$("predict").classList.remove("active");}
+  else {predict=true;revealed=false;$("predict").textContent="Reveal";$("predict").classList.add("active");}
+  redraw();
+});
+
+read();
+</script>
+</body>
+</html>

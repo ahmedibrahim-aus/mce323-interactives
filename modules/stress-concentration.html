@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stress Concentration · MCE 323</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+<div class="sheet">
+
+<header class="mod-head">
+  <span class="eyebrow">Shigley ch. 5 &amp; 6 · Stress concentration and notch sensitivity</span>
+  <h1>Stress Concentration</h1>
+  <p>Read K<sub>t</sub> off the chart the way the exam expects, then see what ignoring it would have cost. The same panel carries the step most students miss — turning a static K<sub>t</sub> into the fatigue factor K<sub>f</sub> through notch sensitivity.</p>
+</header>
+
+<div class="wrap">
+  <div class="presets" id="presets"></div>
+
+  <div class="controls">
+    <div class="field"><label for="geo">Geometry</label>
+      <select id="geo">
+        <option value="hole">Plate with a central hole · axial</option>
+        <option value="shaftB">Stepped round shaft · bending</option>
+        <option value="shaftT">Stepped round shaft · torsion</option>
+      </select>
+    </div>
+    <div class="divider"></div>
+    <div class="field" id="fw"><label for="wd">width w</label><input type="number" id="wd" step="5" value="100" style="width:76px"></div>
+    <div class="field" id="fd"><label for="dia">hole d</label><input type="number" id="dia" step="1" value="20" style="width:70px"></div>
+    <div class="field" id="fD" hidden><label for="Dd">D/d</label><input type="number" id="Dd" step="0.05" value="1.5" style="width:70px"></div>
+    <div class="field" id="fdd" hidden><label for="dd">d</label><input type="number" id="dd" step="1" value="30" style="width:70px"></div>
+    <div class="field" style="flex:1 1 240px"><label for="rr">r mm</label>
+      <input type="range" id="rr" min="0.5" max="12" step="0.1" value="3"><span class="readout" id="rrv">3.0</span></div>
+    <div class="divider"></div>
+    <div class="field"><label for="F">load</label><input type="number" id="F" step="1000" value="10000" style="width:84px"></div>
+    <div class="field"><label for="t">thick b</label><input type="number" id="t" step="0.5" value="2.5" style="width:70px"></div>
+    <div class="field"><label for="sut">Sut</label><input type="number" id="sut" step="10" value="690" style="width:76px"></div>
+    <div class="field"><label for="sy">Sy</label><input type="number" id="sy" step="10" value="580" style="width:76px"></div>
+    <button id="predict">Predict mode</button>
+  </div>
+
+  <div class="grid g2">
+    <div class="panel">
+      <h2>Reading the chart <span class="hint">the skill the exam actually tests</span></h2>
+      <svg id="chart" viewBox="0 0 660 420" role="img" aria-label="Stress concentration factor chart"></svg>
+    </div>
+    <div class="panel">
+      <h2>The part, and the stress across the critical section</h2>
+      <svg id="part" viewBox="0 0 660 420" role="img" aria-label="Part geometry and stress distribution"></svg>
+    </div>
+    <div class="panel">
+      <h2>What it costs to ignore it</h2>
+      <div class="cells" id="out"></div>
+      <div class="callout" id="note"></div>
+    </div>
+    <div class="panel">
+      <h2>From Kt to Kf <span class="hint">notch sensitivity, for the fatigue calculation</span></h2>
+      <svg id="qplot" viewBox="0 0 660 300" role="img" aria-label="Notch sensitivity against notch radius"></svg>
+      <div class="cells" id="out2" style="margin-top:10px"></div>
+    </div>
+  </div>
+
+  <div class="notice">
+    <h2>What to notice</h2>
+    <ol>
+      <li><b>Read the chart in four steps.</b> Work out the ratio the axis wants, find the right curve, read across, then sanity-check: K<sub>t</sub> is never below 1, and a sharper notch always gives a higher K<sub>t</sub>. If your answer moved the wrong way, you read the wrong curve.</li>
+      <li><b>Ignoring K<sub>t</sub> does not make a part safer, it makes your estimate wrong.</b> Watch the two factors of safety separate. For a plate with a hole it is routinely a factor of two and a half.</li>
+      <li><b>Sharp notches are expensive.</b> Drag r toward zero and K<sub>t</sub> climbs without limit. Almost all of the benefit of a generous fillet arrives in the first millimetre or two.</li>
+      <li><b>Fatigue does not feel the full K<sub>t</sub>.</b> Notch sensitivity q pulls it back to K<sub>f</sub> = 1 + q(K<sub>t</sub> − 1). Small radii and softer steels are less sensitive — which is why a mild steel tolerates a notch better than a hardened one.</li>
+    </ol>
+    <p class="foot"><kbd>←</kbd> <kbd>→</kbd> change the notch radius · every correlation here is the fit Shigley uses for the printed charts</p>
+  </div>
+</div>
+
+<div id="tb"></div>
+</div>
+
+<script src="../assets/instrument.js"></script>
+<script>
+"use strict";
+let geo="hole", wd=100, dia=20, Dd=1.5, dd=30, r=3, F=10000, thick=2.5, Sut=690, Sy=580;
+let predict=false, revealed=false;
+
+mountTopbar({});
+$("tb").innerHTML = titleblock({ sheet:"09", title:"Stress concentration", ch:"5 and 6" });
+const hiding=()=>predict&&!revealed, q_=v=>hiding()?"—":v;
+
+/* ---- Kt correlations, the fits behind Shigley's charts -------------------- */
+const holeKt = lam => 3.00 - 3.13*lam + 3.66*lam*lam - 1.53*lam*lam*lam;
+const BEND=[[1.02,0.96048,-0.17711],[1.05,0.98137,-0.19653],[1.07,0.97527,-0.20958],
+            [1.10,0.95120,-0.23757],[1.20,0.97098,-0.21796],[1.50,0.93836,-0.25759],
+            [2.00,0.90879,-0.28598],[3.00,0.89334,-0.30860],[6.00,0.87868,-0.33243]];
+const TORS=[[1.09,0.90337,-0.12692],[1.20,0.83425,-0.21649],[1.33,0.84897,-0.23161],
+            [2.00,0.86331,-0.23865]];
+function interpAB(tab,x){
+  if(x<=tab[0][0]) return [tab[0][1],tab[0][2]];
+  if(x>=tab[tab.length-1][0]) return [tab[tab.length-1][1],tab[tab.length-1][2]];
+  for(let i=1;i<tab.length;i++){
+    if(x<=tab[i][0]){
+      const [x0,a0,b0]=tab[i-1],[x1,a1,b1]=tab[i], f=(x-x0)/(x1-x0);
+      return [a0+(a1-a0)*f, b0+(b1-b0)*f];
+    }
+  }
+}
+function Kt(){
+  if(geo==="hole") return holeKt(clamp(dia/wd,0,0.7));
+  const [A,b] = interpAB(geo==="shaftB"?BEND:TORS, Dd);
+  return A*Math.pow(clamp(r/dd,0.02,0.5), b);
+}
+/* Neuber constant, SI (root-mm), then Kuhn–Hardrath */
+function sqrtA(){
+  const S=Sut;
+  return geo==="shaftT"
+    ? 1.24 - 2.25e-3*S + 1.60e-6*S*S - 4.11e-10*S*S*S + 0.19    /* torsion runs a touch higher */
+    : 1.24 - 2.25e-3*S + 1.60e-6*S*S - 4.11e-10*S*S*S;
+}
+const notchQ = rad => 1/(1 + Math.max(0,sqrtA())/Math.sqrt(Math.max(rad,1e-4)));
+const Kf = () => 1 + notchQ(r)*(Kt()-1);
+
+/* nominal stress on the net section */
+function nominal(){
+  if(geo==="hole") return F/((wd-dia)*thick);
+  if(geo==="shaftB") return 32*F/(Math.PI*Math.pow(dd,3));      /* F is a moment, N·mm */
+  return 16*F/(Math.PI*Math.pow(dd,3));                          /* torsion */
+}
+const unitLabel = () => geo==="hole" ? "N" : "N·mm";
+
+/* ---------- chart --------------------------------------------------------- */
+function drawChart(){
+  let g, f;
+  if(geo==="hole"){
+    f=frame({w:660,h:420,l:66,r:26,t:24,b:56,xmin:0,xmax:0.7,ymin:1,ymax:3.2,
+      xlabel:"d / w", ylabel:"Kt", xstep:0.1, ystep:0.5,
+      xfmt:v=>fmt(v,1), yfmt:v=>fmt(v,1), zeroY:false});
+    g=f.g;
+    g += f.clip(SVG.path(curve(holeKt,0,0.7,f.X,f.Y,140),"var(--dye)",2.6));
+    const lam=clamp(dia/wd,0,0.7), K=holeKt(lam);
+    g += SVG.line(f.X(lam),f.t+f.ph,f.X(lam),f.Y(K),"var(--aus)",1.6,"5 4");
+    g += SVG.line(f.l,f.Y(K),f.X(lam),f.Y(K),"var(--aus)",1.6,"5 4");
+    g += SVG.circle(f.X(lam),f.Y(K),7,"#fff","var(--aus)",3);
+    g += SVG.text(f.X(lam)+10,f.Y(K)-12,"Kt = "+fmt(K,2),{col:"var(--aus)",size:14,anchor:"start",mono:true,weight:700});
+    g += SVG.text(f.X(lam),f.t+f.ph+36,"d/w = "+fmt(lam,3),{col:"var(--aus)",size:12,mono:true,weight:700});
+  } else {
+    const tab = geo==="shaftB"?BEND:TORS;
+    f=frame({w:660,h:420,l:66,r:26,t:24,b:56,xmin:0,xmax:0.32,ymin:1,ymax:3.0,
+      xlabel:"r / d", ylabel:geo==="shaftB"?"Kt":"Kts", xstep:0.05, ystep:0.5,
+      xfmt:v=>fmt(v,2), yfmt:v=>fmt(v,1), zeroY:false});
+    g=f.g;
+    let inner="";
+    tab.forEach(([D,A,b])=>{
+      inner += SVG.path(curve(x=>A*Math.pow(Math.max(x,0.02),b),0.02,0.32,f.X,f.Y,120),"#c3ced8",1.6);
+    });
+    const [A,b]=interpAB(tab,Dd);
+    inner += SVG.path(curve(x=>A*Math.pow(Math.max(x,0.02),b),0.02,0.32,f.X,f.Y,120),"var(--dye)",2.8);
+    g += f.clip(inner);
+    /* The family converges at high r/d, so labelling all eight is unreadable.
+       Name the curve being read and say what the grey ones are. */
+    const yA=A*Math.pow(0.30,b);
+    g += SVG.text(f.X(0.305),f.Y(yA)+4,"D/d "+fmt(Dd,2),{col:"var(--dye)",size:11.5,anchor:"start",mono:true,weight:700});
+    g += SVG.text(f.l+8,f.t+f.ph-10,`grey curves: the rest of the D/d family, ${fmt(tab[0][0],2)} to ${fmt(tab[tab.length-1][0],2)}`,
+                  {col:"#9fadba",size:11,anchor:"start",weight:500});
+    const x=clamp(r/dd,0.02,0.32), K=A*Math.pow(x,b);
+    g += SVG.line(f.X(x),f.t+f.ph,f.X(x),f.Y(K),"var(--aus)",1.6,"5 4");
+    g += SVG.line(f.l,f.Y(K),f.X(x),f.Y(K),"var(--aus)",1.6,"5 4");
+    g += SVG.circle(f.X(x),f.Y(K),7,"#fff","var(--aus)",3);
+    g += SVG.text(f.X(x)+10,f.Y(K)-12,(geo==="shaftB"?"Kt = ":"Kts = ")+fmt(K,2),{col:"var(--aus)",size:14,anchor:"start",mono:true,weight:700});
+    g += SVG.text(f.X(x),f.t+f.ph+36,"r/d = "+fmt(x,3),{col:"var(--aus)",size:12,mono:true,weight:700});
+  }
+  g += SVG.text(f.l+8,f.t+16,"1 · form the ratio   2 · find the curve   3 · read across   4 · check it moved the right way",
+        {col:"#8493a0",size:11,anchor:"start",weight:400});
+  $("chart").innerHTML=g;
+}
+
+/* ---------- the part ------------------------------------------------------- */
+function drawPart(){
+  const K=Kt(), sn=nominal(), cx=330;
+  let g="";
+  if(geo==="hole"){
+    const sc=Math.min(360/wd, 150/Math.max(dia,10)), W=wd*sc, R=dia*sc/2, y0=110, H=Math.min(150,W*0.5);
+    g += SVG.rect(cx-W/2,y0,W,H,"#eef2f5","#46545f",1.8);
+    g += SVG.circle(cx,y0+H/2,R,"#ffffff","#46545f",1.8);
+    g += SVG.centre(cx-W/2-24,y0+H/2,cx+W/2+24,y0+H/2);
+    g += SVG.arrow(cx-W/2-52,y0+H/2,cx-W/2-6,y0+H/2,"var(--dye)",2.6,10);
+    g += SVG.arrow(cx+W/2+52,y0+H/2,cx+W/2+6,y0+H/2,"var(--dye)",2.6,10);
+    g += SVG.text(cx-W/2-58,y0+H/2-12,"F",{col:"var(--dye)",size:14,anchor:"end",mono:true,weight:700});
+    g += SVG.text(cx,y0-14,`net section = (w − d)·b = ${fmt((wd-dia)*thick,0)} mm²`,{col:"#8493a0",size:12,mono:true});
+    /* stress across the net section, Kirsch-like decay scaled to the real Kt */
+    const py=300, ph=96, xa=cx+R, xb=cx+W/2;
+    let d="";
+    for(let i=0;i<=60;i++){
+      const x=xa+(xb-xa)*i/60, yy=(x-cx)/R;
+      const prof=0.5*(2+Math.pow(1/yy,2)+3*Math.pow(1/yy,4));
+      const s=Math.min(K, prof/3*K);
+      d += (i?" L ":"M ")+x.toFixed(1)+" "+(py-ph*s/Math.max(K,1)).toFixed(1);
+    }
+    g += SVG.path(d,"var(--aus)",2.4);
+    g += SVG.line(cx-W/2,py,cx+W/2,py,"#b9c4ce",1.4);
+    g += SVG.line(xa,py,xa,py-ph,"var(--aus)",1.2,"3 3");
+    g += SVG.text(xa+6,py-ph-8,"σmax = "+fmt(sn*K,1)+" MPa",{col:"var(--aus)",size:12.5,anchor:"start",mono:true,weight:700});
+    g += SVG.line(cx-W/2,py-ph/Math.max(K,1),cx+W/2,py-ph/Math.max(K,1),"var(--dye)",1.4,"6 4");
+    g += SVG.text(cx-W/2,py-ph/Math.max(K,1)-8,"σnom = "+fmt(sn,1),{col:"var(--dye)",size:12,anchor:"start",mono:true,weight:700});
+    g += SVG.text(cx,py+22,"stress across the net section — the peak decays within about one hole diameter",{col:"#8493a0",size:11.5,weight:400});
+  } else {
+    const sc=3.0, d0=dd*sc, D0=dd*Dd*sc, rr=r*sc, cy=150;
+    g += SVG.centre(60,cy,600,cy);
+    g += SVG.rect(120,cy-D0/2,180,D0,"#eef2f5","#46545f",1.8);
+    g += SVG.path(`M 300 ${cy-D0/2} L 300 ${cy-d0/2-rr} A ${rr} ${rr} 0 0 1 ${300+rr} ${cy-d0/2} L 540 ${cy-d0/2} L 540 ${cy+d0/2} L ${300+rr} ${cy+d0/2} A ${rr} ${rr} 0 0 1 300 ${cy+d0/2+rr} L 300 ${cy+D0/2} Z`,"#46545f",1.8,"#f6f8f9");
+    g += SVG.circle(300+rr,cy-d0/2-rr,rr,"none","var(--aus)",1.2,"3 3");
+    g += SVG.text(300+rr+8,cy-d0/2-rr-8,"r = "+fmt(r,1),{col:"var(--aus)",size:12,anchor:"start",mono:true,weight:700});
+    g += SVG.text(210,cy-D0/2-12,"D = "+fmt(dd*Dd,1),{col:"#8493a0",size:12,mono:true});
+    g += SVG.text(440,cy-d0/2-12,"d = "+fmt(dd,1),{col:"#8493a0",size:12,mono:true});
+    g += SVG.circle(300+rr*0.4,cy-d0/2-rr*0.1,7,"none","var(--aus)",2.4);
+    g += SVG.text(300,cy+D0/2+40,"the peak sits in the fillet root, not on the shoulder face",{col:"#8493a0",size:12,weight:400});
+    g += SVG.text(330,330,`σnom = ${fmt(sn,1)} MPa   →   σmax = ${fmt(sn*K,1)} MPa`,{col:"var(--aus)",size:14,mono:true,weight:700});
+  }
+  $("part").innerHTML=g;
+}
+
+/* ---------- q against r ---------------------------------------------------- */
+function drawQ(){
+  const f=frame({w:660,h:300,l:66,r:26,t:20,b:50,xmin:0,xmax:12,ymin:0,ymax:1,
+    xlabel:"notch radius r (mm)", ylabel:"q", xstep:2, ystep:0.2,
+    xfmt:v=>fmt(v,0), yfmt:v=>fmt(v,1), zeroY:false});
+  let g=f.g;
+  g += f.clip(SVG.path(curve(notchQ,0.05,12,f.X,f.Y,200),"var(--dye)",2.6));
+  [400,700,1200].forEach(S=>{
+    const save=Sut; Sut=S;
+    g += f.clip(SVG.path(curve(notchQ,0.05,12,f.X,f.Y,150),"#c9d3dc",1.4));
+    Sut=save;
+  });
+  g += f.clip(SVG.path(curve(notchQ,0.05,12,f.X,f.Y,200),"var(--dye)",2.6));
+  g += SVG.circle(f.X(clamp(r,0,12)),f.Y(notchQ(r)),6,"#fff","var(--aus)",3);
+  g += SVG.text(f.X(clamp(r,0,12))+10,f.Y(notchQ(r))+22,"q = "+fmt(notchQ(r),3),{col:"var(--aus)",size:13,anchor:"start",mono:true,weight:700});
+  g += SVG.text(f.l+8,f.t+16,"greyed lines: Sut = 400, 700 and 1200 MPa — harder steel is more notch-sensitive",
+        {col:"#8493a0",size:11,anchor:"start",weight:400});
+  $("qplot").innerHTML=g;
+}
+
+/* ---------- readouts -------------------------------------------------------- */
+function out(){
+  const K=Kt(), sn=nominal(), smax=sn*K;
+  const nIgnored = Sy/sn, nHonest = Sy/smax;
+  cells("out",[
+    {k:geo==="shaftT"?"Kts":"Kt", v:q_(fmt(K,2)), tone:"red"},
+    {k:"σnom", v:q_(fmt(sn,1)+" MPa"), tone:"blue", n:"on the net section"},
+    {k:"σmax", v:q_(fmt(smax,1)+" MPa"), tone:"red", n:"Kt × σnom"},
+    {k:"n if you ignore Kt", v:q_(fmt(nIgnored,2)), n:"the wrong answer"},
+    {k:"n, honest", v:q_(fmt(nHonest,2)), tone:"red"},
+    {k:"overestimate", v:q_(fmt(K,2)+"×"), tone:"brass", n:"how far off ignoring it puts you"}
+  ]);
+  cells("out2",[
+    {k:"q", v:q_(fmt(notchQ(r),3)), tone:"blue", n:"notch sensitivity"},
+    {k:"Kf", v:q_(fmt(Kf(),2)), tone:"red", n:"1 + q(Kt − 1)"},
+    {k:"√a", v:q_(fmt(sqrtA(),3)+" √mm"), n:`Neuber, at Sut = ${fmt(Sut,0)}`},
+    {k:"Kf / Kt", v:q_(fmt(Kf()/K,3)), n:"how much fatigue discounts the notch"}
+  ]);
+  let msg=null;
+  if(hiding()) msg=["<b>Predict mode.</b> Ask the class to read K<sub>t</sub> off the chart before you reveal it — and to say whether K<sub>f</sub> will be larger or smaller.","neutral"];
+  else if(K>2.8) msg=[`<b>Severe.</b> K<sub>t</sub> = ${fmt(K,2)} means the peak stress is nearly three times the nominal. Sizing this part on σ<sub>nom</sub> would overstate its safety factor by the same multiple.`];
+  else if(r<1.2 && geo!=="hole") msg=[`<b>Sharp fillet.</b> At r = ${fmt(r,1)} mm most of the available benefit is still unclaimed — opening the radius to 3 mm would drop K<sub>t</sub> noticeably for almost no cost in material.`,"neutral"];
+  else msg=[`<b>K<sub>t</sub> = ${fmt(K,2)}, K<sub>f</sub> = ${fmt(Kf(),2)}.</b> Use K<sub>t</sub> for the static check and K<sub>f</sub> for the fatigue check — they are not interchangeable, and the fatigue one is always the smaller.`,"neutral"];
+  callout("note",msg[0],msg[1]);
+}
+
+/* ---------- wiring ---------------------------------------------------------- */
+function redraw(){ $("rrv").textContent=fmt(r,1); drawChart(); drawPart(); drawQ(); out(); }
+function read(){
+  geo=$("geo").value;
+  const hole = geo==="hole";
+  $("fw").hidden=!hole; $("fd").hidden=!hole; $("fD").hidden=hole; $("fdd").hidden=hole;
+  wd=parseFloat($("wd").value)||100; dia=parseFloat($("dia").value)||1;
+  Dd=clamp(parseFloat($("Dd").value)||1.5,1.01,6); dd=parseFloat($("dd").value)||30;
+  r=parseFloat($("rr").value); F=parseFloat($("F").value)||1;
+  thick=parseFloat($("t").value)||1; Sut=parseFloat($("sut").value)||500; Sy=parseFloat($("sy").value)||400;
+  redraw();
+}
+["geo","wd","dia","Dd","dd","rr","F","t","sut","sy"].forEach(id=>$(id).addEventListener("input",read));
+$("predict").addEventListener("click",()=>{
+  if(predict&&!revealed){revealed=true;predict=false;$("predict").textContent="Predict mode";$("predict").classList.remove("active");}
+  else {predict=true;revealed=false;$("predict").textContent="Reveal";$("predict").classList.add("active");}
+  redraw();
+});
+keyboard("rr",()=>{ r=parseFloat($("rr").value); redraw(); });
+
+const PRESETS=[
+  ["Ch 5 example: plate, d/w = 0.2","hole",100,20,1.5,30,3,10000,2.5,690,580],
+  ["Bigger hole, d/w = 0.5","hole",100,50,1.5,30,3,10000,2.5,690,580],
+  ["Ex 6-11 shaft fillet","shaftB",100,20,1.1875,32,3,695500,2.5,690,580],
+  ["Sharp fillet, r = 1 mm","shaftB",100,20,1.5,30,1,400000,2.5,690,580],
+  ["Shaft in torsion","shaftT",100,20,1.5,30,3,300000,2.5,690,580],
+  ["Hardened steel, Sut 1200","shaftB",100,20,1.5,30,2,400000,2.5,1200,1000]
+];
+$("presets").innerHTML=PRESETS.map((p,i)=>`<button class="chip" data-i="${i}">${p[0]}</button>`).join("");
+$("presets").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b)return;
+  const [,g0,w0,d0,D0,dd0,r0,F0,t0,su,sy]=PRESETS[+b.dataset.i];
+  $("geo").value=g0; $("wd").value=w0; $("dia").value=d0; $("Dd").value=D0; $("dd").value=dd0;
+  $("rr").value=r0; $("F").value=F0; $("t").value=t0; $("sut").value=su; $("sy").value=sy;
+  read();
+});
+read();
+</script>
+</body>
+</html>

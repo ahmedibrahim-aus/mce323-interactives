@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Marin Factors and the S–N Line · MCE 323</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+<div class="sheet">
+
+<header class="mod-head">
+  <span class="eyebrow">Shigley ch. 6 · Endurance limit and finite life</span>
+  <h1>Marin Factors and the S–N Line</h1>
+  <p>A polished 7.6 mm specimen in a rotating-beam machine is not your part. Build S<sub>e</sub> one correction at a time and watch the S–N line drop and pivot underneath — then read a life straight off it.</p>
+</header>
+
+<div class="wrap">
+  <div class="presets" id="presets"></div>
+
+  <div class="controls">
+    <div class="field"><label for="sut">Sut MPa</label><input type="number" id="sut" step="10" value="690" style="width:84px"></div>
+    <div class="field"><label for="surf">Surface</label>
+      <select id="surf">
+        <option value="1.58,-0.085">Ground</option>
+        <option value="4.51,-0.265" selected>Machined / cold-drawn</option>
+        <option value="57.7,-0.718">Hot-rolled</option>
+        <option value="272,-0.995">As-forged</option>
+        <option value="0,0">Polished specimen (ka = 1)</option>
+      </select>
+    </div>
+    <div class="field"><label for="load">Loading</label>
+      <select id="load"><option value="bend">Bending</option><option value="ax">Axial</option><option value="tors">Torsion</option></select>
+    </div>
+    <div class="field" style="flex:1 1 230px"><label for="d">d mm</label>
+      <input type="range" id="d" min="5" max="150" step="0.01" value="32"><span class="readout" id="dv">32</span></div>
+    <div class="field"><label for="temp">T °C</label><input type="number" id="temp" step="25" value="20" style="width:72px"></div>
+    <div class="field"><label for="rel">Reliability</label>
+      <select id="rel">
+        <option value="1.000">50 %</option><option value="0.897" selected>90 %</option>
+        <option value="0.868">95 %</option><option value="0.814">99 %</option>
+        <option value="0.753">99.9 %</option><option value="0.702">99.99 %</option>
+      </select>
+    </div>
+    <div class="divider"></div>
+    <div class="field" style="flex:1 1 250px"><label for="sa">σa MPa</label>
+      <input type="range" id="sa" min="20" max="900" step="5" value="335"><span class="readout" id="sav">335</span></div>
+    <button id="predict">Predict mode</button>
+  </div>
+
+  <div class="grid g2">
+    <div class="panel">
+      <h2>Building S<sub>e</sub> <span class="hint">each factor takes its bite out of the specimen value</span></h2>
+      <svg id="fall" viewBox="0 0 660 420" role="img" aria-label="Waterfall of Marin factors"></svg>
+    </div>
+    <div class="panel">
+      <h2>The S–N line <span class="hint">log–log, three straight segments</span></h2>
+      <svg id="sn" viewBox="0 0 660 420" role="img" aria-label="S-N diagram"></svg>
+    </div>
+    <div class="panel">
+      <h2>Result</h2>
+      <div class="cells" id="out"></div>
+      <div class="callout" id="note"></div>
+    </div>
+    <div class="panel">
+      <h2>The six-step procedure, live</h2>
+      <div id="steps" style="font-size:14.5px;line-height:1.6"></div>
+    </div>
+  </div>
+
+  <div class="notice">
+    <h2>What to notice</h2>
+    <ol>
+      <li><b>The specimen value is optimistic and you never get to use it.</b> Start from a polished specimen and switch on a hot-rolled surface: S<sub>e</sub> can lose more than half its value before any other correction lands.</li>
+      <li><b>Surface finish is usually the biggest single bite</b>, and it gets worse as the steel gets stronger. Push S<sub>ut</sub> up with a hot-rolled surface and watch k<sub>a</sub> collapse — strong steel only pays off if you also pay for the finish.</li>
+      <li><b>Axial loading has no size effect but a permanent 15% penalty.</b> k<sub>b</sub> = 1, k<sub>c</sub> = 0.85. Torsion is harsher still at 0.59.</li>
+      <li><b>The finite-life line pivots, it does not just drop.</b> Both ends move: the 10³ end is anchored to f·S<sub>ut</sub>, the 10⁶ end to S<sub>e</sub>. That is why a correction to S<sub>e</sub> changes the slope as well as the intercept.</li>
+    </ol>
+    <p class="foot"><kbd>←</kbd> <kbd>→</kbd> change the diameter · every constant here is from Shigley's tables 6-2, 6-4 and 6-5</p>
+  </div>
+</div>
+
+<div id="tb"></div>
+</div>
+
+<script src="../assets/instrument.js"></script>
+<script>
+"use strict";
+let Sut=690, surfA=4.51, surfB=-0.265, load="bend", d=32, T=20, ke=0.897, sa=335;
+let predict=false, revealed=false;
+
+mountTopbar({});
+$("tb").innerHTML = titleblock({ sheet:"10", title:"Marin factors and the S-N line", ch:"6" });
+const hiding=()=>predict&&!revealed, q_=v=>hiding()?"—":v;
+
+/* ---------- the factors ---------------------------------------------------- */
+const Sep = () => Sut<=1400 ? 0.5*Sut : 700;
+const ka  = () => surfA===0 ? 1 : Math.min(1, surfA*Math.pow(Sut,surfB));
+function kb(){
+  if(load==="ax") return 1;
+  if(d<=51) return Math.pow(d/7.62,-0.107);
+  if(d<=254) return 1.51*Math.pow(d,-0.157);
+  return 1.51*Math.pow(254,-0.157);
+}
+const kc = () => load==="bend"?1:(load==="ax"?0.85:0.59);
+function kd(){
+  if(T<=20) return 1;
+  const t=Math.min(T,550);
+  return 0.975 + 0.432e-3*t - 0.115e-5*t*t + 0.104e-8*t*t*t - 0.595e-12*t*t*t*t;
+}
+const Se = () => Sep()*ka()*kb()*kc()*kd()*ke;
+
+/* fraction f of Sut at 10^3 cycles, Shigley's fit to Fig. 6-18 */
+function fFrac(){
+  if(Sut<490) return 0.9;
+  return clamp(1.06 - 4.1e-4*Sut + 1.5e-7*Sut*Sut, 0.75, 0.9);
+}
+const aCo = () => Math.pow(fFrac()*Sut,2)/Se();
+const bCo = () => -(1/3)*Math.log10(fFrac()*Sut/Se());
+const lifeAt = s => Math.pow(s/aCo(), 1/bCo());
+const strengthAt = N => aCo()*Math.pow(N,bCo());
+
+/* ---------- waterfall ------------------------------------------------------ */
+function drawFall(){
+  const steps=[
+    {k:"S′e", v:Sep(), f:null},
+    {k:"ka", v:Sep()*ka(), f:ka()},
+    {k:"kb", v:Sep()*ka()*kb(), f:kb()},
+    {k:"kc", v:Sep()*ka()*kb()*kc(), f:kc()},
+    {k:"kd", v:Sep()*ka()*kb()*kc()*kd(), f:kd()},
+    {k:"ke", v:Se(), f:ke}
+  ];
+  const max=Sep()*1.2;
+  const f2=frame({w:660,h:420,l:70,r:24,t:24,b:70,xmin:0,xmax:steps.length,ymin:0,ymax:max,
+    ylabel:"endurance limit (MPa)", xstep:1, xfmt:()=>"", yfmt:v=>fmt(v,0), zeroY:false});
+  let g=f2.g;
+  steps.forEach((s,i)=>{
+    const x=f2.X(i+0.5), w=f2.pw/steps.length*0.58;
+    const prev = i===0 ? 0 : steps[i-1].v;
+    const y0=i===0?f2.Y(0):f2.Y(prev), y1=f2.Y(s.v);
+    const drop = i>0 && s.v<prev-0.05;
+    const col = i===0 ? "var(--dye)" : (drop ? "var(--aus)" : "#c3ced8");
+    g += SVG.rect(x-w/2, Math.min(y0,y1), w, Math.max(2,Math.abs(y1-y0)), col);
+    if(i>0) g += SVG.line(f2.X(i-0.5)+w/2, f2.Y(prev), x-w/2, f2.Y(prev), "#c3ced8",1,"3 3");
+    g += SVG.text(x, f2.t+f2.ph+20, s.k, {col:"#46545f",size:13,mono:true,weight:700});
+    if(s.f!==null) g += SVG.text(x, f2.t+f2.ph+38, "×"+fmt(s.f,3), {col:drop?"var(--aus)":"#8493a0",size:11.5,mono:true});
+    g += SVG.text(x, Math.min(y0,y1)-8, fmt(s.v,0), {col:"#10151b",size:12,mono:true,weight:700});
+  });
+  g += SVG.line(f2.l,f2.Y(Se()),f2.l+f2.pw,f2.Y(Se()),"var(--jade)",1.4,"6 4");
+  g += SVG.text(f2.l+f2.pw*0.20,f2.Y(Se())+17,"Se = "+fmt(Se(),1)+" MPa",{col:"var(--jade)",size:12.5,anchor:"start",mono:true,weight:700});
+  g += SVG.text(f2.l+6,f2.t+16,`the specimen starts at 0.5 Sut = ${fmt(Sep(),0)} MPa`,{col:"#8493a0",size:11.5,anchor:"start",weight:400});
+  $("fall").innerHTML=g;
+}
+
+/* ---------- S–N ------------------------------------------------------------- */
+const SUP="⁰¹²³⁴⁵⁶⁷⁸⁹";
+const sup = n => String(n).split("").map(c=>SUP[+c]||c).join("");
+function drawSN(){
+  const y1=Math.log10(Sut*1.25), y0=Math.log10(Math.max(Se()*0.45,10));
+  const f=frame({w:660,h:420,l:74,r:26,t:24,b:56,xmin:0,xmax:8,ymin:y0,ymax:y1,
+    xlabel:"life N (cycles)", ylabel:"fatigue strength Sf (MPa)",
+    xstep:1, ystep:0.2, xfmt:v=>"10"+sup(Math.round(v)), yfmt:v=>fmt(Math.pow(10,v),0), zeroY:false});
+  let g=f.g, inner="";
+  const S3=fFrac()*Sut, S6=Se();
+  /* the three segments */
+  inner += SVG.line(f.X(0),f.Y(Math.log10(Sut)),f.X(3),f.Y(Math.log10(S3)),"var(--dye)",2.2,"5 4");
+  inner += SVG.line(f.X(3),f.Y(Math.log10(S3)),f.X(6),f.Y(Math.log10(S6)),"var(--dye)",3);
+  inner += SVG.line(f.X(6),f.Y(Math.log10(S6)),f.X(8),f.Y(Math.log10(S6)),"var(--dye)",3);
+  g += f.clip(inner);
+  g += SVG.circle(f.X(3),f.Y(Math.log10(S3)),5,"var(--dye)");
+  g += SVG.text(f.X(3),f.Y(Math.log10(S3))-12,"f·Sut = "+fmt(S3,0),{col:"var(--dye)",size:12,mono:true,weight:700});
+  g += SVG.circle(f.X(6),f.Y(Math.log10(S6)),5,"var(--jade)");
+  g += SVG.text(f.X(6)+8,f.Y(Math.log10(S6))-10,"Se = "+fmt(S6,1),{col:"var(--jade)",size:12,anchor:"start",mono:true,weight:700});
+
+  if(!hiding()){
+    const N=lifeAt(sa);
+    g += SVG.line(f.l,f.Y(Math.log10(sa)),f.l+f.pw,f.Y(Math.log10(sa)),"var(--aus)",1.5,"5 4");
+    g += SVG.text(f.l+6,f.Y(Math.log10(sa))-8,"σa = "+fmt(sa,0),{col:"var(--aus)",size:12,anchor:"start",mono:true,weight:700});
+    if(sa>S6 && sa<S3 && isFinite(N)){
+      const lN=Math.log10(N);
+      g += SVG.line(f.X(lN),f.Y(Math.log10(sa)),f.X(lN),f.t+f.ph,"var(--aus)",1.5,"5 4");
+      g += SVG.circle(f.X(lN),f.Y(Math.log10(sa)),7,"#fff","var(--aus)",3);
+      g += SVG.text(f.X(lN)+8,f.t+f.ph-10,"N = "+sig(N,3),{col:"var(--aus)",size:12.5,mono:true,weight:700,anchor:"start"});
+    } else if(sa<=S6){
+      g += SVG.text(f.X(7.4),f.Y(Math.log10(sa))+20,"infinite life",{col:"var(--jade)",size:13,mono:true,weight:700});
+    }
+  }
+  g += SVG.text(f.l+8,f.t+16,"low cycle  ·  10³ – 10⁶ finite life  ·  beyond 10⁶ infinite",{col:"#8493a0",size:11,anchor:"start",weight:400});
+  $("sn").innerHTML=g;
+}
+
+/* ---------- readouts --------------------------------------------------------- */
+function out(){
+  const N=lifeAt(sa), inf = sa<=Se();
+  cells("out",[
+    {k:"S′e", v:q_(fmt(Sep(),0)+" MPa"), tone:"blue", n:"0.5 Sut"},
+    {k:"ka", v:q_(fmt(ka(),3))}, {k:"kb", v:q_(fmt(kb(),3))},
+    {k:"kc", v:q_(fmt(kc(),3))}, {k:"kd", v:q_(fmt(kd(),3))},
+    {k:"ke", v:q_(fmt(ke,3))},
+    {k:"Se", v:q_(fmt(Se(),1)+" MPa"), tone:"jade", n:"the corrected value"},
+    {k:"f", v:q_(fmt(fFrac(),3)), n:"fraction of Sut at 10³"},
+    {k:"a", v:q_(fmt(aCo(),0))}, {k:"b", v:q_(fmt(bCo(),4))},
+    {k:"life at σa", v:q_(inf?"infinite":sig(N,3)+" cycles"), tone:inf?"jade":"red"},
+    {k:"n at ∞ life", v:q_(fmt(Se()/sa,2)), tone:"red", n:"Se / σa"}
+  ]);
+  let msg=null;
+  if(hiding()) msg=["<b>Predict mode.</b> Ask which correction takes the biggest bite before you reveal the waterfall.","neutral"];
+  else if(inf) msg=[`<b>Infinite life.</b> σa = ${fmt(sa,0)} MPa sits below Se = ${fmt(Se(),1)} MPa, with a margin of ${fmt(Se()/sa,2)}. Nothing on the S–N line applies — the part simply does not fail by fatigue.`,"neutral"];
+  else if(sa>fFrac()*Sut) msg=[`<b>Above the 10³ anchor.</b> σa = ${fmt(sa,0)} MPa exceeds f·Sut = ${fmt(fFrac()*Sut,0)} MPa. This is low-cycle territory and the stress-life method does not apply here — you would need the strain-life approach.`];
+  else msg=[`<b>Finite life: about ${sig(N,3)} cycles.</b> Se has been cut from ${fmt(Sep(),0)} to ${fmt(Se(),1)} MPa by the corrections — a loss of ${fmt((1-Se()/Sep())*100,0)}%.`];
+  callout("note",msg[0],msg[1]);
+}
+function steps(){
+  const surfName = $("surf").selectedOptions[0].textContent;
+  $("steps").innerHTML = `
+  <ol style="margin:0;padding-left:20px">
+    <li><b>S′e</b> = 0.5 S<sub>ut</sub> = <b>${fmt(Sep(),0)} MPa</b> <span style="color:var(--tick)">(Sut ≤ 1400 MPa)</span></li>
+    <li><b>k<sub>a</sub></b> = a·S<sub>ut</sub><sup>b</sup> = <b>${fmt(ka(),3)}</b> <span style="color:var(--tick)">— ${surfName}</span></li>
+    <li><b>k<sub>b</sub></b> = <b>${fmt(kb(),3)}</b> <span style="color:var(--tick)">— ${load==="ax"?"axial, so no size effect":`d = ${fmt(d,0)} mm`}</span></li>
+    <li><b>k<sub>c</sub></b> = <b>${fmt(kc(),3)}</b> <span style="color:var(--tick)">— ${load==="bend"?"bending":load==="ax"?"axial":"torsion"}</span></li>
+    <li><b>k<sub>d</sub></b> = <b>${fmt(kd(),3)}</b> <span style="color:var(--tick)">— ${T<=20?"room temperature":"at "+fmt(T,0)+" °C"}</span></li>
+    <li><b>k<sub>e</sub></b> = <b>${fmt(ke,3)}</b> <span style="color:var(--tick)">— ${$("rel").selectedOptions[0].textContent} reliability</span></li>
+  </ol>
+  <p style="margin:10px 0 0;padding-top:10px;border-top:1px solid var(--rule)">
+    <b>S<sub>e</sub> = ${fmt(Sep(),0)} × ${fmt(ka(),3)} × ${fmt(kb(),3)} × ${fmt(kc(),3)} × ${fmt(kd(),3)} × ${fmt(ke,3)}
+    = <span style="color:var(--jade)">${fmt(Se(),1)} MPa</span></b></p>`;
+}
+
+/* ---------- wiring ------------------------------------------------------------ */
+function redraw(){ $("dv").textContent=fmt(d,d<20?2:0); $("sav").textContent=fmt(sa,0); drawFall(); drawSN(); out(); steps(); }
+function read(){
+  Sut=parseFloat($("sut").value)||500;
+  const [A,B]=$("surf").value.split(",").map(Number); surfA=A; surfB=B;
+  load=$("load").value; d=parseFloat($("d").value); T=parseFloat($("temp").value)||20;
+  ke=parseFloat($("rel").value); sa=parseFloat($("sa").value);
+  redraw();
+}
+["sut","surf","load","d","temp","rel","sa"].forEach(id=>$(id).addEventListener("input",read));
+$("predict").addEventListener("click",()=>{
+  if(predict&&!revealed){revealed=true;predict=false;$("predict").textContent="Predict mode";$("predict").classList.remove("active");}
+  else {predict=true;revealed=false;$("predict").textContent="Reveal";$("predict").classList.add("active");}
+  redraw();
+});
+keyboard("d",()=>{ d=parseFloat($("d").value); redraw(); });
+
+const PRESETS=[
+  ["Polished specimen, Sut 620","620","0,0","bend",7.62,20,"1.000",379],
+  ["Ex 6-11 shaft","690","4.51,-0.265","bend",32,20,"1.000",335],
+  ["Hot-rolled, big shaft","560","57.7,-0.718","bend",90,20,"0.897",120],
+  ["Axial loading","690","4.51,-0.265","ax",32,20,"0.897",200],
+  ["Torsion","690","4.51,-0.265","tors",32,20,"0.897",150],
+  ["Hot at 350 °C","690","4.51,-0.265","bend",32,350,"0.814",180]
+];
+$("presets").innerHTML=PRESETS.map((p,i)=>`<button class="chip" data-i="${i}">${p[0]}</button>`).join("");
+$("presets").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b)return;
+  const [,su,sf,ld,dd,tt,rr,ss]=PRESETS[+b.dataset.i];
+  $("sut").value=su; $("surf").value=sf; $("load").value=ld;
+  $("d").value=dd; $("temp").value=tt; $("rel").value=rr; $("sa").value=ss;
+  read();
+});
+read();
+</script>
+</body>
+</html>

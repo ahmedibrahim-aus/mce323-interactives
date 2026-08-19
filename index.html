@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MCE 323 — Mechanical Design · Interactive Modules</title>
+<meta name="description" content="Interactive instruments for MCE 323 Mechanical Design at the American University of Sharjah.">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<div class="sheet">
+
+<div class="topbar">
+  <span class="code">MCE 323</span>
+  <span class="name">Mechanical Design</span>
+  <span class="spacer"></span>
+  <span class="name" style="letter-spacing:.1em">Interactive modules</span>
+  <span class="inst">AUS</span>
+</div>
+
+<section class="hero">
+  <div>
+    <span class="eyebrow">American University of Sharjah · Mechanical Engineering</span>
+    <h1>Some things<br>don't survive<br>a <em>static slide</em>.</h1>
+    <p>Ten instruments for the parts of this course that move: stress that rotates with the cutting plane, criteria that disagree, teeth that mesh, and a diameter that has to answer to two failure modes at once.</p>
+    <div class="stats">
+      <div class="stat"><div class="n">10</div><div class="l">Instruments</div></div>
+      <div class="stat"><div class="n">7</div><div class="l">Chapters</div></div>
+      <div class="stat"><div class="n">0</div><div class="l">Installs</div></div>
+    </div>
+  </div>
+  <div class="instrument">
+    <svg id="hero" viewBox="0 0 520 400" role="img" aria-label="A stress element rotating beside its Mohr circle"></svg>
+    <span class="cap">σx 10 · σy 0 · τxy 5 — <span class="lit">running</span></span>
+  </div>
+</section>
+
+<section class="section">
+  <header>
+    <span class="eyebrow">Built for the projector, and for afterwards</span>
+    <h2>The modules</h2>
+    <p>Every one opens on a worked example from the course notes, so it drops into the lecture you already give. Most carry a <b>Predict mode</b> that hides the answers, so the class commits before the reveal.</p>
+  </header>
+
+  <div class="cards" id="cards"></div>
+</section>
+
+<section class="section" style="padding-top:0">
+  <header>
+    <span class="eyebrow">How to use them</span>
+    <h2>In the lecture, and afterwards</h2>
+    <p>Each module opens on a worked example from the course notes and reproduces its published answer, so you can put it on the projector mid-lecture without re-deriving anything. Arrow keys drive the main control and <b>Space</b> runs the animation, which matters when you are standing away from the laptop.</p>
+  </header>
+</section>
+
+<div id="tb"></div>
+</div>
+
+<script src="assets/instrument.js"></script>
+<script>
+"use strict";
+$("tb").innerHTML = titleblock({ sheet:"00", title:"Interactive modules — index", ch:"3, 5, 6, 7, 11, 13, 14", rev:"A", date:"2026" });
+
+/* ---------- module index ---------------------------------------------------- */
+const MODULES=[
+  { href:"modules/plane-stress.html", ch:"Ch 03", t:"Plane Stress Transformation",
+    d:"Rotate the cutting plane and the element, the θ-sweep and Mohr's circle move together. Principal planes appear exactly where the shear crosses zero.",
+    thumb:thumbStress },
+  { href:"modules/beam-diagrams.html", ch:"Ch 03", t:"Shear and Moment Diagrams",
+    d:"Move the loads and watch V and M rebuild. M is computed as the running integral of V, so the relationship you are teaching is the one the tool actually uses.",
+    thumb:thumbBeam },
+  { href:"modules/failure-envelopes.html", ch:"Ch 05", t:"Static Failure Envelopes",
+    d:"Drag a stress state across the principal plane and watch MSS, distortion energy and Coulomb–Mohr disagree. The gap is the price of conservatism.",
+    thumb:thumbEnv },
+  { href:"modules/fatigue-criteria.html", ch:"Ch 06", t:"Fatigue Failure Criteria",
+    d:"Same amplitude, different mean stress, different life. Goodman, Gerber, Soderberg, ASME and the Langer yield line, all live.",
+    thumb:thumbFatigue },
+  { href:"modules/stress-concentration.html", ch:"Ch 05", t:"Stress Concentration",
+    d:"Read Kt off the chart the way the exam expects, see what ignoring it costs, then turn it into Kf through notch sensitivity.",
+    thumb:thumbKt },
+  { href:"modules/marin-sn.html", ch:"Ch 06", t:"Marin Factors and the S–N Line",
+    d:"Build Se one correction at a time and watch the finite-life line drop and pivot underneath, then read a life straight off it.",
+    thumb:thumbMarin },
+  { href:"modules/shaft-design.html", ch:"Ch 07", t:"Shaft Sizing — DE-Goodman",
+    d:"The design equation of the course. Solve for a diameter, see how much of it is bending and how much is torsion, then check yielding.",
+    thumb:thumbShaft },
+  { href:"modules/bearing-life.html", ch:"Ch 11", t:"Bearing Load, Life and Reliability",
+    d:"Double the load and lose seven-eighths of the life. Then find out what a catalogue's 90% costs when six bearings share a machine.",
+    thumb:thumbBearing },
+  { href:"modules/gear-geometry.html", ch:"Ch 13", t:"Gear Geometry and the Involute",
+    d:"Build a tooth from module, tooth count and pressure angle. Mesh it, watch the pressure line, and find the tooth count where undercutting starts.",
+    thumb:thumbGear },
+  { href:"modules/agma-gear-stress.html", ch:"Ch 14", t:"AGMA Stress, Factor by Factor",
+    d:"Every factor starts at 1 — that is the whole method. Switch the corrections on one at a time, then settle whether bending or wear governs.",
+    thumb:thumbAgma }
+];
+$("cards").innerHTML = MODULES.map(m=>
+  `<a class="card" href="${m.href}">
+     <div class="thumb"><svg viewBox="0 0 300 120" aria-hidden="true">${m.thumb()}</svg></div>
+     <div class="body">
+       <div class="ch">${m.ch}</div><h3>${m.t}</h3><p>${m.d}</p>
+       <div class="go">Open module &rarr;</div>
+     </div>
+   </a>`).join("");
+
+/* ---------- card thumbnails --------------------------------------------------- */
+function thumbStress(){
+  const cx=150,cy=60,a=26,t=22*D,c=Math.cos(t),s=Math.sin(t);
+  const X=(u,v)=>cx+(u*c-v*s), Y=(u,v)=>cy-(u*s+v*c);
+  let g=SVG.centre(cx-70,cy,cx+70,cy)+SVG.centre(cx,cy-46,cx,cy+46);
+  g+=`<polygon points="${X(-a,-a)},${Y(-a,-a)} ${X(a,-a)},${Y(a,-a)} ${X(a,a)},${Y(a,a)} ${X(-a,a)},${Y(-a,a)}" fill="#eef2f5" stroke="#46545f" stroke-width="1.6"/>`;
+  g+=SVG.arrow(X(a,0),Y(a,0),X(a+22,0),Y(a+22,0),"var(--dye)",2.2,7);
+  g+=SVG.arrow(X(-a,0),Y(-a,0),X(-a-22,0),Y(-a-22,0),"var(--dye)",2.2,7);
+  g+=SVG.arrow(X(0,a),Y(0,a),X(0,a+14),Y(0,a+14),"var(--dye-2)",2.2,7);
+  g+=SVG.arrow(X(0,-a),Y(0,-a),X(0,-a-14),Y(0,-a-14),"var(--dye-2)",2.2,7);
+  g+=SVG.circle(238,60,30,"none","#8493a0",1.4)+SVG.circle(238,60,2.5,"#8493a0");
+  g+=SVG.circle(238+30*Math.cos(0.8),60+30*Math.sin(0.8),4,"#fff","var(--aus)",2.2);
+  return g;
+}
+function thumbEnv(){
+  const cx=150,cy=60,S=42,k=1/Math.sqrt(3);
+  let d="";
+  for(let i=0;i<=90;i++){ const t=i*4*D;
+    const x=cx+S*(Math.cos(t)+k*Math.sin(t)), y=cy-S*(Math.cos(t)-k*Math.sin(t));
+    d+=(i?" L ":"M ")+x.toFixed(1)+" "+y.toFixed(1); }
+  let g=SVG.line(cx-64,cy,cx+64,cy,"#dde3e8",1)+SVG.line(cx,cy-52,cx,cy+52,"#dde3e8",1);
+  g+=SVG.path(d+" Z","var(--dye)",1.8,"rgba(39,72,140,.06)");
+  const h=[[S,0],[S,S],[0,S],[-S,0],[-S,-S],[0,-S]];
+  let hd=""; h.forEach((p,i)=>hd+=(i?" L ":"M ")+(cx+p[0])+" "+(cy-p[1]));
+  g+=SVG.path(hd+" Z","var(--aus)",1.8);
+  g+=SVG.circle(cx+26,cy-14,4.5,"#fff","#10151b",2.2);
+  return g;
+}
+function thumbFatigue(){
+  const x0=40,y0=100,w=224,h=76;
+  let g=SVG.line(x0,y0,x0+w,y0,"#b9c4ce",1.2)+SVG.line(x0,y0,x0,y0-h,"#b9c4ce",1.2);
+  g+=SVG.line(x0,y0-h*0.62,x0+w*0.92,y0,"var(--aus)",2);
+  let d=""; for(let i=0;i<=40;i++){ const t=i/40, x=x0+w*0.92*t, y=y0-h*0.62*(1-t*t);
+    d+=(i?" L ":"M ")+x.toFixed(1)+" "+y.toFixed(1); }
+  g+=SVG.path(d,"var(--jade)",2);
+  g+=SVG.line(x0,y0-h*0.62,x0+w*0.60,y0,"var(--dye-2)",1.6);
+  g+=SVG.line(x0,y0-h*0.86,x0+w*0.70,y0,"#10151b",1.4,"5 3");
+  g+=SVG.circle(x0+w*0.42,y0-h*0.26,4.5,"#fff","#10151b",2.2);
+  return g;
+}
+function thumbShaft(){
+  const cy=60;
+  let g=SVG.centre(30,cy,270,cy);
+  g+=SVG.rect(52,cy-30,86,60,"#eef2f5","#46545f",1.6);
+  g+=SVG.rect(138,cy-19,110,38,"#f6f8f9","#46545f",1.6);
+  for(let x=146;x<246;x+=12) g+=SVG.line(x,cy-17,x-8,cy+17,"#c3ced8",1);
+  g+=SVG.arrow(258,cy-19-14,258,cy-19,"var(--aus)",1.4,6);
+  g+=SVG.arrow(258,cy+19+14,258,cy+19,"var(--aus)",1.4,6);
+  g+=SVG.text(268,cy+4,"⌀d",{col:"var(--aus)",size:11,anchor:"start",mono:true,weight:700});
+  return g;
+}
+function thumbBearing(){
+  const x0=42,y0=100,w=216,h=74;
+  let g=SVG.line(x0,y0,x0+w,y0,"#b9c4ce",1.2)+SVG.line(x0,y0,x0,y0-h,"#b9c4ce",1.2);
+  for(let i=1;i<4;i++) g+=SVG.line(x0+w*i/4,y0,x0+w*i/4,y0-h,"#eef2f5",1);
+  g+=SVG.line(x0+6,y0-h+6,x0+w-6,y0-14,"var(--dye)",2.2);
+  g+=SVG.circle(x0+w*0.28,y0-h+6+(w-12)*0.28/(w-12)*0+ (y0-14-(y0-h+6))*0.28+(y0-h+6)-(y0-h+6),0,"none");
+  g+=SVG.circle(x0+w*0.30,y0-h+6+((y0-14)-(y0-h+6))*0.30,5,"#fff","var(--aus)",2.2);
+  g+=SVG.circle(x0+w*0.78,y0-h+6+((y0-14)-(y0-h+6))*0.78,4.5,"#fff","var(--jade)",2.2);
+  return g;
+}
+function thumbGear(){
+  const teeth=(cx,cy,R,n,col)=>{
+    let d="";
+    for(let i=0;i<n;i++){
+      const a0=2*Math.PI*i/n, a1=a0+Math.PI/n*0.52, a2=a0+Math.PI/n*1.48, a3=a0+2*Math.PI/n;
+      const P=(r,a)=>`${(cx+r*Math.cos(a)).toFixed(1)} ${(cy+r*Math.sin(a)).toFixed(1)}`;
+      d+=(i?" L ":"M ")+P(R*0.84,a0)+" L "+P(R,a1)+" L "+P(R,a2)+" L "+P(R*0.84,a3);
+    }
+    return SVG.path(d+" Z",col,1.5,"#eef2f5");
+  };
+  let g=teeth(104,60,38,14,"#46545f")+teeth(206,60,50,18,"#46545f");
+  g+=SVG.circle(104,60,32,"none","var(--aus)",1.2)+SVG.circle(206,60,44,"none","var(--aus)",1.2);
+  g+=SVG.line(120,88,190,32,"var(--jade)",1.6);
+  return g;
+}
+function thumbBeam(){
+  let g=SVG.line(40,34,264,34,"#46545f",3);
+  g+=`<polygon points="46,34 38,46 54,46" fill="#8493a0"/><polygon points="258,34 250,46 266,46" fill="none" stroke="#8493a0" stroke-width="1.6"/>`;
+  g+=SVG.arrow(130,10,130,30,"var(--aus)",2,7);
+  g+=SVG.path("M 40 76 L 130 76 L 130 96 L 264 96","var(--dye)",2,"rgba(39,72,140,.12)");
+  g+=SVG.line(40,86,264,86,"#c3ced8",1);
+  g+=SVG.path("M 40 112 L 130 96 L 264 112","var(--aus)",2);
+  return g;
+}
+function thumbKt(){
+  const x0=44,y0=100,w=212,h=74;
+  let g=SVG.line(x0,y0,x0+w,y0,"#b9c4ce",1.2)+SVG.line(x0,y0,x0,y0-h,"#b9c4ce",1.2);
+  let d=""; for(let i=0;i<=40;i++){ const t=i/40, x=x0+w*t, y=y0-h*(1-0.62*t*t);
+    d+=(i?" L ":"M ")+x.toFixed(1)+" "+y.toFixed(1); }
+  g+=SVG.path(d,"var(--dye)",2.2);
+  g+=SVG.line(x0+w*0.3,y0,x0+w*0.3,y0-h*0.945,"var(--aus)",1.4,"4 3");
+  g+=SVG.line(x0,y0-h*0.945,x0+w*0.3,y0-h*0.945,"var(--aus)",1.4,"4 3");
+  g+=SVG.circle(x0+w*0.3,y0-h*0.945,5,"#fff","var(--aus)",2.4);
+  return g;
+}
+function thumbMarin(){
+  const x0=46,y0=104,bw=26,v=[80,66,60,58,56,52];
+  let g=SVG.line(x0-8,y0,266,y0,"#b9c4ce",1.2);
+  v.forEach((val,i)=>{ const x=x0+i*36;
+    g+=SVG.rect(x,y0-val,bw,val,i===0?"var(--dye)":"var(--aus)");
+    if(i) g+=SVG.line(x-10,y0-v[i-1],x,y0-v[i-1],"#c3ced8",1,"3 2"); });
+  return g;
+}
+function thumbAgma(){
+  const x0=44,y0=102,bw=26,vals=[26,32,44,60,64,66];
+  let g=SVG.line(x0-8,y0,266,y0,"#b9c4ce",1.2);
+  vals.forEach((v,i)=>{
+    const x=x0+i*36;
+    g+=SVG.rect(x,y0-v,bw,v,i===0?"var(--dye)":"var(--aus)");
+    if(i) g+=SVG.line(x-10,y0-vals[i-1],x,y0-vals[i-1],"#c3ced8",1,"3 2");
+  });
+  return g;
+}
+
+/* ---------- hero instrument, running ------------------------------------------ */
+(function hero(){
+  const svg=$("hero"); if(!svg) return;
+  const S={sx:10,sy:0,txy:5};
+  const avg=(S.sx+S.sy)/2, dif=(S.sx-S.sy)/2, R=Math.hypot(dif,S.txy);
+  let th=0;
+  const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function paint(){
+    const t=th*D, c=Math.cos(2*t), s=Math.sin(2*t);
+    const sxp=avg+dif*c+S.txy*s, syp=avg-dif*c-S.txy*s, txp=-dif*s+S.txy*c;
+    const cx=168, cy=196, a=54, k=5.4;
+    const ct=Math.cos(t), st=Math.sin(t);
+    const X=(u,v)=>cx+(u*ct-v*st), Y=(u,v)=>cy-(u*st+v*ct);
+    let g=SVG.centre(cx-118,cy,cx+118,cy)+SVG.centre(cx,cy-118,cx,cy+118);
+    g+=SVG.line(X(-96,0),Y(-96,0),X(96,0),Y(96,0),"#c3ced8",1.2);
+    g+=SVG.line(X(0,-90),Y(0,-90),X(0,90),Y(0,90),"#c3ced8",1.2);
+    g+=`<polygon points="${X(-a,-a)},${Y(-a,-a)} ${X(a,-a)},${Y(a,-a)} ${X(a,a)},${Y(a,a)} ${X(-a,a)},${Y(-a,a)}" fill="#e6ecf2" stroke="#46545f" stroke-width="1.8"/>`;
+    const L=v=>Math.max(9,Math.abs(v)*k), gx=sxp>=0?1:-1, gy=syp>=0?1:-1;
+    g+=SVG.arrow(X(a*gx,0),Y(a*gx,0),X((a+L(sxp))*gx,0),Y((a+L(sxp))*gx,0),"var(--dye)",2.6,9);
+    g+=SVG.arrow(X(-a*gx,0),Y(-a*gx,0),X(-(a+L(sxp))*gx,0),Y(-(a+L(sxp))*gx,0),"var(--dye)",2.6,9);
+    g+=SVG.arrow(X(0,a*gy),Y(0,a*gy),X(0,(a+L(syp))*gy),Y(0,(a+L(syp))*gy),"var(--dye-2)",2.6,9);
+    g+=SVG.arrow(X(0,-a*gy),Y(0,-a*gy),X(0,-(a+L(syp))*gy),Y(0,-(a+L(syp))*gy),"var(--dye-2)",2.6,9);
+    const tl=Math.min(34,Math.abs(txp)*k), ts=txp>=0?1:-1;
+    if(tl>3){
+      g+=SVG.arrow(X(a,-tl*.5*ts),Y(a,-tl*.5*ts),X(a,tl*.5*ts),Y(a,tl*.5*ts),"var(--jade)",2.4,8);
+      g+=SVG.arrow(X(-a,tl*.5*ts),Y(-a,tl*.5*ts),X(-a,-tl*.5*ts),Y(-a,-tl*.5*ts),"var(--jade)",2.4,8);
+      g+=SVG.arrow(X(-tl*.5*ts,a),Y(-tl*.5*ts,a),X(tl*.5*ts,a),Y(tl*.5*ts,a),"var(--jade)",2.4,8);
+      g+=SVG.arrow(X(tl*.5*ts,-a),Y(tl*.5*ts,-a),X(-tl*.5*ts,-a),Y(-tl*.5*ts,-a),"var(--jade)",2.4,8);
+    }
+    /* Mohr, sharing the state */
+    const mx=404, my=196, mk=7.2;
+    g+=SVG.line(mx-88,my,mx+88,my,"#c3ced8",1.2);
+    g+=SVG.circle(mx,my,R*mk,"none","#8493a0",1.6)+SVG.circle(mx,my,2.5,"#8493a0");
+    const px=mx+(sxp-avg)*mk, py=my+txp*mk;
+    g+=SVG.line(mx,my,px,py,"#10151b",1.4);
+    g+=SVG.circle(px,py,6,"#fff","#10151b",2.4);
+    g+=SVG.text(mx,my+R*mk+22,"2θ = "+fmt(2*th,0)+"°",{col:"#8493a0",size:11.5,mono:true});
+    g+=SVG.text(cx,cy+128,"θ = "+fmt(th,0)+"°",{col:"#8493a0",size:11.5,mono:true});
+    if(Math.abs(txp)<0.25)
+      g+=SVG.text(260,40,"τ = 0 — principal plane",{col:"var(--aus)",size:13,weight:700});
+    svg.innerHTML=g;
+  }
+  paint();
+  if(!reduce){
+    let last=0;
+    const loop=ts=>{ if(!last) last=ts; th=(th+(ts-last)*0.012)%180; last=ts; paint(); requestAnimationFrame(loop); };
+    requestAnimationFrame(loop);
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Static Failure Envelopes · MCE 323</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+<div class="sheet">
+
+<header class="mod-head">
+  <span class="eyebrow">Shigley ch. 5 · Failure from static loading</span>
+  <h1>Static Failure Envelopes</h1>
+  <p>Drag the stress state around the principal plane and watch four criteria disagree. The gap between the envelopes is the price of being conservative — and it is what you are choosing between when you pick a theory.</p>
+</header>
+
+<div class="wrap">
+  <div class="presets" id="presets"></div>
+
+  <div class="controls">
+    <div class="field"><label for="mat">Material</label>
+      <select id="mat"><option value="d">Ductile</option><option value="b">Brittle</option></select>
+    </div>
+    <div class="field" id="fdy"><label for="sy">Sy</label><input type="number" id="sy" step="10" value="100"></div>
+    <div class="field" id="fut" hidden><label for="sut">Sut</label><input type="number" id="sut" step="10" value="210"></div>
+    <div class="field" id="fuc" hidden><label for="suc">Suc</label><input type="number" id="suc" step="10" value="630"></div>
+    <div class="divider"></div>
+    <div class="field"><label for="sa">σA</label><input type="number" id="sa" step="5" value="70"></div>
+    <div class="field"><label for="sb">σB</label><input type="number" id="sb" step="5" value="70"></div>
+    <div class="divider"></div>
+    <button id="orbit" class="primary">▶&nbsp; Orbit</button>
+    <button id="predict">Predict mode</button>
+  </div>
+
+  <div class="grid g2">
+    <div class="panel">
+      <h2>Principal stress plane <span class="hint">drag the point</span></h2>
+      <svg id="env" viewBox="0 0 620 560" role="img" aria-label="Failure envelopes on the principal stress plane"></svg>
+    </div>
+    <div>
+      <div class="panel" style="margin-bottom:16px">
+        <h2>Factors of safety</h2>
+        <div class="cells" id="out"></div>
+        <div class="callout" id="note"></div>
+      </div>
+      <div class="panel">
+        <h2>Which theory, and why</h2>
+        <div id="guide" style="font-size:15px;line-height:1.55"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="notice">
+    <h2>What to notice</h2>
+    <ol>
+      <li><b>The hexagon is inscribed inside the ellipse.</b> So MSS never predicts a higher factor of safety than DE — it fails first, everywhere. That single geometric fact is the whole "MSS is conservative" argument.</li>
+      <li><b>They agree on the axes and disagree most in the fourth quadrant.</b> Drag the point to σA positive and σB negative and watch the two numbers separate. That is exactly the state a shaft in bending plus torsion lives in.</li>
+      <li><b>Pure hydrostatic loading never yields.</b> Put the point on the 45° line and push it out — the ellipse follows it forever. Metals yield by distortion, not by uniform squeezing.</li>
+      <li><b>Switch to brittle</b> and the envelope goes lopsided, because Suc is several times Sut. Cast iron is much stronger in compression, and Coulomb–Mohr is the theory that admits it.</li>
+    </ol>
+    <p class="foot"><kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> nudge the point · <kbd>Space</kbd> orbits it around the envelope</p>
+  </div>
+</div>
+
+<div id="tb"></div>
+</div>
+
+<script src="../assets/instrument.js"></script>
+<script>
+"use strict";
+let M={ mode:"d", Sy:100, Sut:210, Suc:630 };
+let sA=70, sB=70, predict=false, revealed=false, orbitT=0;
+
+mountTopbar({});
+$("tb").innerHTML = titleblock({ sheet:"02", title:"Static failure envelopes", ch:"5" });
+
+const hiding=()=>predict&&!revealed, q=v=>hiding()?"—":v;
+
+/* ---------- criteria ------------------------------------------------------ */
+function ordered(){ const s=[sA,sB,0].sort((a,b)=>b-a); return {s1:s[0],s3:s[2]}; }
+const vonMises = () => Math.sqrt(sA*sA - sA*sB + sB*sB);
+function nDE(){ const v=vonMises(); return v<1e-9?Infinity:M.Sy/v; }
+function nMSS(){ const {s1,s3}=ordered(); const d=s1-s3; return d<1e-9?Infinity:M.Sy/d; }
+function nBCM(){
+  const {Sut,Suc}=M;
+  if (sA>=0 && sB>=0) return sA<1e-9?Infinity:Sut/Math.max(sA,sB);
+  if (sA<=0 && sB<=0) return Math.abs(Math.min(sA,sB))<1e-9?Infinity:Suc/Math.abs(Math.min(sA,sB));
+  const hi=Math.max(sA,sB), lo=Math.min(sA,sB);
+  const f=hi/Sut - lo/Suc;
+  return f<1e-9?Infinity:1/f;
+}
+function nMM(){   /* modified Mohr */
+  const {Sut,Suc}=M, hi=Math.max(sA,sB), lo=Math.min(sA,sB);
+  if (sA>=0 && sB>=0) return hi<1e-9?Infinity:Sut/hi;
+  if (sA<=0 && sB<=0) return Math.abs(lo)<1e-9?Infinity:Suc/Math.abs(lo);
+  if (Math.abs(lo)<=Sut) return Sut/hi;
+  const f=(Suc-Sut)*hi/(Suc*Sut) - lo/Suc;
+  return f<1e-9?Infinity:1/f;
+}
+
+/* ---------- envelopes ----------------------------------------------------- */
+function deEllipse(S){
+  const pts=[], k=1/Math.sqrt(3);
+  for(let i=0;i<=180;i++){ const t=i*2*Math.PI/180;
+    pts.push([S*(Math.cos(t)+k*Math.sin(t)), S*(Math.cos(t)-k*Math.sin(t))]); }
+  return pts;
+}
+const mssHex = S => [[S,0],[S,S],[0,S],[-S,0],[-S,-S],[0,-S]];
+const bcmPoly = (ut,uc) => [[ut,0],[ut,ut],[0,ut],[-uc,0],[-uc,-uc],[0,-uc]];
+const mmPoly  = (ut,uc) => [[ut,0],[ut,ut],[0,ut],[-uc,0],[-uc,-uc],[0,-uc],[ut,-uc],[ut,0]]
+  .slice(0,7).concat([[ut,-uc]]);
+
+/* ---------- draw ---------------------------------------------------------- */
+let F=null;
+function draw(){
+  const lim = (M.mode==="d" ? M.Sy : Math.max(M.Sut,M.Suc)) * 1.35;
+  const f = frame({ w:620,h:560,l:66,r:24,t:24,b:56,
+    xmin:-lim,xmax:lim,ymin:-lim,ymax:lim,
+    xlabel:"σA", ylabel:"σB", zeroY:true, zeroX:true,
+    xfmt:v=>fmt(v,0), yfmt:v=>fmt(v,0) });
+  F=f;
+  let g=f.g;
+  const poly=(pts,col,w,dash,fill)=>{
+    let d="";
+    pts.forEach((p,i)=> d += (i?" L ":"M ")+f.X(p[0]).toFixed(1)+" "+f.Y(p[1]).toFixed(1));
+    return SVG.path(d+" Z",col,w,fill||"none",dash);
+  };
+
+  if (M.mode==="d"){
+    g += poly(deEllipse(M.Sy),"var(--dye)",2.4,null,"rgba(39,72,140,.05)");
+    g += poly(mssHex(M.Sy),"var(--aus)",2.4);
+    g += SVG.text(f.X(M.Sy*0.62),f.Y(M.Sy*0.90),"DE (von Mises)",{col:"var(--dye)",size:12.5,mono:true,weight:700});
+    g += SVG.text(f.X(-M.Sy*0.30),f.Y(-M.Sy*0.98),"MSS",{col:"var(--aus)",size:12.5,mono:true,weight:700});
+  } else {
+    g += poly(mmPoly(M.Sut,M.Suc),"var(--brass)",2.2,"6 4");
+    g += poly(bcmPoly(M.Sut,M.Suc),"var(--aus)",2.4);
+    g += SVG.text(f.X(-M.Suc*0.55),f.Y(-M.Suc*0.86),"Brittle Coulomb–Mohr",{col:"var(--aus)",size:12.5,mono:true,weight:700});
+    g += SVG.text(f.X(M.Sut*1.1),f.Y(-M.Suc*0.42),"Modified Mohr",{col:"var(--brass)",size:12.5,mono:true,weight:700,anchor:"start"});
+  }
+
+  /* the 45° hydrostatic line */
+  g += SVG.line(f.X(-lim),f.Y(-lim),f.X(lim),f.Y(lim),"#c3ced8",1,"5 5");
+  g += SVG.text(f.X(lim*0.80),f.Y(lim*0.88),"σA = σB",{col:"#9fadba",size:11.5,mono:true});
+
+  /* the point */
+  const px=f.X(sA), py=f.Y(sB);
+  g += SVG.line(f.X(0),py,px,py,"#c3ced8",1,"3 3");
+  g += SVG.line(px,f.Y(0),px,py,"#c3ced8",1,"3 3");
+  g += SVG.circle(px,py,9,"#fff","#10151b",3);
+  g += SVG.circle(px,py,3.5,"#10151b");
+  if(!hiding())
+    g += SVG.text(px,py-19,`(${fmt(sA,0)}, ${fmt(sB,0)})`,{col:"#10151b",size:12.5,mono:true,weight:700});
+
+  g += SVG.text(f.l+6,f.t+16,"inside the envelope = safe",{col:"#8493a0",size:11.5,anchor:"start",weight:400});
+  $("env").innerHTML=g;
+}
+
+/* ---------- readouts ------------------------------------------------------ */
+function out(){
+  const list=[];
+  if (M.mode==="d"){
+    const de=nDE(), mss=nMSS();
+    list.push({k:"σ′ von Mises", v:q(fmt(vonMises(),1)), tone:"blue"});
+    list.push({k:"n — DE",  v:q(isFinite(de)?fmt(de,2):"∞"),  tone:"blue"});
+    list.push({k:"n — MSS", v:q(isFinite(mss)?fmt(mss,2):"∞"), tone:"red", n:"always ≤ DE"});
+    const gap = isFinite(de)&&isFinite(mss)&&mss>0 ? (de/mss-1)*100 : 0;
+    list.push({k:"MSS penalty", v:q(fmt(gap,1)+" %"), n:"how much conservatism costs here"});
+  } else {
+    const bcm=nBCM(), mm=nMM();
+    list.push({k:"n — BCM", v:q(isFinite(bcm)?fmt(bcm,2):"∞"), tone:"red"});
+    list.push({k:"n — Mod. Mohr", v:q(isFinite(mm)?fmt(mm,2):"∞"), tone:"brass", n:"fits data better"});
+    list.push({k:"Suc / Sut", v:q(fmt(M.Suc/M.Sut,2)), n:"why the envelope is lopsided"});
+  }
+  const {s1,s3}=ordered();
+  list.push({k:"σ1", v:q(fmt(s1,1))});
+  list.push({k:"σ3", v:q(fmt(s3,1)), n:"the zero counts"});
+  cells("out",list);
+
+  let msg="";
+  if (hiding()) msg=["<b>Predict mode.</b> Ask which criterion gives the lower factor of safety here, and by how much, before revealing.","neutral"];
+  else if (M.mode==="d"){
+    const de=nDE(), mss=nMSS();
+    if (!isFinite(de)) msg=["<b>Hydrostatic.</b> σA = σB, so there is no distortion and von Mises predicts no yielding at all — n → ∞. Metals do not yield under uniform pressure.","neutral"];
+    else if (sA*sB<0) msg=["<b>Fourth quadrant.</b> Opposite signs is where the two theories disagree most, and it is where shafts live. Design with MSS here if you want the margin."];
+    else if (Math.abs(de-mss)<0.005) msg=["<b>On the axis.</b> With one principal stress zero the hexagon touches the ellipse, so both theories give the same answer.","neutral"];
+  }
+  callout("note", msg?msg[0]:"", msg?msg[1]:null);
+
+  $("guide").innerHTML = M.mode==="d"
+    ? `<p style="margin:0 0 8px"><b>Ductile.</b> Compare a von Mises stress against S<sub>y</sub>.</p>
+       <p style="margin:0 0 8px;color:var(--ink-2)">Use <b style="color:var(--aus)">MSS</b> when you want conservatism — for design, and where reliability matters. Use <b style="color:var(--dye)">DE</b> when you want agreement with test data — for analysis, and when weight is tight.</p>
+       <p style="margin:0;color:var(--ink-2)">If tensile and compressive strengths differ, neither applies. Switch the material above.</p>`
+    : `<p style="margin:0 0 8px"><b>Brittle.</b> Failure is fracture, not yielding, so the comparison is against S<sub>ut</sub> and S<sub>uc</sub>.</p>
+       <p style="margin:0 0 8px;color:var(--ink-2)"><b style="color:var(--aus)">Coulomb–Mohr</b> is simpler and more conservative. <b style="color:var(--brass)">Modified Mohr</b> fits the fourth-quadrant data better and is usually the better predictor.</p>
+       <p style="margin:0;color:var(--ink-2)">Cast iron carries roughly three times more in compression than tension — which is why these envelopes are not symmetric.</p>`;
+}
+
+/* ---------- interaction ---------------------------------------------------- */
+function sync(){ $("sa").value=fmt(sA,1); $("sb").value=fmt(sB,1); draw(); out(); }
+
+const svg=$("env");
+let dragging=false;
+function toData(e){
+  const r=svg.getBoundingClientRect(), vb=svg.viewBox.baseVal;
+  const x=(e.clientX-r.left)/r.width*vb.width, y=(e.clientY-r.top)/r.height*vb.height;
+  const lim=(M.mode==="d"?M.Sy:Math.max(M.Sut,M.Suc))*1.35;
+  sA=(x-F.l)/F.pw*(2*lim)-lim;
+  sB=lim-(y-F.t)/F.ph*(2*lim);
+  sA=Math.round(sA); sB=Math.round(sB);
+}
+svg.style.cursor="crosshair";
+svg.addEventListener("pointerdown",e=>{ dragging=true; svg.setPointerCapture(e.pointerId); toData(e); sync(); });
+svg.addEventListener("pointermove",e=>{ if(dragging){ toData(e); sync(); } });
+svg.addEventListener("pointerup",()=>dragging=false);
+
+["sa","sb"].forEach(id=>$(id).addEventListener("input",()=>{
+  sA=parseFloat($("sa").value)||0; sB=parseFloat($("sb").value)||0; draw(); out();
+}));
+["sy","sut","suc"].forEach(id=>$(id).addEventListener("input",()=>{
+  M.Sy=parseFloat($("sy").value)||1; M.Sut=parseFloat($("sut").value)||1; M.Suc=parseFloat($("suc").value)||1; draw(); out();
+}));
+$("mat").addEventListener("change",e=>{
+  M.mode=e.target.value;
+  $("fdy").hidden=M.mode!=="d"; $("fut").hidden=M.mode==="d"; $("fuc").hidden=M.mode==="d";
+  if(M.mode==="b"){ sA=100; sB=-40; } else { sA=70; sB=70; }
+  sync();
+});
+$("predict").addEventListener("click",()=>{
+  if(predict&&!revealed){ revealed=true; predict=false; $("predict").textContent="Predict mode"; $("predict").classList.remove("active"); }
+  else { predict=true; revealed=false; $("predict").textContent="Reveal"; $("predict").classList.add("active"); }
+  draw(); out();
+});
+
+const PRESETS=[
+  ["(a) 70, 70",70,70,"d"],["(b) 68, 32",68,32,"d"],["(c) 69.2, −29.2",69.2,-29.2,"d"],
+  ["(d) −68, −32",-68,-32,"d"],["Shaft state",112,-10,"d"],["Cast iron, 4th quadrant",100,-40,"b"]
+];
+$("presets").innerHTML=PRESETS.map((p,i)=>`<button class="chip" data-i="${i}">${p[0]}</button>`).join("");
+$("presets").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  const [,a,bb,m]=PRESETS[+b.dataset.i];
+  if(M.mode!==m){ M.mode=m; $("mat").value=m;
+    $("fdy").hidden=m!=="d"; $("fut").hidden=m==="d"; $("fuc").hidden=m==="d"; }
+  sA=a; sB=bb; sync();
+});
+
+const orb=sweeper("orbit",dt=>{
+  orbitT+=dt*0.7;
+  const R=(M.mode==="d"?M.Sy:M.Sut)*0.82;
+  sA=Math.round(R*Math.cos(orbitT)); sB=Math.round(R*Math.sin(orbitT)); sync();
+});
+addEventListener("keydown",e=>{
+  if(e.target.tagName==="INPUT"||e.target.tagName==="SELECT") return;
+  const s=e.shiftKey?10:2;
+  if(e.key==="ArrowRight"){sA+=s;sync();e.preventDefault();}
+  if(e.key==="ArrowLeft"){sA-=s;sync();e.preventDefault();}
+  if(e.key==="ArrowUp"){sB+=s;sync();e.preventDefault();}
+  if(e.key==="ArrowDown"){sB-=s;sync();e.preventDefault();}
+  if(e.code==="Space"){orb.toggle();e.preventDefault();}
+});
+
+sync();
+</script>
+</body>
+</html>

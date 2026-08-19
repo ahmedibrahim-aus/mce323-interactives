@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bearing Load, Life and Reliability · MCE 323</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+<div class="sheet">
+
+<header class="mod-head">
+  <span class="eyebrow">Shigley ch. 11 · Rolling-contact bearings</span>
+  <h1>Load, Life and Reliability</h1>
+  <p>You do not design a bearing, you select one — and the whole selection turns on an exponent. Change the load a little and see what happens to the life, then find out what a catalogue's 90% really costs you when six of them sit in the same machine.</p>
+</header>
+
+<div class="wrap">
+  <div class="presets" id="presets"></div>
+
+  <div class="controls">
+    <div class="field"><label for="type">Type</label>
+      <select id="type"><option value="3">Ball · a = 3</option><option value="3.3333">Roller · a = 10/3</option></select>
+    </div>
+    <div class="field"><label for="basis">Catalogue</label>
+      <select id="basis"><option value="1000000">SKF · L10 = 10⁶ rev</option><option value="90000000">Timken · L10 = 90×10⁶</option></select>
+    </div>
+    <div class="divider"></div>
+    <div class="field"><label for="fd">Fd kN</label><input type="number" id="fd" step="0.1" value="1.779"></div>
+    <div class="field"><label for="hrs">life h</label><input type="number" id="hrs" step="500" value="5000"></div>
+    <div class="field"><label for="rpm">rev/min</label><input type="number" id="rpm" step="100" value="1725"></div>
+    <div class="field"><label for="af">af</label><input type="number" id="af" step="0.1" value="1"></div>
+    <div class="divider"></div>
+    <div class="field" style="flex:1 1 260px">
+      <label for="rel">R</label>
+      <input type="range" id="rel" min="0.5" max="0.999" step="0.001" value="0.9">
+      <span class="readout" id="relv">0.900</span>
+    </div>
+    <button id="predict">Predict mode</button>
+    <div class="field"><label for="nbear">bearings</label><input type="number" id="nbear" step="1" min="1" max="12" value="6" style="width:64px"></div>
+  </div>
+
+  <div class="grid g2">
+    <div class="panel">
+      <h2>Load–life <span class="hint">log–log, so the relationship is a straight line</span></h2>
+      <svg id="ll" viewBox="0 0 660 420" role="img" aria-label="Load against life on log-log axes"></svg>
+    </div>
+    <div>
+      <div class="panel" style="margin-bottom:16px">
+        <h2>Selection</h2>
+        <div class="cells" id="out"></div>
+        <div class="callout" id="note"></div>
+      </div>
+      <div class="panel">
+        <h2>What reliability costs</h2>
+        <svg id="rel2" viewBox="0 0 660 260" role="img" aria-label="Required capacity against reliability"></svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:16px">
+    <h2>Reliability stacks — the problem the lecture slide poses</h2>
+    <svg id="stack" viewBox="0 0 1240 210" role="img" aria-label="System reliability against number of bearings"></svg>
+  </div>
+
+  <div class="notice">
+    <h2>What to notice</h2>
+    <ol>
+      <li><b>Double the load and a ball bearing loses seven-eighths of its life.</b> Life goes as (C/F)<sup>a</sup> with a = 3. Shave 20% off the load instead and life almost doubles — which is usually the cheapest engineering available.</li>
+      <li><b>Rollers are less forgiving of load and better at carrying it.</b> Switch the type: a = 10/3 makes the line steeper still.</li>
+      <li><b>Catalogue ratings are 90% reliability, not 100%.</b> Ask for 99% and the required capacity jumps by roughly two thirds for the same duty. That is the Weibull correction, and it is not a small effect.</li>
+      <li><b>Reliabilities multiply.</b> Six bearings at 90% each give a machine at 0.9⁶ = 53%. Specifying every bearing individually at 90% is not the same as designing a reliable machine.</li>
+    </ol>
+    <p class="foot"><kbd>←</kbd> <kbd>→</kbd> adjust reliability · catalogue values C₁₀ come from the manufacturer, so the answer here is the number you take shopping</p>
+  </div>
+</div>
+
+<div id="tb"></div>
+</div>
+
+<script src="../assets/instrument.js"></script>
+<script>
+"use strict";
+let predict=false, revealed=false;
+const hiding=()=>predict&&!revealed, q_=v=>hiding()?"—":v;
+let a=3, L10=1e6, Fd=1.779, hrs=5000, rpm=1725, af=1, R=0.9, nb=6;
+
+mountTopbar({});
+$("tb").innerHTML = titleblock({ sheet:"05", title:"Bearing load, life and reliability", ch:"11" });
+
+/* Weibull parameters for a typical manufacturer, Shigley eq. (11-6) */
+const X0=0.02, TH=4.439, BW=1.483;
+const relFactor = r => r>=0.999999 ? 0 : X0 + TH*Math.pow(1-r, 1/BW);
+const Ld   = () => hrs*rpm*60;
+const xD   = () => Ld()/L10;
+const C10b = () => af*Fd*Math.pow(xD(),1/a);                       /* at catalogue 90% */
+const C10r = () => { const f=relFactor(R); return f<=0?Infinity:af*Fd*Math.pow(xD()/f,1/a); };
+
+/* ---------- load–life ------------------------------------------------------ */
+function drawLL(){
+  const C=C10r(), Cv=isFinite(C)?C:C10b()*3;
+  const lx0=Math.log10(L10)-1.4, lx1=Math.log10(Math.max(Ld(),L10))+1.0;
+  const ly1=Math.log10(Cv*1.8), ly0=ly1-2.4;
+  const f=frame({w:660,h:420,l:70,r:26,t:22,b:56,
+    xmin:lx0,xmax:lx1,ymin:ly0,ymax:ly1,
+    xlabel:"life L (revolutions)", ylabel:"load F (kN)",
+    xstep:1, ystep:0.5,
+    xfmt:v=>"10"+sup(Math.round(v)), yfmt:v=>fmt(Math.pow(10,v),Math.pow(10,v)<10?1:0), zeroY:false});
+  let g=f.g;
+  /* F L^(1/a) = const  ->  log F = logC + (1/a)(logL10 - logL) */
+  const lineF = lL => Math.log10(Cv/1.8) + (1/a)*(Math.log10(L10)-lL);
+  g += f.clip(SVG.path(curve(lineF,lx0,lx1,f.X,f.Y,120),"var(--dye)",2.6));
+
+  const lLd=Math.log10(Ld()), lF=Math.log10(af*Fd);
+  g += SVG.line(f.X(lLd),f.t,f.X(lLd),f.Y(lF),"#c3ced8",1,"4 4");
+  g += SVG.line(f.l,f.Y(lF),f.X(lLd),f.Y(lF),"#c3ced8",1,"4 4");
+  g += SVG.circle(f.X(lLd),f.Y(lF),7,"#fff","var(--aus)",3);
+  g += SVG.text(f.X(lLd),f.Y(lF)-16,"duty point",{col:"var(--aus)",size:12,mono:true,weight:700});
+
+  const lC=Math.log10(isFinite(C)?C:C10b());
+  g += SVG.circle(f.X(Math.log10(L10)),f.Y(lC),6,"#fff","var(--jade)",3);
+  g += SVG.text(f.X(Math.log10(L10))+10,f.Y(lC)-10,"C10 = "+fmt(isFinite(C)?C:0,2)+" kN",{col:"var(--jade)",size:12.5,anchor:"start",mono:true,weight:700});
+
+  /* the doubling illustration */
+  const l2=Math.log10(Ld()/Math.pow(2,a));
+  if (l2>lx0){
+    g += SVG.circle(f.X(l2),f.Y(lF+Math.log10(2)),5,"none","var(--brass)",2.4);
+    g += SVG.text(f.X(l2),f.Y(lF+Math.log10(2))-14,"2× load → life ÷ "+fmt(Math.pow(2,a),0),{col:"var(--brass)",size:11.5,mono:true,weight:700});
+  }
+  $("ll").innerHTML=g;
+}
+const SUP="⁰¹²³⁴⁵⁶⁷⁸⁹";
+const sup = n => String(n).split("").map(c=>c==="-"?"⁻":SUP[+c]).join("");
+
+/* ---------- reliability cost ------------------------------------------------ */
+function drawRel(){
+  const f=frame({w:660,h:260,l:70,r:26,t:20,b:50,
+    xmin:0.5,xmax:0.999,ymin:0,ymax:Math.max(2.2,C10r()/C10b()*1.25||2.2),
+    xlabel:"reliability R", ylabel:"C10 multiplier",
+    xstep:0.1, xfmt:v=>fmt(v,2), yfmt:v=>fmt(v,1), zeroY:false});
+  let g=f.g;
+  const mult = r => Math.pow(relFactor(0.9)/relFactor(r), 1/a);
+  g += f.clip(SVG.path(curve(mult,0.5,0.998,f.X,f.Y,200),"var(--dye)",2.6));
+  g += SVG.line(f.l,f.Y(1),f.l+f.pw,f.Y(1),"#c3ced8",1.2,"5 4");
+  g += SVG.text(f.l+6,f.Y(1)-7,"catalogue basis, R = 0.90",{col:"#8493a0",size:11.5,anchor:"start",mono:true});
+  const m=mult(R);
+  g += SVG.line(f.X(R),f.t,f.X(R),f.t+f.ph,"#10151b",1.4);
+  g += SVG.circle(f.X(R),f.Y(Math.min(m,f.Y?1e9:1e9)),6,"#fff","var(--aus)",3);
+  g += SVG.text(f.X(R),f.Y(m)-14,"×"+fmt(m,2),{col:"var(--aus)",size:13,mono:true,weight:700});
+  $("rel2").innerHTML=g;
+}
+
+/* ---------- stacking -------------------------------------------------------- */
+function drawStack(){
+  const BASE=162, HMAX=88;
+  let g="", x0=70, w=1120, bw=w/12-10;
+  g += SVG.text(x0,26,`${nb} bearings at ${fmt(R*100,1)}% each give a machine at ${fmt(Math.pow(R,nb)*100,1)}%`,
+       {col:"var(--aus)",size:15,anchor:"start",weight:700});
+  for(let i=1;i<=12;i++){
+    const Rsys=Math.pow(R,i), h=Math.max(2,Math.round(HMAX*Rsys)), x=x0+(i-1)*(w/12);
+    const on = i===nb;
+    g += SVG.rect(x,BASE-h,bw,h, on?"var(--aus)":(Rsys<0.5?"#e3b3b1":"#bcc8d3"));
+    g += SVG.text(x+bw/2,BASE-h-7,fmt(Rsys*100,0)+"%",{col:on?"var(--aus)":"#8493a0",size:12,mono:true,weight:on?700:600});
+    g += SVG.text(x+bw/2,BASE+18,String(i),{col:on?"var(--aus)":"#8493a0",size:12,mono:true,weight:on?700:500});
+  }
+  g += SVG.line(x0-6,BASE,x0+w,BASE,"#b9c4ce",1.4);
+  g += SVG.text(x0-14,BASE+4,"R^n",{col:"#46545f",size:12.5,anchor:"end",mono:true,weight:700});
+  g += SVG.text(x0+w/2,BASE+40,"number of bearings in the machine, each individually at R = "+fmt(R,3),{col:"#8493a0",size:12.5,weight:400});
+  $("stack").innerHTML=g;
+}
+
+/* ---------- readouts --------------------------------------------------------- */
+function out(){
+  const C=C10r(), Cb=C10b(), Rn=Math.pow(R,nb);
+  const rows=[
+    {k:"Ld", v:sig(Ld(),3)+" rev", n:`${fmt(hrs,0)} h at ${fmt(rpm,0)} rev/min`},
+    {k:"xD", v:sig(xD(),3), n:"Ld / L10"},
+    {k:"C10 catalogue basis", v:fmt(Cb,2)+" kN", tone:"jade", n:"the rating you look up"},
+    {k:`C10 needed, R = ${fmt(R,3)}`, v:isFinite(C)?fmt(C,2)+" kN":"—", tone:"red", n:"Weibull corrected, eq. 11-18"},
+    {k:"penalty", v:isFinite(C)?"×"+fmt(C/Cb,2):"—", n:"cost of the extra reliability"},
+    {k:"life if load ×2", v:fmt(Ld()/Math.pow(2,a)/1e6,2)+"×10⁶", tone:"brass", n:`divided by ${fmt(Math.pow(2,a),1)}`},
+    {k:"life if load −20%", v:fmt(Ld()*Math.pow(1/0.8,a)/1e6,1)+"×10⁶", tone:"brass", n:`multiplied by ${fmt(Math.pow(1/0.8,a),2)}`},
+    {k:`system R, ${nb} bearings`, v:fmt(Rn*100,1)+" %", tone:Rn<0.7?"red":"blue", n:`R to the power ${nb}`}
+  ];
+  cells("out", hiding() ? rows.map(r=>({...r, v:"—"})) : rows);
+  let msg=null;
+  if (Rn<0.6) msg=[`<b>The machine is the weak link.</b> Each bearing is at ${fmt(R*100,1)}%, but ${nb} of them in series give ${fmt(Rn*100,1)}%. To land the machine at 90% you need every bearing at ${fmt(Math.pow(0.9,1/nb)*100,2)}% — which is a different, larger bearing.`];
+  else if (R>0.98) msg=[`<b>High reliability is expensive.</b> Going from 0.90 to ${fmt(R,3)} multiplies the required capacity by ${fmt(C/Cb,2)}. Check whether the duty really demands it before paying for it.`,"neutral"];
+  else msg=[`<b>Read this number off the catalogue.</b> Look for a bearing with C₁₀ of at least ${fmt(isFinite(C)?C:Cb,2)} kN at the bore you need — then take the next size up, not the next size down.`,"neutral"];
+  callout("note",msg[0],msg[1]);
+}
+
+/* ---------- wiring ----------------------------------------------------------- */
+function redraw(){ $("relv").textContent=fmt(R,3); drawLL(); drawRel(); drawStack(); out(); }
+function read(){
+  a=parseFloat($("type").value); L10=parseFloat($("basis").value);
+  Fd=parseFloat($("fd").value)||0.001; hrs=parseFloat($("hrs").value)||1;
+  rpm=parseFloat($("rpm").value)||1;  af=parseFloat($("af").value)||1;
+  nb=clamp(parseInt($("nbear").value)||1,1,12);
+  redraw();
+}
+["type","basis","fd","hrs","rpm","af","nbear"].forEach(id=>$(id).addEventListener("input",read));
+$("rel").addEventListener("input",e=>{ R=parseFloat(e.target.value); redraw(); });
+keyboard("rel",()=>{ R=parseFloat($("rel").value); redraw(); });
+
+const PRESETS=[
+  ["Example 11-3",3,1e6,1.779,5000,1725,1,0.9,1],
+  ["Gearbox, six bearings",3,1e6,4.2,10000,1200,1.2,0.9,6],
+  ["Roller, heavy duty",3.3333,1e6,12,20000,600,1.5,0.95,4],
+  ["99% reliability",3,1e6,1.779,5000,1725,1,0.99,1]
+];
+$("presets").innerHTML=PRESETS.map((p,i)=>`<button class="chip" data-i="${i}">${p[0]}</button>`).join("");
+$("presets").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b)return;
+  const [,aa,l,f,h,r,A,rr,n]=PRESETS[+b.dataset.i];
+  $("type").value=String(aa); $("basis").value=String(l); $("fd").value=f;
+  $("hrs").value=h; $("rpm").value=r; $("af").value=A; $("nbear").value=n;
+  R=rr; $("rel").value=rr; read();
+});
+$("predict").addEventListener("click",()=>{
+  if(predict&&!revealed){revealed=true;predict=false;$("predict").textContent="Predict mode";$("predict").classList.remove("active");}
+  else {predict=true;revealed=false;$("predict").textContent="Reveal";$("predict").classList.add("active");}
+  redraw();
+});
+
+read();
+</script>
+</body>
+</html>
