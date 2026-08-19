@@ -226,10 +226,7 @@ kbd{
   font-size:clamp(38px,5.6vw,74px); line-height:.98; letter-spacing:-.035em; font-weight:700;
 }
 .hero h1 em{ font-style:normal; color:var(--principal) }
-.hero p{ margin:0 0 var(--s5); font-size:18.5px; line-height:1.5; color:var(--ink-2); max-width:52ch }
-.hero .stats{ display:flex; gap:var(--s6); border-top:1px solid var(--rule); padding-top:var(--s4) }
-.hero .stat .n{ font-family:var(--mono); font-size:27px; font-weight:700; letter-spacing:-.02em }
-.hero .stat .l{ font-family:var(--mono); font-size:10.5px; letter-spacing:.13em; text-transform:uppercase; color:var(--tick); margin-top:2px }
+.hero p{ margin:0; font-size:18.5px; line-height:1.5; color:var(--ink-2); max-width:52ch }
 .instrument{
   background:var(--ground-2); border:1px solid var(--rule); border-radius:var(--r);
   padding:var(--s4); position:relative;
