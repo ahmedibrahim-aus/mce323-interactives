@@ -202,7 +202,7 @@ kbd{
 
 /* ---------- title block: the signature ---------------------------------- */
 .titleblock{
-  margin:var(--s7) var(--s5) var(--s5); margin-left:auto; width:min(520px,calc(100% - 48px));
+  margin:var(--s2) var(--s5) var(--s5); margin-left:auto; width:min(520px,calc(100% - 48px));
   border:1.5px solid var(--ink); border-radius:2px; background:var(--sheet);
   font-family:var(--mono); font-size:11px; overflow:hidden;
 }
@@ -274,6 +274,62 @@ kbd{
   .wrap,.section{ padding-left:var(--s4); padding-right:var(--s4) }
   .titleblock{ margin-left:var(--s4); margin-right:var(--s4); width:auto }
 }
+/* ---------- phones -------------------------------------------------------
+   The drawings are technical, not decorative: their labels are sized in
+   viewBox units, so letting a 620-unit figure shrink into a 390px column
+   renders 11px type at 7px. Keep the figures at a legible width and let the
+   panel scroll sideways instead — the same thing you would do with a wide
+   drawing on a small sheet. */
+@media (max-width:720px){
+  /* grid and flex children default to min-width:auto, which lets a wide child
+     push the whole page sideways instead of scrolling inside its own box */
+  .g2>*, .g3>*, .cards>*, .panel{ min-width:0 }
+  .panel{
+    overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch;
+    /* edge shadows that appear only while there is more figure to scroll to */
+    background-image:
+      linear-gradient(to right, var(--sheet), var(--sheet)),
+      linear-gradient(to left,  var(--sheet), var(--sheet)),
+      linear-gradient(to right, rgba(16,21,27,.13), rgba(16,21,27,0)),
+      linear-gradient(to left,  rgba(16,21,27,.13), rgba(16,21,27,0));
+    background-position:left center, right center, left center, right center;
+    background-repeat:no-repeat;
+    background-size:22px 100%, 22px 100%, 13px 100%, 13px 100%;
+    background-attachment:local, local, scroll, scroll;
+  }
+  .panel > svg{ min-width:520px }
+  .panel > h2{ position:sticky; left:0 }
+
+  /* the sweep of a wide figure needs a hint that it is scrollable */
+  .panel::-webkit-scrollbar{ height:6px }
+  .panel::-webkit-scrollbar-thumb{ background:var(--rule-2); border-radius:3px }
+
+  /* a select sizes itself to its widest option, which can be wider than a phone */
+  .field{ min-width:0; max-width:100% }
+  .field select, .controls select{ max-width:calc(100vw - 72px); min-width:0; text-overflow:ellipsis }
+
+  /* touch targets */
+  button, .chip, select, input[type=number]{ min-height:40px }
+  input[type=range]{ height:34px }
+
+  /* the top bar was wrapping onto three lines */
+  .topbar{ height:auto; padding:6px var(--s4); flex-wrap:nowrap; gap:8px }
+  .topbar .name{ display:none }
+  .topbar .inst{ white-space:nowrap; font-size:10px }
+  .topbar a{ white-space:nowrap }
+
+  /* ten full-height cards is a long scroll on a phone; keep the thumbnail as a
+     recognisable strip rather than a hero image */
+  .card .thumb{ padding:var(--s2) }
+  .card .thumb svg{ max-height:104px; object-fit:contain }
+  .cards{ gap:var(--s3) }
+
+  .mod-head{ padding:var(--s5) var(--s4) var(--s3) }
+  .mod-head h1{ font-size:26px }
+  .cells{ gap:var(--s2) }
+  .cell .v{ font-size:19px }
+}
+
 @media (prefers-reduced-motion:reduce){
   *{ animation-duration:.001ms !important; transition-duration:.001ms !important }
 }

@@ -403,6 +403,43 @@ test.describe('physics matches the course notes', () => {
 /* ------------------------------------------------------------------ */
 /* Every one of these is a defect an independent Shigley audit found. The
    headline presets were all correct; these live off the default path. */
+/* ------------------------------------------------------------------ */
+/* A phone must never scroll sideways. The figures are sized in viewBox units,
+   so they scroll inside their own panel instead of shrinking into illegibility. */
+test.describe('phone layout', () => {
+  for (const [rel] of PAGES) {
+    test(`${rel} — no sideways scroll at 390px`, async ({ page }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.goto(url(rel));
+      await page.waitForTimeout(250);
+      const m = await page.evaluate(() => {
+        const de = document.documentElement;
+        const wide = [...document.querySelectorAll('body *')]
+          .filter(el => {
+            const r = el.getBoundingClientRect();
+            return r.width > 0 && r.right > de.clientWidth + 1 &&
+                   !el.closest('.panel');        // panels scroll on purpose
+          })
+          .map(el => el.tagName.toLowerCase() + '.' +
+               (typeof el.className === 'string' ? el.className.split(' ')[0] : ''));
+        return { doc: de.scrollWidth, client: de.clientWidth, wide: [...new Set(wide)].slice(0, 5) };
+      });
+      expect(m.doc, `page is ${m.doc}px in a ${m.client}px viewport: ${m.wide.join(', ')}`)
+        .toBeLessThanOrEqual(m.client + 1);
+    });
+  }
+
+  test('figures stay legible rather than shrinking to fit', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(url('modules/plane-stress.html'));
+    const w = await page.evaluate(() =>
+      Math.min(...[...document.querySelectorAll('.panel > svg')]
+        .map(s => s.getBoundingClientRect().width)));
+    expect(w, 'a figure squeezed below ~500px renders its 11px labels at 7px')
+      .toBeGreaterThanOrEqual(500);
+  });
+});
+
 test.describe('audit regressions', () => {
 
   test('Modified Mohr switches on |sigB/sigA| = 1, not on Sut', async ({ page }) => {
