@@ -114,8 +114,8 @@ function drawElement(){
 
   g += SVG.line(X(-136,0),Y(-136,0),X(136,0),Y(136,0),"#b9c4ce",1.4);
   g += SVG.line(X(0,-128),Y(0,-128),X(0,128),Y(0,128),"#b9c4ce",1.4);
-  g += SVG.text(X(152,0),Y(152,0)+5,"x′",{col:"#46545f",size:20,math:true});
-  g += SVG.text(X(0,146),Y(0,146),"y′",{col:"#46545f",size:20,math:true});
+  g += SVG.text(X(146,-32),Y(146,-32)+5,"x′",{col:"#46545f",size:20,math:true});
+  g += SVG.text(X(34,146),Y(34,146),"y′",{col:"#46545f",size:20,math:true});
 
   g += `<polygon points="${X(-a,-a)},${Y(-a,-a)} ${X(a,-a)},${Y(a,-a)} ${X(a,a)},${Y(a,a)} ${X(-a,a)},${Y(-a,a)}" fill="#eef2f5" stroke="#46545f" stroke-width="2"/>`;
 
@@ -157,9 +157,14 @@ function drawElement(){
   }
 
   if (!hiding()){
-    if(hasX) g += SVG.text(X(a+nx+16,24),Y(a+nx+16,24),fmt(st.sxp,1),{col:"var(--dye)",size:14,mono:true,weight:700});
-    if(hasY) g += SVG.text(X(-24,a+ny+16),Y(-24,a+ny+16),fmt(st.syp,1),{col:"var(--dye-2)",size:14,mono:true,weight:700});
-    if(Math.abs(st.txp)*scale>0.6) g += SVG.text(X(a+30,a+30),Y(a+30,a+30),fmt(st.txp,1),{col:"var(--jade)",size:13.5,mono:true,weight:700});
+    /* Name each value, not just its number: watching "sigma_x' = 11.9" fall to
+       "-2.1" while "tau_x'y' " passes through zero is the whole lesson. */
+    if(hasX) g += SVG.mtext(X(a+nx+18,26),Y(a+nx+18,26),"σ_x′ = "+fmt(st.sxp,1),
+                            {col:"var(--dye)",size:15,weight:700});
+    if(hasY) g += SVG.mtext(X(-52,a+ny+16),Y(-52,a+ny+16),"σ_y′ = "+fmt(st.syp,1),
+                            {col:"var(--dye-2)",size:15,weight:700});
+    if(Math.abs(st.txp)*scale>0.6) g += SVG.mtext(X(a+34,a+34),Y(a+34,a+34),"τ_x′y′ = "+fmt(st.txp,1),
+                            {col:"var(--jade)",size:15,weight:700});
     if (Math.abs(st.txp)<0.3)
       g += SVG.text(14,24,"τ = 0 — a principal plane",{col:"var(--principal)",size:15,weight:700,anchor:"start"});
   }

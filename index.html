@@ -175,12 +175,26 @@ function thumbGear(){
   return g;
 }
 function thumbBeam(){
-  let g=SVG.line(40,34,264,34,"#46545f",3);
-  g+=`<polygon points="46,34 38,46 54,46" fill="#8493a0"/><polygon points="258,34 250,46 266,46" fill="none" stroke="#8493a0" stroke-width="1.6"/>`;
-  g+=SVG.arrow(130,10,130,30,"var(--principal)",2,7);
-  g+=SVG.path("M 40 76 L 130 76 L 130 96 L 264 96","var(--dye)",2,"rgba(39,72,140,.12)");
-  g+=SVG.line(40,86,264,86,"#c3ced8",1);
-  g+=SVG.path("M 40 112 L 130 96 L 264 112","var(--principal)",2);
+  /* the three stacked diagrams, in the order they are drawn on the board:
+     loaded beam, then shear, then moment — each on its own baseline */
+  const L0=42, L1=262, xP=138;
+  let g="";
+  /* 1. the beam, its supports and the load */
+  g += SVG.arrow(xP,4,xP,24,"var(--principal)",2.2,7);
+  g += SVG.line(L0,30,L1,30,"#46545f",3.4);
+  g += `<polygon points="${L0+6},30 ${L0-2},42 ${L0+14},42" fill="#8493a0"/>`
+     + `<polygon points="${L1-6},30 ${L1-14},42 ${L1+2},42" fill="none" stroke="#8493a0" stroke-width="1.6"/>`;
+  /* 2. shear: a block up, a block down, meeting under the load */
+  const vy=68, vh=17;
+  g += `<rect x="${L0}" y="${vy-vh}" width="${xP-L0}" height="${vh}" fill="rgba(39,72,140,.20)" stroke="var(--dye)" stroke-width="1.8"/>`;
+  g += `<rect x="${xP}" y="${vy}" width="${L1-xP}" height="${vh*0.62}" fill="rgba(39,72,140,.20)" stroke="var(--dye)" stroke-width="1.8"/>`;
+  g += SVG.line(L0,vy,L1,vy,"#b9c4ce",1.1);
+  /* 3. moment: the triangle that peaks where the shear crosses zero */
+  const my=112, mp=84;
+  g += SVG.path(`M ${L0} ${my} L ${xP} ${mp} L ${L1} ${my} Z`,"var(--principal)",2,"rgba(168,50,46,.16)");
+  g += SVG.line(L0,my,L1,my,"#b9c4ce",1.1);
+  /* the station they share */
+  g += SVG.line(xP,44,xP,my,"#c3ced8",1,"3 4");
   return g;
 }
 function thumbKt(){

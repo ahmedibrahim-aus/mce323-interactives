@@ -137,14 +137,24 @@ function drawShaft(){
   g += SVG.text(x1+30,cy-dd/2-16,"r = 0.1d",{col:"#8493a0",size:11.5,mono:true,anchor:"start"});
 
   /* loads */
-  g += SVG.text(150,44,"M",{col:"var(--dye)",size:15,mono:true,weight:700});
+  g += SVG.mtext(150,44,"M_a",{col:"var(--dye)",size:16,weight:700});
   g += SVG.path(`M 120 60 A 34 34 0 1 1 178 62`,"var(--dye)",2);
   g += SVG.arrow(174,54,180,66,"var(--dye)",2,8);
   g += SVG.text(150,84,fmt(P.Ma,0)+" N·m",{col:"var(--dye)",size:11.5,mono:true});
-  g += SVG.text(500,44,"T",{col:"var(--jade)",size:15,mono:true,weight:700});
-  g += SVG.path(`M 470 60 A 34 34 0 1 1 528 62`,"var(--jade)",2);
-  g += SVG.arrow(524,54,530,66,"var(--jade)",2,8);
-  g += SVG.text(500,84,fmt(P.Tm,0)+" N·m",{col:"var(--jade)",size:11.5,mono:true});
+  /* Torque turns about the shaft AXIS, so it cannot be drawn as a moment in the
+     plane of the page — that is a bending moment. Wrap it round the shaft: the
+     far half dashed because the shaft hides it, the near half solid, which is
+     how a drawing shows a vector pointing along the axis. */
+  {
+    const xt = 520, ry = dd/2 + 16, rx = 15;
+    g += SVG.path(`M ${xt} ${(cy-ry).toFixed(1)} A ${rx} ${ry} 0 0 0 ${xt} ${(cy+ry).toFixed(1)}`,
+                  "var(--jade)",1.6,"none","5 4");                       /* behind the shaft */
+    g += SVG.path(`M ${xt} ${(cy+ry).toFixed(1)} A ${rx} ${ry} 0 0 1 ${(xt+rx*0.50).toFixed(1)} ${(cy-ry*0.866).toFixed(1)}`,
+                  "var(--jade)",2.4);                                    /* in front of it   */
+    g += SVG.arrow(xt+rx*0.50, cy-ry*0.866, xt, cy-ry, "var(--jade)",2.4,9);
+    g += SVG.mtext(xt, cy-ry-14, "T_m", {col:"var(--jade)",size:16,weight:700});
+    g += SVG.text(xt, cy+ry+20, fmt(P.Tm,0)+" N·m", {col:"var(--jade)",size:11.5,mono:true});
+  }
   $("shaft").innerHTML=g;
 }
 
