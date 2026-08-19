@@ -36,9 +36,10 @@ const SVG = {
     return `<path d="${d}" fill="${fill}" stroke="${col}" stroke-width="${w}"`
       + `${dash ? ` stroke-dasharray="${dash}"` : ""} stroke-linejoin="round" stroke-linecap="round"/>`;
   },
-  circle(cx, cy, r, fill, stroke, w = 2){
+  circle(cx, cy, r, fill, stroke, w = 2, dash){
     return `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r}" fill="${fill || "none"}"`
-      + `${stroke ? ` stroke="${stroke}" stroke-width="${w}"` : ""}/>`;
+      + `${stroke ? ` stroke="${stroke}" stroke-width="${w}"` : ""}`
+      + `${dash ? ` stroke-dasharray="${dash}"` : ""}/>`;
   },
   rect(x, y, w, h, fill, stroke, sw = 1){
     return `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill || "none"}"`

@@ -146,12 +146,14 @@ function drawTooth(){
     if(lab) out+=SVG.text(cx-dx+2, ye-8, lab, {col,size:11.5,mono:true,weight:700,anchor:"start"});
     return out;
   };
-  if(showCirc){
-    g += band(g1.ra,"#8493a0",1.2,"5 3","addendum");
-    g += band(g1.r ,"var(--principal)",1.8,null,"pitch");
-    g += band(g1.rb,"var(--dye)",1.6,"7 4","base");
-    g += band(g1.rf,"#8493a0",1.2,"5 3","dedendum");
-  }
+  /* held back and drawn after the teeth: a filled tooth would otherwise hide the
+     base circle over the very flank it generates */
+  const bands = showCirc
+    ? band(g1.ra,"#8493a0",1.2,"5 3","addendum")
+    + band(g1.r ,"var(--principal)",1.8,null,"pitch")
+    + band(g1.rb,"var(--dye)",1.6,"7 4","base")
+    + band(g1.rf,"#8493a0",1.2,"5 3","dedendum")
+    : "";
   g += SVG.centre(cx,90,cx,cy-g1.rf*k+52);
 
   /* three teeth, the middle one highlighted */
@@ -169,6 +171,7 @@ function drawTooth(){
     d+=" L "+P(g1.rf,flank(g1.rf))+" Z";
     g += SVG.path(d,"#46545f",1.8,t===0?"#dde5ec":"#f1f4f7");
   }
+  g += bands;
 
   /* dimension the addendum and dedendum off the middle tooth */
   const xr = cx + 150;
@@ -207,16 +210,20 @@ function drawMesh(){
      with N2 odd a space already sits there and the offset makes them collide. */
   const rot1=psi, rot2=-psi*N1/N2 + (N2 % 2 ? 0 : Math.PI/N2);
 
-  if(showCirc){
-    [[x1,g1],[x2,g2]].forEach(([cx,gg])=>{
-      g += SVG.circle(cx,cy,gg.r*k,"none","var(--principal)",1.4);
-      g += SVG.circle(cx,cy,gg.rb*k,"none","var(--dye)",1.2,"6 4");
-    });
-  }
   g += `<g transform="translate(${x1} ${cy}) scale(${k} ${-k}) rotate(${rot1*180/Math.PI})">`
      + SVG.path(gearPath(N1),"#46545f",1.6/k,"#eef2f5") + `</g>`;
   g += `<g transform="translate(${x2} ${cy}) scale(${k} ${-k}) rotate(${rot2*180/Math.PI})">`
      + SVG.path(gearPath(N2),"#46545f",1.6/k,"#e6ecf2") + `</g>`;
+
+  /* Circles go ON TOP of the gear bodies. The base circle sits between the root
+     and the tip, so a filled tooth covers it exactly where it matters — and the
+     whole point of this drawing is watching the line of action touch it. */
+  if(showCirc){
+    [[x1,g1],[x2,g2]].forEach(([cx,gg])=>{
+      g += SVG.circle(cx,cy,gg.r*k,"none","var(--principal)",1.4);
+      g += SVG.circle(cx,cy,gg.rb*k,"none","var(--dye)",1.6,"5 4");
+    });
+  }
 
   g += SVG.circle(x1,cy,3,"#10151b"); g += SVG.circle(x2,cy,3,"#10151b");
   const pitchX=x1+g1.r*k;

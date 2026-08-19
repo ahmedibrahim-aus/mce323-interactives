@@ -285,6 +285,31 @@ test.describe('physics matches the course notes', () => {
         };
       }, { phi, N1, N2, m });
 
+
+      // Stronger: measure against the base circle that is actually DRAWN, so a
+      // circle at the wrong radius, or hidden behind the gear body, is caught too.
+      const drawn = await page.evaluate(() => {
+        const svg = document.querySelector('#mesh');
+        const kids = [...svg.children];
+        const circles = kids.filter(e => e.tagName === 'circle' &&
+          (e.getAttribute('stroke-dasharray') || '') !== '' &&
+          (e.getAttribute('stroke') || '').includes('dye'));
+        const bodyIdx = kids.findIndex(e => e.tagName === 'g');
+        const loa = [...svg.querySelectorAll('line')]
+          .find(l => (l.getAttribute('stroke') || '').includes('jade'));
+        const x1 = +loa.getAttribute('x1'), y1 = +loa.getAttribute('y1');
+        const x2 = +loa.getAttribute('x2'), y2 = +loa.getAttribute('y2');
+        const dist = (px, py) => Math.abs((y2 - y1) * px - (x2 - x1) * py + x2 * y1 - y2 * x1)
+                                 / Math.hypot(x2 - x1, y2 - y1);
+        return {
+          overBody: circles.every(c => kids.indexOf(c) > bodyIdx),
+          pairs: circles.map(c => ({ r: +c.getAttribute('r'),
+                                     d: dist(+c.getAttribute('cx'), +c.getAttribute('cy')) })),
+        };
+      });
+      expect(drawn.pairs.length, 'both base circles must be drawn and dashed').toBe(2);
+      expect(drawn.overBody, 'base circles must be drawn over the gear bodies, not under').toBe(true);
+      for (const c of drawn.pairs) near(c.d, c.r, 0.5);   // line touches the drawn circle
       const k = g.sep / ((N1 + N2) * m / 2);              // px per mm, from the centre distance
       const cos = Math.cos(phi * Math.PI / 180);
       near(g.d1, (m * N1 / 2) * cos * k, 0.5);            // = r_b of the pinion
