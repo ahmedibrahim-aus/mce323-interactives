@@ -266,8 +266,11 @@ test.describe('physics matches the course notes', () => {
         set('m', m, 'input'); set('phi', phi, 'change');
         set('n1', N1, 'input'); set('n2', N2, 'input');
         const svg = document.querySelector('#mesh');
+        // the line of action is the heaviest jade stroke; thinner ones are the
+        // extension lines the angular dimension is drawn between
         const loa = [...svg.querySelectorAll('line')]
-          .find(l => (l.getAttribute('stroke') || '').includes('jade'));
+          .filter(l => (l.getAttribute('stroke') || '').includes('jade'))
+          .sort((a, b) => +b.getAttribute('stroke-width') - +a.getAttribute('stroke-width'))[0];
         const x1 = +loa.getAttribute('x1'), y1 = +loa.getAttribute('y1');
         const x2 = +loa.getAttribute('x2'), y2 = +loa.getAttribute('y2');
         const centres = [...svg.querySelectorAll('circle')]
@@ -295,8 +298,11 @@ test.describe('physics matches the course notes', () => {
           (e.getAttribute('stroke-dasharray') || '') !== '' &&
           (e.getAttribute('stroke') || '').includes('dye'));
         const bodyIdx = kids.findIndex(e => e.tagName === 'g');
+        // the line of action is the heaviest jade stroke; thinner ones are the
+        // extension lines the angular dimension is drawn between
         const loa = [...svg.querySelectorAll('line')]
-          .find(l => (l.getAttribute('stroke') || '').includes('jade'));
+          .filter(l => (l.getAttribute('stroke') || '').includes('jade'))
+          .sort((a, b) => +b.getAttribute('stroke-width') - +a.getAttribute('stroke-width'))[0];
         const x1 = +loa.getAttribute('x1'), y1 = +loa.getAttribute('y1');
         const x2 = +loa.getAttribute('x2'), y2 = +loa.getAttribute('y2');
         const dist = (px, py) => Math.abs((y2 - y1) * px - (x2 - x1) * py + x2 * y1 - y2 * x1)

@@ -123,6 +123,26 @@ const SVG = {
       + ` font-weight="${weight}" text-anchor="${anchor}" font-family="${MATH_FONT}"`
       + ` opacity="${op}"${tr}>${body}</text>`;
   },
+  /* An angular dimension the way a drawing does it: an arc between the two
+     reference directions with a small head at each end, so it is obvious what
+     is being measured and from where. Angles in screen coords, y down. */
+  angleDim(cx, cy, R, a0, a1, col, w = 1.5, head = 8){
+    const P = a => [cx + R*Math.cos(a), cy + R*Math.sin(a)];
+    const [x0,y0] = P(a0), [x1,y1] = P(a1);
+    const big = Math.abs(a1-a0) > Math.PI ? 1 : 0, sweep = a1 > a0 ? 1 : 0;
+    let g = `<path d="M ${x0.toFixed(1)} ${y0.toFixed(1)} A ${R} ${R} 0 ${big} ${sweep} `
+          + `${x1.toFixed(1)} ${y1.toFixed(1)}" fill="none" stroke="${col}" stroke-width="${w}"/>`;
+    /* heads point along the arc, outward at each end */
+    const tip = (a, dir) => {
+      const tx = -Math.sin(a)*dir, ty = Math.cos(a)*dir;      /* tangent */
+      const nx = Math.cos(a), ny = Math.sin(a);               /* radial  */
+      const [px,py] = P(a);
+      return `<polygon points="${px.toFixed(1)},${py.toFixed(1)} `
+        + `${(px - tx*head + nx*head*0.34).toFixed(1)},${(py - ty*head + ny*head*0.34).toFixed(1)} `
+        + `${(px - tx*head - nx*head*0.34).toFixed(1)},${(py - ty*head - ny*head*0.34).toFixed(1)}" fill="${col}"/>`;
+    };
+    return g + tip(a0, -1) + tip(a1, +1);
+  },
   /* solid-headed arrow, head sits at (x2,y2) */
   arrow(x1, y1, x2, y2, col, w = 3, head = 10){
     const dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy);

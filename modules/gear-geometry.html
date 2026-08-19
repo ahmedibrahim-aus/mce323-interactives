@@ -220,8 +220,8 @@ function drawMesh(){
      whole point of this drawing is watching the line of action touch it. */
   if(showCirc){
     [[x1,g1],[x2,g2]].forEach(([cx,gg])=>{
-      g += SVG.circle(cx,cy,gg.r*k,"none","var(--principal)",1.4);
-      g += SVG.circle(cx,cy,gg.rb*k,"none","var(--dye)",1.6,"5 4");
+      g += SVG.circle(cx,cy,gg.r*k,"none","var(--principal)",1.1);
+      g += SVG.circle(cx,cy,gg.rb*k,"none","var(--dye)",1.2,"6 5");
     });
   }
 
@@ -240,9 +240,14 @@ function drawMesh(){
     const t1=g1.r*k*Math.sin(p), t2=g2.r*k*Math.sin(p);    /* the point where the pitch circles touch to each tangency */
     const back=t1*1.06, fwd=t2*1.06;   /* the tangent segment T1-T2, barely extended */
 
-    /* the reference the angle is measured from, so the construction is legible */
-    const ct=Math.max(back,fwd)*0.62;
-    g += SVG.line(pitchX,cy-ct,pitchX,cy+ct,"#b9c4ce",1.2,"5 4");
+    /* The line of action is only as long as the tangent segment, which is far
+       too short to carry a legible 20 degree arc. A drawing handles that with
+       extension lines: run both references out past the feature and dimension
+       between the extensions. */
+    const Rd = 132, ext = Rd + 16;
+    g += SVG.line(pitchX,cy-ext,pitchX,cy+ext*0.34,"#8493a0",1.2,"6 4");        /* common tangent */
+    g += SVG.line(pitchX+fwd*ux,cy+fwd*uy,pitchX+ext*ux,cy+ext*uy,
+                  "var(--jade)",1.1,"6 4",0.75);                                 /* line of action */
 
     g += SVG.line(pitchX-back*ux,cy-back*uy,pitchX+fwd*ux,cy+fwd*uy,"var(--jade)",2);
 
@@ -250,18 +255,17 @@ function drawMesh(){
     g += SVG.circle(pitchX-t1*ux,cy-t1*uy,3.5,"var(--jade)");
     g += SVG.circle(pitchX+t2*ux,cy+t2*uy,3.5,"var(--jade)");
 
-    /* Contact only occupies the part of T1-T2 between the two addendum circles.
-       That active length is what the tooth pair actually sweeps through. */
-    const sA = g2.r*k*Math.sin(p) - Math.sqrt(Math.max(0,(g2.ra*k)**2-(g2.rb*k)**2));
-    const sB = Math.sqrt(Math.max(0,(g1.ra*k)**2-(g1.rb*k)**2)) - g1.r*k*Math.sin(p);
-    g += SVG.line(pitchX+sA*ux,cy+sA*uy,pitchX+sB*ux,cy+sB*uy,"var(--jade)",5,"",0.28);
-    g += SVG.text(pitchX+fwd*ux+9,cy+fwd*uy-4,"pressure line",
+    /* The pressure angle is the whole point of this drawing, so dimension it the
+       way a drawing would: an arc with a head at each end, spanning from the
+       common tangent to the line of action, out in clear space above the mesh. */
+    g += SVG.text(pitchX+fwd*ux+10,cy+fwd*uy-6,"pressure line",
                   {col:"var(--jade)",size:12,mono:true,weight:700,anchor:"start"});
-    const R=44;
-    g += SVG.path(`M ${pitchX.toFixed(1)} ${(cy-R).toFixed(1)} A ${R} ${R} 0 0 1 `
-                + `${(pitchX+R*ux).toFixed(1)} ${(cy+R*uy).toFixed(1)}`,"var(--jade)",1.4);
-    g += SVG.text(pitchX+R*0.62*ux+9,cy+R*0.78*uy+4,"φ "+phi+"°",
-                  {col:"var(--jade)",size:12,anchor:"start",mono:true});
+    g += SVG.angleDim(pitchX,cy,Rd,-Math.PI/2,-Math.PI/2+p,"var(--jade)",1.6,7);
+    /* At 14.5 deg the wedge is too narrow to hold the value, so it goes just
+       outside the arc on the tangent side — always clear of the line itself. */
+    const mid = -Math.PI/2 + p/2;
+    g += SVG.mtext(pitchX+(Rd+22)*Math.cos(mid), cy+(Rd+22)*Math.sin(mid)+5,
+                   "φ = "+phi+"°", {col:"var(--jade)",size:16,weight:700});
   }
   g += SVG.text(x1,cy+g1.ra*k+26,`${N1}T`,{col:"#46545f",size:13,mono:true,weight:700});
   g += SVG.text(x2,cy+g2.ra*k+26,`${N2}T`,{col:"#46545f",size:13,mono:true,weight:700});
