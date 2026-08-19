@@ -440,6 +440,37 @@ test.describe('phone layout', () => {
   });
 });
 
+/* A preset is one frozen state. The plane-stress sheet is watched while it moves,
+   so sweep the angle and check the labels at every step. */
+test('plane stress — labels stay clear through a full theta sweep', async ({ page }) => {
+  await page.goto(url('modules/plane-stress.html'));
+  const bad = [];
+  for (let th = 0; th <= 180; th += 4) {
+    await page.fill('#th', String(th));
+    await page.dispatchEvent('#th', 'input');
+    const clashes = await page.evaluate(() => {
+      const out = [];
+      for (const svg of document.querySelectorAll('svg')) {
+        const B = [...svg.querySelectorAll('text')].filter(t => t.textContent.trim())
+          .map(t => ({ t: t.textContent.trim().slice(0, 22), r: t.getBoundingClientRect() }))
+          .filter(o => o.r.width > 0);
+        for (let i = 0; i < B.length; i++)
+          for (let j = i + 1; j < B.length; j++) {
+            const a = B[i].r, b = B[j].r;
+            const ox = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+            const oy = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+            if (ox > 2 && oy > 2 &&
+                (ox * oy) / Math.min(a.width * a.height, b.width * b.height) > 0.18)
+              out.push(`"${B[i].t}" over "${B[j].t}"`);
+          }
+      }
+      return out;
+    });
+    if (clashes.length) bad.push(`θ=${th}: ${clashes.join('; ')}`);
+  }
+  expect(bad, bad.slice(0, 6).join('\n')).toEqual([]);
+});
+
 test.describe('audit regressions', () => {
 
   test('Modified Mohr switches on |sigB/sigA| = 1, not on Sut', async ({ page }) => {

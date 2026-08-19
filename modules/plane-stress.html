@@ -114,8 +114,8 @@ function drawElement(){
 
   g += SVG.line(X(-136,0),Y(-136,0),X(136,0),Y(136,0),"#b9c4ce",1.4);
   g += SVG.line(X(0,-128),Y(0,-128),X(0,128),Y(0,128),"#b9c4ce",1.4);
-  g += SVG.text(X(170,0),Y(170,0)+4,"x′",{col:"#46545f",size:14,mono:true});
-  g += SVG.text(X(0,158),Y(0,158),"y′",{col:"#46545f",size:14,mono:true});
+  g += SVG.text(X(118,0),Y(118,0)+4,"x′",{col:"#46545f",size:14,mono:true});
+  g += SVG.text(X(0,112),Y(0,112),"y′",{col:"#46545f",size:14,mono:true});
 
   g += `<polygon points="${X(-a,-a)},${Y(-a,-a)} ${X(a,-a)},${Y(a,-a)} ${X(a,a)},${Y(a,a)} ${X(-a,a)},${Y(-a,a)}" fill="#eef2f5" stroke="#46545f" stroke-width="2"/>`;
 
@@ -214,7 +214,9 @@ function buildMohr(){
   g += SVG.centre(MX(P.avg),36,MX(P.avg),372);
   g += SVG.text(MX(P.avg)-10,388,"σavg",{col:"#8493a0",size:11.5,anchor:"end",mono:true});
   /* the real tau axis is at sigma = 0, which is NOT the circle center */
-  if (MX(0) > 52 && MX(0) < 592){
+  /* when sigma_avg is itself zero the centre line already IS the tau axis, so a
+     second line and label there would just duplicate it */
+  if (MX(0) > 52 && MX(0) < 592 && Math.abs(P.avg) > 0.05*Math.max(P.R,1)){
     g += SVG.line(MX(0),46,MX(0),362,"#8493a0",1.2,"3 4");
     g += SVG.text(MX(0)+6,58,"σ = 0",{col:"#8493a0",size:11,anchor:"start",mono:true});
   }
@@ -232,7 +234,7 @@ function buildMohr(){
     } else {
       [[P.s1,"σ1"],[P.s2,"σ2"]].forEach(([v,l])=>{
         g += SVG.circle(MX(v),cy,5,"var(--principal)");
-        g += SVG.text(MX(v),cy-14,l+" = "+fmt(v,1),{col:"var(--principal)",size:12.5,mono:true,weight:700});
+        g += SVG.text(MX(v),cy+22,l+" = "+fmt(v,1),{col:"var(--principal)",size:12.5,mono:true,weight:700});
       });
       g += SVG.circle(MX(P.avg),MY(P.R),4.5,"var(--brass)");
       g += SVG.text(MX(P.avg)+9,MY(P.R)+19,"τmax in-plane = "+fmt(P.R,1),{col:"var(--brass)",size:12,anchor:"start",mono:true,weight:700});
@@ -259,8 +261,21 @@ function drawMohr(){
   g += SVG.circle(xc,yc,4.5,"#fff","#9fadba",2.2);
   g += SVG.circle(x,y,7,"#fff","#10151b",3);
   if (!hiding()){
-    g += SVG.text(x+16,y+4,"(σx′, τx′y′)",{col:"#10151b",size:12,mono:true,anchor:"start"});
-    if (P.R >= 0.5) g += SVG.text(xc-16,yc+4,"(σy′, −τ)",{col:"#9fadba",size:11.5,mono:true,anchor:"end"});
+    const onAxis = Math.abs(y-MG.cy) < 24 &&
+      Math.min(Math.abs(x-MX(P.s1)), Math.abs(x-MX(P.s2))) < 60;
+    /* a degenerate circle already carries its own explanation at the centre */
+    const rightOfCentre = x >= MX(P.avg);
+    if (P.R >= 0.5)
+    g += SVG.text(x + (rightOfCentre ? 16 : -16), y + (onAxis ? -16 : 4), "(σx′, τx′y′)",
+                  {col:"#10151b",size:12,mono:true,anchor:rightOfCentre ? "start" : "end"});
+    const clear = P.R >= 0.5
+      && Math.hypot(xc-x, yc-y) > 74
+      && !(Math.abs(yc-MG.cy) < 24 &&
+           Math.min(Math.abs(xc-MX(P.s1)), Math.abs(xc-MX(P.s2))) < 66)
+      && Math.hypot(xc-MX(P.avg), yc-MG.cy) > 62;
+    const cRight = xc >= MX(P.avg);
+    if (clear) g += SVG.text(xc + (cRight ? 16 : -16), yc+4, "(σy′, −τ)",
+                             {col:"#9fadba",size:11.5,mono:true,anchor:cRight ? "start" : "end"});
   }
   g += SVG.text(310,406,"rotate the element θ and this point travels 2θ",{col:"#8493a0",size:12,weight:400});
   $("mohr").innerHTML=g;
