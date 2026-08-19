@@ -110,7 +110,7 @@ function Kt(){
   const [A,b] = interpAB(geo==="shaftB"?BEND:TORS, Dd);
   return A*Math.pow(clamp(r/dd,0.02,0.30), b);   /* the charts stop near 0.3 */
 }
-/* Neuber constant, SI (root-mm), then Kuhn–Hardrath */
+/* the notch-sensitivity constant, SI (root-mm) */
 function sqrtA(){
   const S=Sut;
   /* eq. 6-35 bending/axial, eq. 6-36 torsion — two separate fits. Torsion has the
@@ -125,7 +125,7 @@ const notchQ = rad => 1/(1 + Math.max(0,sqrtA())/Math.sqrt(Math.max(rad,1e-4)));
 const notchR = () => geo==="hole" ? dia/2 : r;
 const Kf = () => 1 + notchQ(notchR())*(Kt()-1);
 
-/* nominal stress on the net section */
+/* nominal stress, on the reduced section */
 function nominal(){
   if(geo==="hole") return F/((wd-dia)*thick);
   if(geo==="shaftB") return 32*F/(Math.PI*Math.pow(dd,3));      /* F is a moment, N·mm */
@@ -191,8 +191,8 @@ function drawPart(){
     g += SVG.arrow(cx-W/2-52,y0+H/2,cx-W/2-6,y0+H/2,"var(--dye)",2.6,10);
     g += SVG.arrow(cx+W/2+52,y0+H/2,cx+W/2+6,y0+H/2,"var(--dye)",2.6,10);
     g += SVG.text(cx-W/2-58,y0+H/2-12,"F",{col:"var(--dye)",size:14,anchor:"end",mono:true,weight:700});
-    g += SVG.text(cx,y0-14,`net section = (w − d)·b = ${fmt((wd-dia)*thick,0)} mm²`,{col:"#8493a0",size:12,mono:true});
-    /* stress across the net section, Kirsch-like decay scaled to the real Kt */
+    g += SVG.text(cx,y0-14,`reduced section = (w − d)·b = ${fmt((wd-dia)*thick,0)} mm²`,{col:"#8493a0",size:12,mono:true});
+    /* stress across the reduced section, decay scaled to the real Kt */
     const py=300, ph=96, xa=cx+R, xb=cx+W/2;
     let d="";
     for(let i=0;i<=60;i++){
@@ -207,7 +207,7 @@ function drawPart(){
     g += SVG.text(xa+6,py-ph-8,"σmax = "+fmt(sn*K,1)+" MPa",{col:"var(--principal)",size:12.5,anchor:"start",mono:true,weight:700});
     g += SVG.line(cx-W/2,py-ph/Math.max(K,1),cx+W/2,py-ph/Math.max(K,1),"var(--dye)",1.4,"6 4");
     g += SVG.text(cx-W/2,py-ph/Math.max(K,1)-8,"σnom = "+fmt(sn,1),{col:"var(--dye)",size:12,anchor:"start",mono:true,weight:700});
-    g += SVG.text(cx,py+22,"stress across the net section — the peak decays within about one hole diameter",{col:"#8493a0",size:11.5,weight:400});
+    g += SVG.text(cx,py+22,"stress across the reduced section — the peak decays within about one hole diameter",{col:"#8493a0",size:11.5,weight:400});
   } else {
     const sc=3.0, d0=dd*sc, D0=dd*Dd*sc, rr=r*sc, cy=150;
     g += SVG.centre(60,cy,600,cy);
@@ -248,21 +248,21 @@ function drawQ(){
 function out(){
   const K=Kt(), sn=nominal(), smax=sn*K;
   /* torsion gives a shear stress, so the strength it must be compared against is
-     the shear yield Ssy = 0.577 Sy (distortion energy, eq. 5-21) */
+     0.577 Sy, which is what distortion energy gives for yielding in shear */
   const tors = geo==="shaftT", Sstr = tors ? 0.577*Sy : Sy;
   const nIgnored = Sstr/sn, nHonest = Sstr/smax;
   cells("out",[
     {k:geo==="shaftT"?"Kts":"Kt", v:q_(fmt(K,2)), tone:"red"},
-    {k:tors?"τnom":"σnom", v:q_(fmt(sn,1)+" MPa"), tone:"blue", n:tors?"16T/πd³ on the small d":"on the net section"},
+    {k:tors?"τnom":"σnom", v:q_(fmt(sn,1)+" MPa"), tone:"blue", n:tors?"16T/πd³ on the small d":"on the reduced section"},
     {k:tors?"τmax":"σmax", v:q_(fmt(smax,1)+" MPa"), tone:"red", n:(tors?"Kts × τnom":"Kt × σnom")},
-    {k:"n ignoring Kt", v:q_(fmt(nIgnored,2)), n:tors?"against Ssy = 0.577 Sy":"nominal only"},
+    {k:"n ignoring Kt", v:q_(fmt(nIgnored,2)), n:tors?"against 0.577 Sy":"nominal only"},
     {k:"n with Kt", v:q_(fmt(nHonest,2)), tone:"red", n:"brittle, or any repeated load"},
     {k:"overestimate", v:q_(fmt(K,2)+"×"), tone:"brass", n:"how far off ignoring it puts you"}
   ]);
   cells("out2",[
     {k:"q", v:q_(fmt(notchQ(notchR()),3)), tone:"blue", n:geo==="hole"?"at r = d/2":"notch sensitivity"},
     {k:"Kf", v:q_(fmt(Kf(),2)), tone:"red", n:"1 + q(Kt − 1)"},
-    {k:"√a", v:q_(fmt(sqrtA(),3)+" √mm"), n:`Neuber, at Sut = ${fmt(Sut,0)}`},
+    {k:"√a", v:q_(fmt(sqrtA(),3)+" √mm"), n:`notch constant, at Sut = ${fmt(Sut,0)}`},
     {k:"Kf / Kt", v:q_(fmt(Kf()/K,3)), n:"how much fatigue discounts the notch"}
   ]);
   let msg=null;

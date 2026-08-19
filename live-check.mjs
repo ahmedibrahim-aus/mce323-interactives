@@ -19,7 +19,7 @@ const PAGES = [
 const SPOT = {
   '/modules/plane-stress.html':     ['σ1', 12.07],
   '/modules/shaft-design.html':     ['n fatigue', 1.52],
-  '/modules/bearing-life.html':     ['C10 catalogue basis', 14.28],
+  '/modules/bearing-life.html':     ['C10 catalog basis', 14.28],
   '/modules/agma-gear-stress.html': ['σ bending', 13.89],
   '/modules/beam-diagrams.html':    ['M max', 132.66],
 };

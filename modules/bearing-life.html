@@ -13,7 +13,7 @@
 <header class="mod-head">
   <span class="eyebrow">Shigley ch. 11 · Rolling-contact bearings</span>
   <h1>Load, Life and Reliability</h1>
-  <p>You do not design a bearing, you select one — and the whole selection turns on an exponent. Change the load a little and see what happens to the life, then find out what a catalogue's 90% really costs you when six of them sit in the same machine.</p>
+  <p>You do not design a bearing, you select one — and the whole selection turns on an exponent. Change the load a little and see what happens to the life, then find out what a catalog's 90% really costs you when six of them sit in the same machine.</p>
 </header>
 
 <div class="wrap">
@@ -23,7 +23,7 @@
     <div class="field"><label for="type">Type</label>
       <select id="type"><option value="3">Ball · a = 3</option><option value="3.3333">Roller · a = 10/3</option></select>
     </div>
-    <div class="field"><label for="basis">Catalogue</label>
+    <div class="field"><label for="basis">Catalog</label>
       <select id="basis"><option value="1000000">SKF · L10 = 10⁶ rev</option><option value="90000000">Timken · L10 = 90×10⁶</option></select>
     </div>
     <div class="divider"></div>
@@ -69,10 +69,10 @@
     <ol>
       <li><b>Double the load and a ball bearing loses seven-eighths of its life.</b> Life goes as (C/F)<sup>a</sup> with a = 3. Shave 20% off the load instead and life almost doubles — which is usually the cheapest engineering available.</li>
       <li><b>Rollers are less forgiving of load.</b> Switch the type: a = 10/3 means doubling the load costs 2<sup>10/3</sup> = 10.1× the life instead of 8×. On these axes (load against life) the slope is −1/a, so the line actually gets slightly <em>flatter</em> — a smaller change in load sweeps a wider range of life.</li>
-      <li><b>Catalogue ratings are 90% reliability, not 100%.</b> Ask for 99% and the required capacity jumps by roughly two thirds for the same duty. That is the Weibull correction, and it is not a small effect.</li>
+      <li><b>Catalog ratings are 90% reliability, not 100%.</b> Ask for 99% and the required capacity jumps by roughly two thirds for the same duty. That is the Weibull correction, and it is not a small effect.</li>
       <li><b>Reliabilities multiply.</b> Six bearings at 90% each give a machine at 0.9⁶ = 53%. Specifying every bearing individually at 90% is not the same as designing a reliable machine.</li>
     </ol>
-    <p class="foot"><kbd>←</kbd> <kbd>→</kbd> adjust reliability · catalogue values C₁₀ come from the manufacturer, so the answer here is the number you take shopping</p>
+    <p class="foot"><kbd>←</kbd> <kbd>→</kbd> adjust reliability · catalog values C₁₀ come from the manufacturer, so the answer here is the number you take shopping</p>
   </div>
 </div>
 
@@ -93,13 +93,13 @@ $("tb").innerHTML = titleblock({ sheet:"05", title:"Bearing load, life and relia
 const X0=0.02, TH=4.439, BW=1.483;   /* x0, (theta - x0), b — note TH is theta MINUS x0 */
 /* Shigley eq. 11-18. The fit is intended for R > 0.90 and returns 0.960, not
    1.000, at R = 0.90 exactly. Normalising against its own value at 0.90 keeps the
-   catalogue basis and the corrected answer consistent, and makes the multiplier
-   read 1.000 where the catalogue rating is defined. */
+   catalog basis and the corrected answer consistent, and makes the multiplier
+   read 1.000 where the catalog rating is defined. */
 const relRaw    = r => r>=0.999999 ? 0 : X0 + TH*Math.pow(1-r, 1/BW);
 const relFactor = r => relRaw(r)/relRaw(0.9);
 const Ld   = () => hrs*rpm*60;
 const xD   = () => Ld()/L10;
-const C10b = () => af*Fd*Math.pow(xD(),1/a);                       /* at catalogue 90% */
+const C10b = () => af*Fd*Math.pow(xD(),1/a);                       /* at catalog 90% */
 const C10r = () => { const f=relFactor(R); return f<=0?Infinity:af*Fd*Math.pow(xD()/f,1/a); };
 
 /* ---------- load–life ------------------------------------------------------ */
@@ -150,7 +150,7 @@ function drawRel(){
   const mult = r => Math.pow(1/relFactor(r), 1/a);   /* same basis as the readout */
   g += f.clip(SVG.path(curve(mult,0.5,0.998,f.X,f.Y,200),"var(--dye)",2.6));
   g += SVG.line(f.l,f.Y(1),f.l+f.pw,f.Y(1),"#c3ced8",1.2,"5 4");
-  g += SVG.text(f.l+6,f.Y(1)-7,"catalogue basis, R = 0.90",{col:"#8493a0",size:11.5,anchor:"start",mono:true});
+  g += SVG.text(f.l+6,f.Y(1)-7,"catalog basis, R = 0.90",{col:"#8493a0",size:11.5,anchor:"start",mono:true});
   const m=mult(R);
   g += SVG.line(f.X(R),f.t,f.X(R),f.t+f.ph,"#10151b",1.4);
   g += SVG.circle(f.X(R),f.Y(Math.min(m,f.Y?1e9:1e9)),6,"#fff","var(--principal)",3);
@@ -183,7 +183,7 @@ function out(){
   const rows=[
     {k:"Ld", v:sig(Ld(),3)+" rev", n:`${fmt(hrs,0)} h at ${fmt(rpm,0)} rev/min`},
     {k:"xD", v:sig(xD(),4), n:"Ld / L10"},
-    {k:"C10 catalogue basis", v:fmt(Cb,2)+" kN", tone:"jade", n:"the rating you look up"},
+    {k:"C10 catalog basis", v:fmt(Cb,2)+" kN", tone:"jade", n:"the rating you look up"},
     {k:`C10 needed, R = ${fmt(R,3)}`, v:isFinite(C)?fmt(C,2)+" kN":"—", tone:"red", n:"Weibull corrected, eq. 11-18"},
     {k:"penalty", v:isFinite(C)?"×"+fmt(C/Cb,2):"—", n:"cost of the extra reliability"},
     {k:"life if load ×2", v:fmt(Ld()/Math.pow(2,a)/1e6,2)+"×10⁶", tone:"brass", n:`divided by ${fmt(Math.pow(2,a),1)}`},
@@ -194,7 +194,7 @@ function out(){
   let msg=null;
   if (Rn<0.6) msg=[`<b>The machine is the weak link.</b> Each bearing is at ${fmt(R*100,1)}%, but ${nb} of them in series give ${fmt(Rn*100,1)}%. To land the machine at 90% you need every bearing at ${fmt(Math.pow(0.9,1/nb)*100,2)}% — which is a different, larger bearing.`];
   else if (R>0.98) msg=[`<b>High reliability is expensive.</b> Going from 0.90 to ${fmt(R,3)} multiplies the required capacity by ${fmt(C/Cb,2)}. Check whether the duty really demands it before paying for it.`,"neutral"];
-  else msg=[`<b>Read this number off the catalogue.</b> Look for a bearing with C₁₀ of at least ${fmt(isFinite(C)?C:Cb,2)} kN at the bore you need — then take the next size up, not the next size down.`,"neutral"];
+  else msg=[`<b>Read this number off the catalog.</b> Look for a bearing with C₁₀ of at least ${fmt(isFinite(C)?C:Cb,2)} kN at the bore you need — then take the next size up, not the next size down.`,"neutral"];
   callout("note",msg[0],msg[1]);
 }
 

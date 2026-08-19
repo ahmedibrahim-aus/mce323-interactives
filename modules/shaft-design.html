@@ -63,7 +63,7 @@
     <h2>What to notice</h2>
     <ol>
       <li><b>Stress goes as 1/d³.</b> Drag the diameter and watch the curve — a 10% larger shaft buys about 33% more factor of safety. That cubic is the single most useful number in shaft design.</li>
-      <li><b>Two checks, and the lower one wins.</b> Fatigue usually governs, but the first-cycle yield check is not optional. Scaling both loads together will never change which one governs — that is set by the M<sub>a</sub>:T<sub>m</sub> ratio and the strengths. Try <em>Torque-dominated</em> and watch the two margins close.</li>
+      <li><b>Two checks, and the lower one wins.</b> Fatigue usually governs, but the yield check is not optional. Scaling both loads together will never change which one governs — that is set by the M<sub>a</sub>:T<sub>m</sub> ratio and the strengths. Try <em>Torque-dominated</em> and watch the two margins close.</li>
       <li><b>Look at the split.</b> The bar shows how much of the required d³ comes from the alternating bending term A/S<sub>e</sub> versus the steady torsion term B/S<sub>ut</sub>, both in mm³. In most rotating shafts bending dominates — but a mixer or a low-speed drive is legitimately torsion-dominated, as the <em>Torque-dominated</em> preset shows.</li>
       <li><b>Round up, then re-check.</b> Solve for d and you get a decimal. This rounds to the next whole millimetre; a real specification would go to the next preferred size (R20: 25, 28, 30, 32, 35, 40 …) and re-confirm n.</li>
     </ol>
@@ -97,7 +97,7 @@ function nYld(dd){
   return vm<1e-9 ? Infinity : P.Sy/vm;
 }
 /* The diameter must satisfy whichever check governs. Solving the fatigue equation
-   alone undersizes the shaft whenever first-cycle yielding is the binding one —
+   alone undersizes the shaft whenever yielding on the first cycle is the binding one —
    for pure steady torsion that is always, since ny/nf -> Sy/Sut < 1. */
 const solveDfat = n => Math.cbrt((16*n/Math.PI)*(A()/P.Se + B()/P.Sut));
 const solveDyld = n => Math.cbrt((16*n/Math.PI)*Math.hypot(A(),B())/P.Sy);
@@ -193,7 +193,7 @@ function drawCurve(){
 function out(){
   const nf=nFat(d), ny=nYld(d), nt=parseFloat($("ntarget").value)||1.5;
   const req=solveD(nt);
-  const gov = nf<=ny ? "fatigue" : "first-cycle yielding";
+  const gov = nf<=ny ? "fatigue" : "yielding on the first cycle";
   const rows=[
     {k:"n fatigue", v:fmt(nf,2), tone:"blue"},
     {k:"n yield",   v:isFinite(ny)?fmt(ny,2):"∞", tone:"brass"},

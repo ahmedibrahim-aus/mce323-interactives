@@ -62,7 +62,7 @@
     <h2>What to notice</h2>
     <ol>
       <li><b>Principal planes are the planes of zero shear.</b> Sweep θ and stop where the shear curve crosses zero — σ<sub>x′</sub> is simultaneously at an extreme. That coincidence <em>is</em> the definition, not a consequence of it.</li>
-      <li><b>σ<sub>x′</sub> + σ<sub>y′</sub> never changes.</b> Watch the invariant while everything else moves. It is the reason the centre of Mohr's circle sits still.</li>
+      <li><b>σ<sub>x′</sub> + σ<sub>y′</sub> never changes.</b> Watch the invariant while everything else moves. It is the reason the center of Mohr's circle sits still.</li>
       <li><b>Maximum shear is always 45° from the principal planes</b> — for every state you can type in. And there, σ<sub>x′</sub> = σ<sub>y′</sub> = σ<sub>avg</sub>.</li>
       <li><b>Mohr's circle turns twice as fast.</b> Rotate the element θ and the point travels 2θ. Try <em>Pure torsion</em>: principal planes land at 45°, which is why a twisted piece of chalk breaks on a 45° helix.</li>
     </ol>
@@ -213,7 +213,7 @@ function buildMohr(){
   g += SVG.text(600,cy+4,"σ",{col:"#46545f",size:14,anchor:"start",mono:true});
   g += SVG.centre(MX(P.avg),36,MX(P.avg),372);
   g += SVG.text(MX(P.avg)-10,388,"σavg",{col:"#8493a0",size:11.5,anchor:"end",mono:true});
-  /* the real tau axis is at sigma = 0, which is NOT the circle centre */
+  /* the real tau axis is at sigma = 0, which is NOT the circle center */
   if (MX(0) > 52 && MX(0) < 592){
     g += SVG.line(MX(0),46,MX(0),362,"#8493a0",1.2,"3 4");
     g += SVG.text(MX(0)+6,58,"σ = 0",{col:"#8493a0",size:11,anchor:"start",mono:true});
@@ -223,7 +223,7 @@ function buildMohr(){
   g += SVG.circle(MX(P.avg),cy,3,"#8493a0");
   if (!hiding()){
     if (P.R < 0.5){
-      /* Equal biaxial: the circle degenerates to a point. Three labels would sit
+      /* Equal σx and σy: the circle degenerates to a point. Three labels would sit
          on top of each other — say the one thing that is actually true instead. */
       g += SVG.circle(MX(P.avg),cy,5,"var(--principal)");
       g += SVG.text(MX(P.avg),cy-16,"σ1 = σ2 = "+fmt(P.s1,1),{col:"var(--principal)",size:12.5,mono:true,weight:700});
@@ -279,7 +279,7 @@ function drawOut(){
     {k:"θp",        v:q(angPlain(P.thp)),       tone:"red",  n:"planes of zero shear"},
     {k:"τmax in-plane", v:q(fmt(P.R)), tone:"brass", n:"σ3 = 0, so check (σ1−σ3)/2 too"},
     {k:"θs",        v:q(angPlain(P.ths)),       tone:"brass",n:"45° from θp"},
-    {k:"σavg",      v:q(fmt(P.avg)),                         n:"centre of Mohr's circle"}
+    {k:"σavg",      v:q(fmt(P.avg)),                         n:"center of Mohr's circle"}
   ]);
   if (hiding())
     callout("note","<b>Predict mode.</b> Ask where the principal planes are and take a vote on the angle before you press Reveal.","neutral");
@@ -308,7 +308,7 @@ const PRESETS=[
   ["Worked example 3-4",80,0,50,false],
   ["Pure torsion — the chalk demo",0,0,60,true],
   ["Uniaxial tension",100,0,0,true],
-  ["Equal biaxial",60,60,0,true],
+  ["Equal σx and σy",60,60,0,true],
   ["Shaft: bending + torsion",112,0,37,false]
 ];
 $("presets").innerHTML=PRESETS.map((p,i)=>`<button class="chip" data-i="${i}">${p[0]}</button>`).join("");

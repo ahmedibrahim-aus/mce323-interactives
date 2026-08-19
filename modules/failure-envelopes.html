@@ -57,7 +57,7 @@
     <ol>
       <li><b>The hexagon is inscribed inside the ellipse.</b> So MSS never predicts a higher factor of safety than DE — it fails first, everywhere. That single geometric fact is the whole "MSS is conservative" argument.</li>
       <li><b>They agree on the axes and disagree most in the fourth quadrant.</b> Drag the point to σA positive and σB negative and watch the two numbers separate. That is exactly the state a shaft in bending plus torsion lives in.</li>
-      <li><b>Equal biaxial is not hydrostatic.</b> Put the point on the 45° line and push it out: the ellipse <em>closes</em> on that line at σA = σB = Sy, because the third principal stress is zero and the state still distorts. Hydrostatic immunity is a property of the von Mises cylinder in σ1σ2σ3 space and cannot be drawn on this section.</li>
+      <li><b>Equal σA and σB is not hydrostatic.</b> Put the point on the 45° line and push it out: the ellipse <em>closes</em> on that line at σA = σB = Sy, because the third principal stress is zero and the state still distorts. Hydrostatic loading needs all three principal stresses equal, and this plot only shows two of them with the third held at zero.</li>
       <li><b>Switch to brittle</b> and the envelope goes lopsided, because Suc is several times Sut. Cast iron is much stronger in compression, and Coulomb–Mohr is the theory that admits it.</li>
     </ol>
     <p class="foot"><kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> nudge the point · <kbd>Space</kbd> orbits it around the envelope</p>
@@ -182,7 +182,7 @@ function out(){
   if (hiding()) msg=["<b>Predict mode.</b> Ask which criterion gives the lower factor of safety here, and by how much, before revealing.","neutral"];
   else if (M.mode==="d"){
     const de=nDE(), mss=nMSS();
-    if (Math.abs(sA-sB)<1e-6 && Math.abs(sA)>1e-9) msg=["<b>Equal biaxial, not hydrostatic.</b> With σ3 = 0 this state still distorts: σ′ = |σA|, so DE and MSS both predict yielding at σA = σB = Sy. True hydrostatic needs σ1 = σ2 = σ3, which on this plane is only the origin.","neutral"];
+    if (Math.abs(sA-sB)<1e-6 && Math.abs(sA)>1e-9) msg=["<b>Equal in both directions, not hydrostatic.</b> With σ3 = 0 this state still distorts: σ′ = |σA|, so DE and MSS both predict yielding at σA = σB = Sy. True hydrostatic needs σ1 = σ2 = σ3, which on this plot is only the origin.","neutral"];
     else if (sA>0 && sB<0) msg=["<b>Fourth quadrant.</b> Opposite signs is where the two theories disagree most, and it is where shafts live. Design with MSS here if you want the margin."];
     else if (sA<0 && sB>0) msg=["<b>Second quadrant.</b> Opposite signs again — the mirror of the fourth. MSS is just as conservative here, and by the same 15.5% at pure shear."];
     else if (sA*sB===0 && Math.abs(de-mss)<0.005) msg=["<b>On the axis.</b> With one principal stress zero the hexagon touches the ellipse, so both theories give the same answer.","neutral"];

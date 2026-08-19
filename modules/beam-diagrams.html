@@ -13,7 +13,7 @@
 <header class="mod-head">
   <span class="eyebrow">Shigley ch. 3 · Load and stress analysis</span>
   <h1>Shear and Moment Diagrams</h1>
-  <p>Move the loads and watch V and M rebuild underneath. The moment diagram here is not solved symbolically — it is the running integral of the shear diagram, computed step by step, which is exactly the relationship you are trying to teach.</p>
+  <p>Move the loads and watch V and M rebuild underneath. The moment diagram here is not solved symbolically — it is the area under the shear diagram, computed step by step, which is exactly the relationship you are trying to teach.</p>
 </header>
 
 <div class="wrap">
@@ -42,7 +42,7 @@
 
   <div class="grid g2">
     <div class="panel">
-      <h2>Beam, shear and moment <span class="hint">M is the running area under V</span></h2>
+      <h2>Beam, shear and moment <span class="hint">M is the area under V</span></h2>
       <svg id="dia" viewBox="0 0 660 620" role="img" aria-label="Loading, shear and bending moment diagrams"></svg>
     </div>
     <div>
@@ -115,8 +115,8 @@ function solve(){
       const vStart = v;
       const ov = Math.max(0, Math.min(x,wb)-Math.max((i-1)*dx,wa));
       v -= w*ov;                                     /* the only ramp within a step */
-      m += 0.5*(vStart+v)*dx;   /* trapezoid — exact for piecewise-linear V, so M is
-                                   the running integral of V with no drift to correct */
+      m += 0.5*(vStart+v)*dx;   /* the area under V over this step, taken exactly:
+                                   V is straight within a step, so no drift builds up */
     }
     xs.push(x); V.push(v); M.push(m);
   }
@@ -230,11 +230,11 @@ function out(S){
   const sec=$("sec").value, d1=parseFloat($("d1").value)||1, d2=parseFloat($("d2").value)||1;
   const I = sec==="round" ? Math.PI*Math.pow(d1,4)/64 : d1*Math.pow(d2,3)/12;
   const c = sec==="round" ? d1/2 : d2/2;
-  const Z = I/c, sig = Math.abs(S.Mmax)/Z;
+  const sig = Math.abs(S.Mmax)*c/I;    /* sigma = M c / I */
   cells("out2",[
     {k:"I", v:q(I.toExponential(2))+" mm⁴"},
-    {k:"Z = I/c", v:q(fmt(Z,0)+" mm³"), n:"section modulus"},
-    {k:"σ = M/Z", v:q(fmt(sig,1)+" MPa"), tone:"red"},
+    {k:"c", v:q(fmt(c,1)+" mm"), n:"to the outer fibre"},
+    {k:"σ = M c / I", v:q(fmt(sig,1)+" MPa"), tone:"red"},
     {k:"needs Sy >", v:q(fmt(sig*2,0)+" MPa"), n:"at a design factor of 2"}
   ]);
   let msg=null;
@@ -268,7 +268,7 @@ $("predict").addEventListener("click",()=>{
 keyboard("a1",()=>{ a1f=parseFloat($("a1").value); redraw(); });
 
 const PRESETS=[
-  ["Single load, off-centre","ss",600,1000,0.33,0,0.7,0,0,1],
+  ["Single load, off-center","ss",600,1000,0.33,0,0.7,0,0,1],
   ["Two point loads","ss",600,800,0.25,1200,0.65,0,0,1],
   ["Uniform load only","ss",600,0,0.33,0,0.7,3,0,1],
   ["Cantilever tip load","cant",400,600,1,0,0.7,0,0,1],

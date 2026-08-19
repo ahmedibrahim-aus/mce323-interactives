@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Marin Factors and the S–N Line · MCE 323</title>
+<title>Marin Factors and the S-N Line · MCE 323</title>
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/site.css">
 </head>
@@ -12,8 +12,8 @@
 
 <header class="mod-head">
   <span class="eyebrow">Shigley ch. 6 · Endurance limit and finite life</span>
-  <h1>Marin Factors and the S–N Line</h1>
-  <p>A polished 7.6 mm specimen in a rotating-beam machine is not your part. Build S<sub>e</sub> one correction at a time and watch the S–N line drop and pivot underneath — then read a life straight off it.</p>
+  <h1>Marin Factors and the S-N Line</h1>
+  <p>A polished 7.6 mm specimen in a rotating-beam machine is not your part. Build S<sub>e</sub> one correction at a time and watch the S-N line drop and pivot underneath — then read a life straight off it.</p>
 </header>
 
 <div class="wrap">
@@ -55,7 +55,7 @@
       <svg id="fall" viewBox="0 0 660 420" role="img" aria-label="Waterfall of Marin factors"></svg>
     </div>
     <div class="panel">
-      <h2>The S–N line <span class="hint">log–log, three straight segments</span></h2>
+      <h2>The S-N line <span class="hint">log–log, three straight segments</span></h2>
       <svg id="sn" viewBox="0 0 660 420" role="img" aria-label="S-N diagram"></svg>
     </div>
     <div class="panel">
@@ -157,7 +157,7 @@ function drawFall(){
   $("fall").innerHTML=g;
 }
 
-/* ---------- S–N ------------------------------------------------------------- */
+/* ---------- S-N ------------------------------------------------------------- */
 const SUP="⁰¹²³⁴⁵⁶⁷⁸⁹";
 const sup = n => String(n).split("").map(c=>SUP[+c]||c).join("");
 function drawSN(){
@@ -210,7 +210,7 @@ function out(){
   ]);
   let msg=null;
   if(hiding()) msg=["<b>Predict mode.</b> Ask which correction takes the biggest bite before you reveal the waterfall.","neutral"];
-  else if(inf) msg=[`<b>Infinite life.</b> σa = ${fmt(sa,0)} MPa sits below Se = ${fmt(Se(),1)} MPa, with a margin of ${fmt(Se()/sa,2)}. Nothing on the S–N line applies — the part simply does not fail by fatigue.`,"neutral"];
+  else if(inf) msg=[`<b>Infinite life.</b> σa = ${fmt(sa,0)} MPa sits below Se = ${fmt(Se(),1)} MPa, with a margin of ${fmt(Se()/sa,2)}. Nothing on the S-N line applies — the part simply does not fail by fatigue.`,"neutral"];
   else if(sa>fFrac()*Sut) msg=[`<b>Above the 10³ anchor.</b> σa = ${fmt(sa,0)} MPa exceeds f·Sut = ${fmt(fFrac()*Sut,0)} MPa. This is low-cycle territory and the stress-life method does not apply here — you would need the strain-life approach.`];
   else msg=[`<b>Finite life: about ${sig(N,3)} cycles.</b> Se has been cut from ${fmt(Sep(),0)} to ${fmt(Se(),1)} MPa by the corrections — a loss of ${fmt((1-Se()/Sep())*100,0)}%.`];
   callout("note",msg[0],msg[1]);
