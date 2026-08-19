@@ -121,9 +121,9 @@ function drawElement(){
 
   if (theta > 0.4){
     const r=112;
-    g += SVG.path(`M ${cx+r} ${cy} A ${r} ${r} 0 ${theta>180?1:0} 0 ${X(r,0)} ${Y(r,0)}`,"var(--aus)",1.8);
+    g += SVG.path(`M ${cx+r} ${cy} A ${r} ${r} 0 ${theta>180?1:0} 0 ${X(r,0)} ${Y(r,0)}`,"var(--principal)",1.8);
     const m=(theta/2)*D;
-    g += SVG.text(cx+(r+17)*Math.cos(m), cy-(r+17)*Math.sin(m)+4, "θ", {col:"var(--aus)",size:15,mono:true,weight:700});
+    g += SVG.text(cx+(r+17)*Math.cos(m), cy-(r+17)*Math.sin(m)+4, "θ", {col:"var(--principal)",size:15,mono:true,weight:700});
   }
 
   const L = v => Math.abs(v)*scale;
@@ -153,7 +153,7 @@ function drawElement(){
     if(hasY) g += SVG.text(X(22,(a+ny+10)*gy),Y(22,(a+ny+10)*gy),fmt(st.syp,1),{col:"var(--dye-2)",size:14,mono:true,weight:700});
     if(tl>3) g += SVG.text(X(a+30,42),Y(a+30,42),fmt(st.txp,1),{col:"var(--jade)",size:13.5,mono:true,weight:700});
     if (Math.abs(st.txp)<0.3)
-      g += SVG.text(14,24,"τ = 0 — a principal plane",{col:"var(--aus)",size:15,weight:700,anchor:"start"});
+      g += SVG.text(14,24,"τ = 0 — a principal plane",{col:"var(--principal)",size:15,weight:700,anchor:"start"});
   }
 
   const ly=396;
@@ -180,12 +180,12 @@ function buildPlot(){
       + SVG.path(curve(th=>at(th).txp,0,180,f.X,f.Y,360),"var(--jade)",2.6));
   if (!hiding()){
     [n180(P.thp),n180(P.thp+90)].forEach(A=>{
-      g += SVG.line(f.X(A),f.t,f.X(A),f.t+f.ph,"var(--aus)",1.4,"4 4");
-      g += SVG.circle(f.X(A),f.Y(0),4.5,"var(--aus)");
+      g += SVG.line(f.X(A),f.t,f.X(A),f.t+f.ph,"var(--principal)",1.4,"4 4");
+      g += SVG.circle(f.X(A),f.Y(0),4.5,"var(--principal)");
     });
     [n180(P.ths),n180(P.ths+90)].forEach(A=>
       g += SVG.circle(f.X(A),f.Y(at(A).txp),4.5,"var(--brass)"));
-    g += SVG.text(f.X(n180(P.thp)),f.t+13,"θp",{col:"var(--aus)",size:12.5,mono:true,weight:700});
+    g += SVG.text(f.X(n180(P.thp)),f.t+13,"θp",{col:"var(--principal)",size:12.5,mono:true,weight:700});
     g += SVG.text(f.X(n180(P.ths)),f.t+13,"θs",{col:"var(--brass)",size:12.5,mono:true,weight:700});
   }
   plotBase=g; PF=f;
@@ -215,14 +215,14 @@ function buildMohr(){
     if (P.R < 0.5){
       /* Equal biaxial: the circle degenerates to a point. Three labels would sit
          on top of each other — say the one thing that is actually true instead. */
-      g += SVG.circle(MX(P.avg),cy,5,"var(--aus)");
-      g += SVG.text(MX(P.avg),cy-16,"σ1 = σ2 = "+fmt(P.s1,1),{col:"var(--aus)",size:12.5,mono:true,weight:700});
+      g += SVG.circle(MX(P.avg),cy,5,"var(--principal)");
+      g += SVG.text(MX(P.avg),cy-16,"σ1 = σ2 = "+fmt(P.s1,1),{col:"var(--principal)",size:12.5,mono:true,weight:700});
       g += SVG.text(MX(P.avg),cy+26,"the circle is a point — no shear on any plane",
                     {col:"var(--brass)",size:12,mono:true,weight:700});
     } else {
       [[P.s1,"σ1"],[P.s2,"σ2"]].forEach(([v,l])=>{
-        g += SVG.circle(MX(v),cy,5,"var(--aus)");
-        g += SVG.text(MX(v),cy-14,l+" = "+fmt(v,1),{col:"var(--aus)",size:12.5,mono:true,weight:700});
+        g += SVG.circle(MX(v),cy,5,"var(--principal)");
+        g += SVG.text(MX(v),cy-14,l+" = "+fmt(v,1),{col:"var(--principal)",size:12.5,mono:true,weight:700});
       });
       g += SVG.circle(MX(P.avg),MY(P.R),4.5,"var(--brass)");
       g += SVG.text(MX(P.avg)+9,MY(P.R)+19,"τmax = "+fmt(P.R,1),{col:"var(--brass)",size:12,anchor:"start",mono:true,weight:700});
@@ -235,9 +235,9 @@ function drawMohr(){
   const x=MX(st.sxp), y=MY(st.txp), xc=MX(st.syp), yc=MY(-st.txp);
   if (theta>0.4){
     const R=P.R*k, ar=Math.max(26,R*0.3), a1=2*theta*D;
-    g += SVG.path(`M ${MX(P.avg)+ar} ${cy} A ${ar} ${ar} 0 ${2*theta>180?1:0} 1 ${MX(P.avg)+ar*Math.cos(a1)} ${cy+ar*Math.sin(a1)}`,"var(--aus)",1.8);
+    g += SVG.path(`M ${MX(P.avg)+ar} ${cy} A ${ar} ${ar} 0 ${2*theta>180?1:0} 1 ${MX(P.avg)+ar*Math.cos(a1)} ${cy+ar*Math.sin(a1)}`,"var(--principal)",1.8);
     const m=a1/2;
-    g += SVG.text(MX(P.avg)+(ar+17)*Math.cos(m),cy+(ar+17)*Math.sin(m)+4,"2θ",{col:"var(--aus)",size:14,mono:true,weight:700});
+    g += SVG.text(MX(P.avg)+(ar+17)*Math.cos(m),cy+(ar+17)*Math.sin(m)+4,"2θ",{col:"var(--principal)",size:14,mono:true,weight:700});
   }
   g += SVG.line(MX(P.avg),cy,x,y,"#10151b",1.8);
   g += SVG.line(MX(P.avg),cy,xc,yc,"#c3ced8",1.4,"4 4");

@@ -140,11 +140,11 @@ function drawFall(){
     const prev = i===0 ? 0 : steps[i-1].v;
     const y0=i===0?f2.Y(0):f2.Y(prev), y1=f2.Y(s.v);
     const drop = i>0 && s.v<prev-0.05;
-    const col = i===0 ? "var(--dye)" : (drop ? "var(--aus)" : "#c3ced8");
+    const col = i===0 ? "var(--dye)" : (drop ? "var(--principal)" : "#c3ced8");
     g += SVG.rect(x-w/2, Math.min(y0,y1), w, Math.max(2,Math.abs(y1-y0)), col);
     if(i>0) g += SVG.line(f2.X(i-0.5)+w/2, f2.Y(prev), x-w/2, f2.Y(prev), "#c3ced8",1,"3 3");
     g += SVG.text(x, f2.t+f2.ph+20, s.k, {col:"#46545f",size:13,mono:true,weight:700});
-    if(s.f!==null) g += SVG.text(x, f2.t+f2.ph+38, "×"+fmt(s.f,3), {col:drop?"var(--aus)":"#8493a0",size:11.5,mono:true});
+    if(s.f!==null) g += SVG.text(x, f2.t+f2.ph+38, "×"+fmt(s.f,3), {col:drop?"var(--principal)":"#8493a0",size:11.5,mono:true});
     g += SVG.text(x, Math.min(y0,y1)-8, fmt(s.v,0), {col:"#10151b",size:12,mono:true,weight:700});
   });
   g += SVG.line(f2.l,f2.Y(Se()),f2.l+f2.pw,f2.Y(Se()),"var(--jade)",1.4,"6 4");
@@ -175,13 +175,13 @@ function drawSN(){
 
   if(!hiding()){
     const N=lifeAt(sa);
-    g += SVG.line(f.l,f.Y(Math.log10(sa)),f.l+f.pw,f.Y(Math.log10(sa)),"var(--aus)",1.5,"5 4");
-    g += SVG.text(f.l+6,f.Y(Math.log10(sa))-8,"σa = "+fmt(sa,0),{col:"var(--aus)",size:12,anchor:"start",mono:true,weight:700});
+    g += SVG.line(f.l,f.Y(Math.log10(sa)),f.l+f.pw,f.Y(Math.log10(sa)),"var(--principal)",1.5,"5 4");
+    g += SVG.text(f.l+6,f.Y(Math.log10(sa))-8,"σa = "+fmt(sa,0),{col:"var(--principal)",size:12,anchor:"start",mono:true,weight:700});
     if(sa>S6 && sa<S3 && isFinite(N)){
       const lN=Math.log10(N);
-      g += SVG.line(f.X(lN),f.Y(Math.log10(sa)),f.X(lN),f.t+f.ph,"var(--aus)",1.5,"5 4");
-      g += SVG.circle(f.X(lN),f.Y(Math.log10(sa)),7,"#fff","var(--aus)",3);
-      g += SVG.text(f.X(lN)+8,f.t+f.ph-10,"N = "+sig(N,3),{col:"var(--aus)",size:12.5,mono:true,weight:700,anchor:"start"});
+      g += SVG.line(f.X(lN),f.Y(Math.log10(sa)),f.X(lN),f.t+f.ph,"var(--principal)",1.5,"5 4");
+      g += SVG.circle(f.X(lN),f.Y(Math.log10(sa)),7,"#fff","var(--principal)",3);
+      g += SVG.text(f.X(lN)+8,f.t+f.ph-10,"N = "+sig(N,3),{col:"var(--principal)",size:12.5,mono:true,weight:700,anchor:"start"});
     } else if(sa<=S6){
       g += SVG.text(f.X(7.4),f.Y(Math.log10(sa))+20,"infinite life",{col:"var(--jade)",size:13,mono:true,weight:700});
     }

@@ -85,7 +85,7 @@ function nGerber(){
   return r*(-1+Math.sqrt(1+(2*sm*Se/(Sut*sa))**2));
 }
 const CRIT=[
-  {k:"Goodman",   f:nGoodman,   col:"var(--aus)",   env:m=>Se*(1-m/Sut),           note:"linear, conservative"},
+  {k:"Goodman",   f:nGoodman,   col:"var(--principal)",   env:m=>Se*(1-m/Sut),           note:"linear, conservative"},
   {k:"Gerber",    f:nGerber,    col:"var(--jade)",  env:m=>Se*(1-(m/Sut)**2),      note:"parabolic, best data fit"},
   {k:"Soderberg", f:nSoderberg, col:"var(--dye-2)", env:m=>Se*(1-m/Sy),            note:"most conservative"},
   {k:"ASME-ell.", f:nASME,      col:"var(--brass)", env:m=>Se*Math.sqrt(Math.max(0,1-(m/Sy)**2)), note:"ASME shafting"}
@@ -112,7 +112,7 @@ function draw(){
   const lx = clamp(Sy*0.55, xm*0.06, xm*0.72);
   g += SVG.text(f.X(lx),f.Y(Math.max(0,Sy-lx)+ym*0.05),"Langer — first-cycle yield",
         {col:"#10151b",size:11.5,mono:true,weight:700,rot:-30});
-  g += SVG.text(f.X(Sut*0.60),f.Y(Se*0.52),"Goodman",{col:"var(--aus)",size:12,mono:true,weight:700});
+  g += SVG.text(f.X(Sut*0.60),f.Y(Se*0.52),"Goodman",{col:"var(--principal)",size:12,mono:true,weight:700});
   g += SVG.text(f.X(Sut*0.72),f.Y(Se*0.60),"Gerber",{col:"var(--jade)",size:12,mono:true,weight:700});
   g += SVG.text(f.X(Sy*0.42),f.Y(Se*0.42),"Soderberg",{col:"var(--dye-2)",size:12,mono:true,weight:700});
   g += SVG.text(f.X(Sy*0.66),f.Y(Se*0.80),"ASME",{col:"var(--brass)",size:12,mono:true,weight:700});
@@ -154,8 +154,8 @@ function drawWave(){
     xmin:0,xmax:3,ymin:Math.min(0,sm-sa)-Math.max(20,sa*0.3),ymax:sm+sa+Math.max(20,sa*0.3),
     xlabel:"time (cycles)", ylabel:"σ", xstep:1, xfmt:v=>fmt(v,0), yfmt:v=>fmt(v,0)});
   let g=f.g;
-  g += SVG.line(f.l,f.Y(sm),f.l+f.pw,f.Y(sm),"var(--aus)",1.4,"6 4");
-  g += SVG.text(f.l+f.pw-4,f.Y(sm)+16,"σm = "+fmt(sm,0),{col:"var(--aus)",size:11.5,anchor:"end",mono:true,weight:700});
+  g += SVG.line(f.l,f.Y(sm),f.l+f.pw,f.Y(sm),"var(--principal)",1.4,"6 4");
+  g += SVG.text(f.l+f.pw-4,f.Y(sm)+16,"σm = "+fmt(sm,0),{col:"var(--principal)",size:11.5,anchor:"end",mono:true,weight:700});
   g += SVG.path(curve(t=>sm+sa*Math.sin(2*Math.PI*t),0,3,f.X,f.Y,300),"var(--dye)",2.4);
   if(!hiding()){
     g += SVG.line(f.X(0.25),f.Y(sm),f.X(0.25),f.Y(sm+sa),"var(--jade)",2);
@@ -172,7 +172,7 @@ function out(){
   const rows=CRIT.map(c=>{
     const n=c.f();
     return {k:"n — "+c.k, v:q(isFinite(n)?fmt(n,2):"∞"),
-            tone:c.col==="var(--aus)"?"red":c.col==="var(--jade)"?"jade":c.col==="var(--brass)"?"brass":"blue",
+            tone:c.col==="var(--principal)"?"red":c.col==="var(--jade)"?"jade":c.col==="var(--brass)"?"brass":"blue",
             n:c.note};
   });
   const ny=nLanger();

@@ -124,9 +124,9 @@ function drawShaft(){
   const dx=x2+34;
   g += SVG.line(x2,cy-dd/2,dx+10,cy-dd/2,"#8493a0",1);
   g += SVG.line(x2,cy+dd/2,dx+10,cy+dd/2,"#8493a0",1);
-  g += SVG.arrow(dx,cy-dd/2-20,dx,cy-dd/2,"var(--aus)",1.4,7);
-  g += SVG.arrow(dx,cy+dd/2+20,dx,cy+dd/2,"var(--aus)",1.4,7);
-  g += SVG.text(dx+16,cy+4,"⌀"+fmt(d,1),{col:"var(--aus)",size:14,anchor:"start",mono:true,weight:700});
+  g += SVG.arrow(dx,cy-dd/2-20,dx,cy-dd/2,"var(--principal)",1.4,7);
+  g += SVG.arrow(dx,cy+dd/2+20,dx,cy+dd/2,"var(--principal)",1.4,7);
+  g += SVG.text(dx+16,cy+4,"⌀"+fmt(d,1),{col:"var(--principal)",size:14,anchor:"start",mono:true,weight:700});
 
   g += SVG.text(x0+40,cy+5,"D = 1.5d",{col:"#8493a0",size:11.5,mono:true,anchor:"start"});
   g += SVG.text(x1+30,cy-dd/2-16,"r = 0.1d",{col:"#8493a0",size:11.5,mono:true,anchor:"start"});
@@ -169,8 +169,8 @@ function drawCurve(){
     xlabel:"diameter d (mm)", ylabel:"factor of safety",
     xfmt:v=>fmt(v,0), yfmt:v=>fmt(v,1), zeroY:false});
   let g=f.g;
-  g += SVG.line(f.l,f.Y(1),f.l+f.pw,f.Y(1),"var(--aus)",1.6,"6 4");
-  g += SVG.text(f.l+6,f.Y(1)-7,"n = 1 — failure",{col:"var(--aus)",size:11.5,anchor:"start",mono:true,weight:700});
+  g += SVG.line(f.l,f.Y(1),f.l+f.pw,f.Y(1),"var(--principal)",1.6,"6 4");
+  g += SVG.text(f.l+6,f.Y(1)-7,"n = 1 — failure",{col:"var(--principal)",size:11.5,anchor:"start",mono:true,weight:700});
   const nt=parseFloat($("ntarget").value)||1.5;
   g += SVG.line(f.l,f.Y(nt),f.l+f.pw,f.Y(nt),"#8493a0",1.2,"4 4");
   g += SVG.text(f.l+f.pw-4,f.Y(nt)-7,"target n = "+fmt(nt,2),{col:"#8493a0",size:11.5,anchor:"end",mono:true});

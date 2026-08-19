@@ -144,7 +144,7 @@ function mountTopbar(o){
        <span class="name">${name}</span>
        <span class="spacer"></span>
        ${back ? `<a class="back" href="../index.html">&larr; All modules</a>` : ""}
-       <span class="inst">AUS</span>
+       <span class="inst">A. H. Ibrahim</span>
      </div>`);
 }
 function titleblock(o){
@@ -160,7 +160,7 @@ function titleblock(o){
       <div class="c"><span class="lab">Rev</span>${rev}</div>
     </div>
     <div class="row r2">
-      <div class="c"><span class="lab">Institution</span>American University of Sharjah</div>
+      <div class="c"><span class="lab">Drawn by</span>Dr. Ahmed Hanafy Ibrahim</div>
       <div class="c"><span class="lab">Date</span>${date}</div>
     </div>
   </div>`;

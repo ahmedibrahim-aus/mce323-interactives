@@ -1,7 +1,7 @@
 # MCE 323 — Interactive Modules
 
-Seven browser-based instruments for **MCE 323 Mechanical Design** (Shigley, SI) at the
-American University of Sharjah. Built to be driven from the front of a lecture theatre on a
+Ten browser-based instruments for **MCE 323 Mechanical Design** (Shigley, SI), by
+Dr. Ahmed Hanafy Ibrahim. Built to be driven from the front of a lecture theatre on a
 projector, and to be opened afterwards by students on their own machines.
 
 **No build step. No dependencies. No internet needed once the page has loaded.**
@@ -43,16 +43,20 @@ assets/
   instrument.js                  shared SVG, plotting and formatting helpers
 modules/
   plane-stress.html              ch. 3   element, θ-sweep and Mohr's circle in sync
+  beam-diagrams.html             ch. 3   V and M as the running integral, not a formula
   failure-envelopes.html         ch. 5   MSS, distortion energy, Coulomb–Mohr, Modified Mohr
+  stress-concentration.html      ch. 5,6 reading Kt off the chart, then Kt to Kf
   fatigue-criteria.html          ch. 6   Goodman, Gerber, Soderberg, ASME-elliptic, Langer
+  marin-sn.html                  ch. 6   each Marin factor takes its bite, then read a life
   shaft-design.html              ch. 7   DE-Goodman sizing, plus the first-cycle yield check
   bearing-life.html              ch. 11  load–life, Weibull reliability, reliability stacking
   gear-geometry.html             ch. 13  involute construction, meshing, interference limit
   agma-gear-stress.html          ch. 14  every factor starts at 1, then switch them on
+favicon.svg                      Mohr's circle, the motif the set is built on
 .nojekyll                        stops GitHub trying to run Jekyll over the folder
 ```
 
-Total size is about 150 KB. It will load instantly even on lecture-theatre wifi.
+Total size is about 190 KB. It will load instantly even on lecture-theatre wifi.
 
 ---
 
@@ -64,8 +68,11 @@ lecture you already give:
 | Module | Opens on |
 |---|---|
 | Plane stress | The slide-30 state, σx = 10, τ = 5 ccw |
+| Beam diagrams | A 1000 N load off-centre on a 600 mm span |
 | Failure envelopes | The five stress states from the chapter 5 example |
+| Stress concentration | A plate with a central hole, d/w = 0.2 |
 | Fatigue criteria | The chapter 7 shaft, Se = 186.9 MPa |
+| Marin factors | A polished specimen at Sut = 620 MPa, Se = 310 |
 | Shaft sizing | Example 7-1 — and it reproduces n = 1.52 at ⌀27.94 mm |
 | Bearing life | Example 11-3 — and it reproduces C₁₀ = 14.28 kN |
 | Gear geometry | A standard 18 × 36 set at module 5 |
@@ -90,8 +97,8 @@ add a card to the `MODULES` array in `index.html`, and give it the next sheet nu
 title block.
 
 The design rule, if you want to keep things consistent: **monospace carries anything that is a
-measurement or an identifier; the sans carries prose.** Colours mean fixed things — red for the
-principal or governing result, layout-dye blue for the primary quantity, green for shear,
+measurement or an identifier; the sans carries prose.** Colours mean fixed things — `--principal` red for the
+governing result, layout-dye blue for the primary quantity, green for shear,
 brass for maximum shear and for warnings that are not yet failures.
 
 ---

@@ -138,7 +138,7 @@ function drawTooth(){
   };
   if(showCirc){
     g += band(g1.ra,"#8493a0",1.2,"5 3","addendum");
-    g += band(g1.r ,"var(--aus)",1.8,null,"pitch");
+    g += band(g1.r ,"var(--principal)",1.8,null,"pitch");
     g += band(g1.rb,"var(--dye)",1.6,"7 4","base");
     g += band(g1.rf,"#8493a0",1.2,"5 3","dedendum");
   }
@@ -173,12 +173,12 @@ function drawTooth(){
 
   /* tooth thickness on the pitch circle */
   const xl=PX(g1.r,-half+inv(phi*D)), xr2=PX(g1.r,half-inv(phi*D));
-  g += SVG.line(xl,yP,xr2,yP,"var(--aus)",2.4);
-  g += SVG.text(cx,yP-12,"t = p/2 = "+fmt(Math.PI*m/2,2),{col:"var(--aus)",size:12.5,mono:true,weight:700});
+  g += SVG.line(xl,yP,xr2,yP,"var(--principal)",2.4);
+  g += SVG.text(cx,yP-12,"t = p/2 = "+fmt(Math.PI*m/2,2),{col:"var(--principal)",size:12.5,mono:true,weight:700});
 
   if (N1 < Nmin())
     g += SVG.text(310,34,"undercut — the base circle has risen above the dedendum circle",
-        {col:"var(--aus)",size:14,weight:700});
+        {col:"var(--principal)",size:14,weight:700});
   else
     g += SVG.text(310,34,`${N1} teeth · module ${fmt(m,2)} mm · φ ${phi}°`,
         {col:"#8493a0",size:13,mono:true,weight:500});
@@ -196,7 +196,7 @@ function drawMesh(){
 
   if(showCirc){
     [[x1,g1],[x2,g2]].forEach(([cx,gg])=>{
-      g += SVG.circle(cx,cy,gg.r*k,"none","var(--aus)",1.4);
+      g += SVG.circle(cx,cy,gg.r*k,"none","var(--principal)",1.4);
       g += SVG.circle(cx,cy,gg.rb*k,"none","var(--dye)",1.2,"6 4");
     });
   }
@@ -207,8 +207,8 @@ function drawMesh(){
 
   g += SVG.circle(x1,cy,3,"#10151b"); g += SVG.circle(x2,cy,3,"#10151b");
   const pitchX=x1+g1.r*k;
-  g += SVG.circle(pitchX,cy,4.5,"var(--aus)");
-  g += SVG.text(pitchX,cy+22,"P",{col:"var(--aus)",size:13,mono:true,weight:700});
+  g += SVG.circle(pitchX,cy,4.5,"var(--principal)");
+  g += SVG.text(pitchX,cy+22,"P",{col:"var(--principal)",size:13,mono:true,weight:700});
 
   if(showLine){
     const p=phi*D, L=Math.max(g1.rb,g2.rb)*k*1.9;

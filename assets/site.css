@@ -18,13 +18,13 @@
   --rule-2:   #e6eaee;
 
   /* signal colours — each one means a fixed thing across every module */
-  --aus:    #a8322e;   /* institutional red — principal / governing result */
+  --principal:    #a8322e;   /* institutional red — principal / governing result */
   --dye:    #27488c;   /* machinist layout blue — primary quantity        */
   --dye-2:  #4b8fd1;   /* lighter blue — secondary quantity               */
   --jade:   #157f4a;   /* shear                                           */
   --brass:  #a8801b;   /* maximum shear / warnings that are not failures   */
 
-  --aus-wash:   #fbf3f2;
+  --principal-wash:   #fbf3f2;
   --dye-wash:   #f1f5fb;
   --brass-wash: #fbf7ec;
   --jade-wash:  #eff7f2;
@@ -49,7 +49,7 @@ body{
   -webkit-font-smoothing:antialiased;
 }
 a{ color:var(--dye); text-underline-offset:3px }
-:focus-visible{ outline:2px solid var(--aus); outline-offset:2px; border-radius:3px }
+:focus-visible{ outline:2px solid var(--principal); outline-offset:2px; border-radius:3px }
 
 /* ---------- the mono voice: identifiers and measurements ---------------- */
 .mono, .tag, .val, .axis, kbd { font-family:var(--mono) }
@@ -59,7 +59,7 @@ a{ color:var(--dye); text-underline-offset:3px }
 }
 .eyebrow{
   font-family:var(--mono); font-size:11.5px; font-weight:700;
-  letter-spacing:.18em; text-transform:uppercase; color:var(--aus);
+  letter-spacing:.18em; text-transform:uppercase; color:var(--principal);
 }
 
 /* ---------- sheet frame: the page sits on a drawing sheet -------------- */
@@ -85,7 +85,7 @@ a{ color:var(--dye); text-underline-offset:3px }
   padding:5px 10px; background:var(--ground-2);
 }
 .topbar a.back:hover{ border-color:var(--tick); color:var(--ink) }
-.topbar .inst{ font-family:var(--mono); font-size:11px; letter-spacing:.14em; color:var(--aus); font-weight:700 }
+.topbar .inst{ font-family:var(--mono); font-size:11px; letter-spacing:.14em; color:var(--principal); font-weight:700 }
 
 /* ---------- module page shell ------------------------------------------ */
 .mod-head{ padding:var(--s6) var(--s5) var(--s4); border-bottom:1px solid var(--rule-2) }
@@ -113,7 +113,7 @@ input[type=number], select{
   border:1px solid var(--rule); border-radius:var(--r); padding:7px 8px; width:86px;
 }
 select{ width:auto; padding-right:26px }
-input[type=range]{ accent-color:var(--aus); height:26px; min-width:130px; flex:1 }
+input[type=range]{ accent-color:var(--principal); height:26px; min-width:130px; flex:1 }
 .divider{ width:1px; align-self:stretch; background:var(--rule) }
 
 button{
@@ -124,7 +124,7 @@ button{
 button:hover{ border-color:var(--tick); background:var(--ground-2) }
 button.primary{ background:var(--ink); border-color:var(--ink); color:#fff }
 button.primary:hover{ background:#1c2530; border-color:#1c2530 }
-button.active{ background:var(--aus); border-color:var(--aus); color:#fff }
+button.active{ background:var(--principal); border-color:var(--principal); color:#fff }
 button.chip{ font-family:var(--mono); font-size:12px; letter-spacing:.04em; padding:7px 10px }
 
 .presets{ display:flex; flex-wrap:wrap; gap:var(--s2); margin-bottom:var(--s4) }
@@ -165,7 +165,7 @@ button.chip{ font-family:var(--mono); font-size:12px; letter-spacing:.04em; padd
 .cell .k{ font-family:var(--mono); font-size:11px; font-weight:700; letter-spacing:.06em; color:var(--tick) }
 .cell .v{ font-family:var(--mono); font-weight:700; font-size:21px; line-height:1.25; margin-top:2px }
 .cell .n{ font-size:11.5px; color:var(--tick); margin-top:2px; line-height:1.35 }
-.cell.red   { border-left-color:var(--aus);   background:var(--aus-wash)   } .cell.red   .v{ color:var(--aus) }
+.cell.red   { border-left-color:var(--principal);   background:var(--principal-wash)   } .cell.red   .v{ color:var(--principal) }
 .cell.blue  { border-left-color:var(--dye);   background:var(--dye-wash)   } .cell.blue  .v{ color:var(--dye) }
 .cell.brass { border-left-color:var(--brass); background:var(--brass-wash) } .cell.brass .v{ color:var(--brass) }
 .cell.jade  { border-left-color:var(--jade);  background:var(--jade-wash)  } .cell.jade  .v{ color:var(--jade) }
@@ -173,12 +173,12 @@ button.chip{ font-family:var(--mono); font-size:12px; letter-spacing:.04em; padd
 
 /* ---------- callout ----------------------------------------------------- */
 .callout{
-  margin-top:var(--s3); border:1px solid var(--rule); border-left:3px solid var(--aus);
-  background:var(--aus-wash); border-radius:var(--r); padding:10px 13px; font-size:14.5px;
+  margin-top:var(--s3); border:1px solid var(--rule); border-left:3px solid var(--principal);
+  background:var(--principal-wash); border-radius:var(--r); padding:10px 13px; font-size:14.5px;
   display:none;
 }
 .callout.show{ display:block }
-.callout b{ color:var(--aus) }
+.callout b{ color:var(--principal) }
 .callout.neutral{ border-left-color:var(--dye); background:var(--dye-wash) }
 .callout.neutral b{ color:var(--dye) }
 
@@ -225,7 +225,7 @@ kbd{
   margin:var(--s3) 0 var(--s4);
   font-size:clamp(38px,5.6vw,74px); line-height:.98; letter-spacing:-.035em; font-weight:700;
 }
-.hero h1 em{ font-style:normal; color:var(--aus) }
+.hero h1 em{ font-style:normal; color:var(--principal) }
 .hero p{ margin:0 0 var(--s5); font-size:18.5px; line-height:1.5; color:var(--ink-2); max-width:52ch }
 .hero .stats{ display:flex; gap:var(--s6); border-top:1px solid var(--rule); padding-top:var(--s4) }
 .hero .stat .n{ font-family:var(--mono); font-size:27px; font-weight:700; letter-spacing:-.02em }
@@ -259,7 +259,7 @@ kbd{
 .card .body{ padding:var(--s3) var(--s4) var(--s4); display:flex; flex-direction:column; gap:6px; flex:1 }
 .card .ch{
   font-family:var(--mono); font-size:10.5px; font-weight:700; letter-spacing:.14em;
-  color:var(--aus); text-transform:uppercase;
+  color:var(--principal); text-transform:uppercase;
 }
 .card h3{ margin:0; font-size:19px; letter-spacing:-.012em }
 .card p{ margin:0; font-size:14.5px; color:var(--ink-2); line-height:1.45 }
@@ -267,7 +267,7 @@ kbd{
   margin-top:auto; padding-top:var(--s2); font-family:var(--mono); font-size:11.5px;
   letter-spacing:.1em; text-transform:uppercase; color:var(--tick);
 }
-.card:hover .go{ color:var(--aus) }
+.card:hover .go{ color:var(--principal) }
 .card.soon{ opacity:.62 }
 .card.soon:hover{ transform:none; border-color:var(--rule); box-shadow:none; cursor:default }
 

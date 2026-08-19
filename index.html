@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MCE 323 — Mechanical Design · Interactive Modules</title>
-<meta name="description" content="Interactive instruments for MCE 323 Mechanical Design at the American University of Sharjah.">
+<meta name="description" content="Interactive instruments for MCE 323 Mechanical Design. Dr. Ahmed Hanafy Ibrahim.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/site.css">
 </head>
@@ -16,12 +16,12 @@
   <span class="name">Mechanical Design</span>
   <span class="spacer"></span>
   <span class="name" style="letter-spacing:.1em">Interactive modules</span>
-  <span class="inst">AUS</span>
+  <span class="inst">A. H. Ibrahim</span>
 </div>
 
 <section class="hero">
   <div>
-    <span class="eyebrow">American University of Sharjah · Mechanical Engineering</span>
+    <span class="eyebrow">Dr. Ahmed Hanafy Ibrahim · Mechanical Design</span>
     <h1>Some things<br>don't survive<br>a <em>static slide</em>.</h1>
     <p>Ten instruments for the parts of this course that move: stress that rotates with the cutting plane, criteria that disagree, teeth that mesh, and a diameter that has to answer to two failure modes at once.</p>
     <div class="stats">
@@ -115,7 +115,7 @@ function thumbStress(){
   g+=SVG.arrow(X(0,a),Y(0,a),X(0,a+14),Y(0,a+14),"var(--dye-2)",2.2,7);
   g+=SVG.arrow(X(0,-a),Y(0,-a),X(0,-a-14),Y(0,-a-14),"var(--dye-2)",2.2,7);
   g+=SVG.circle(238,60,30,"none","#8493a0",1.4)+SVG.circle(238,60,2.5,"#8493a0");
-  g+=SVG.circle(238+30*Math.cos(0.8),60+30*Math.sin(0.8),4,"#fff","var(--aus)",2.2);
+  g+=SVG.circle(238+30*Math.cos(0.8),60+30*Math.sin(0.8),4,"#fff","var(--principal)",2.2);
   return g;
 }
 function thumbEnv(){
@@ -128,14 +128,14 @@ function thumbEnv(){
   g+=SVG.path(d+" Z","var(--dye)",1.8,"rgba(39,72,140,.06)");
   const h=[[S,0],[S,S],[0,S],[-S,0],[-S,-S],[0,-S]];
   let hd=""; h.forEach((p,i)=>hd+=(i?" L ":"M ")+(cx+p[0])+" "+(cy-p[1]));
-  g+=SVG.path(hd+" Z","var(--aus)",1.8);
+  g+=SVG.path(hd+" Z","var(--principal)",1.8);
   g+=SVG.circle(cx+26,cy-14,4.5,"#fff","#10151b",2.2);
   return g;
 }
 function thumbFatigue(){
   const x0=40,y0=100,w=224,h=76;
   let g=SVG.line(x0,y0,x0+w,y0,"#b9c4ce",1.2)+SVG.line(x0,y0,x0,y0-h,"#b9c4ce",1.2);
-  g+=SVG.line(x0,y0-h*0.62,x0+w*0.92,y0,"var(--aus)",2);
+  g+=SVG.line(x0,y0-h*0.62,x0+w*0.92,y0,"var(--principal)",2);
   let d=""; for(let i=0;i<=40;i++){ const t=i/40, x=x0+w*0.92*t, y=y0-h*0.62*(1-t*t);
     d+=(i?" L ":"M ")+x.toFixed(1)+" "+y.toFixed(1); }
   g+=SVG.path(d,"var(--jade)",2);
@@ -150,9 +150,9 @@ function thumbShaft(){
   g+=SVG.rect(52,cy-30,86,60,"#eef2f5","#46545f",1.6);
   g+=SVG.rect(138,cy-19,110,38,"#f6f8f9","#46545f",1.6);
   for(let x=146;x<246;x+=12) g+=SVG.line(x,cy-17,x-8,cy+17,"#c3ced8",1);
-  g+=SVG.arrow(258,cy-19-14,258,cy-19,"var(--aus)",1.4,6);
-  g+=SVG.arrow(258,cy+19+14,258,cy+19,"var(--aus)",1.4,6);
-  g+=SVG.text(268,cy+4,"⌀d",{col:"var(--aus)",size:11,anchor:"start",mono:true,weight:700});
+  g+=SVG.arrow(258,cy-19-14,258,cy-19,"var(--principal)",1.4,6);
+  g+=SVG.arrow(258,cy+19+14,258,cy+19,"var(--principal)",1.4,6);
+  g+=SVG.text(268,cy+4,"⌀d",{col:"var(--principal)",size:11,anchor:"start",mono:true,weight:700});
   return g;
 }
 function thumbBearing(){
@@ -161,7 +161,7 @@ function thumbBearing(){
   for(let i=1;i<4;i++) g+=SVG.line(x0+w*i/4,y0,x0+w*i/4,y0-h,"#eef2f5",1);
   g+=SVG.line(x0+6,y0-h+6,x0+w-6,y0-14,"var(--dye)",2.2);
   g+=SVG.circle(x0+w*0.28,y0-h+6+(w-12)*0.28/(w-12)*0+ (y0-14-(y0-h+6))*0.28+(y0-h+6)-(y0-h+6),0,"none");
-  g+=SVG.circle(x0+w*0.30,y0-h+6+((y0-14)-(y0-h+6))*0.30,5,"#fff","var(--aus)",2.2);
+  g+=SVG.circle(x0+w*0.30,y0-h+6+((y0-14)-(y0-h+6))*0.30,5,"#fff","var(--principal)",2.2);
   g+=SVG.circle(x0+w*0.78,y0-h+6+((y0-14)-(y0-h+6))*0.78,4.5,"#fff","var(--jade)",2.2);
   return g;
 }
@@ -176,17 +176,17 @@ function thumbGear(){
     return SVG.path(d+" Z",col,1.5,"#eef2f5");
   };
   let g=teeth(104,60,38,14,"#46545f")+teeth(206,60,50,18,"#46545f");
-  g+=SVG.circle(104,60,32,"none","var(--aus)",1.2)+SVG.circle(206,60,44,"none","var(--aus)",1.2);
+  g+=SVG.circle(104,60,32,"none","var(--principal)",1.2)+SVG.circle(206,60,44,"none","var(--principal)",1.2);
   g+=SVG.line(120,88,190,32,"var(--jade)",1.6);
   return g;
 }
 function thumbBeam(){
   let g=SVG.line(40,34,264,34,"#46545f",3);
   g+=`<polygon points="46,34 38,46 54,46" fill="#8493a0"/><polygon points="258,34 250,46 266,46" fill="none" stroke="#8493a0" stroke-width="1.6"/>`;
-  g+=SVG.arrow(130,10,130,30,"var(--aus)",2,7);
+  g+=SVG.arrow(130,10,130,30,"var(--principal)",2,7);
   g+=SVG.path("M 40 76 L 130 76 L 130 96 L 264 96","var(--dye)",2,"rgba(39,72,140,.12)");
   g+=SVG.line(40,86,264,86,"#c3ced8",1);
-  g+=SVG.path("M 40 112 L 130 96 L 264 112","var(--aus)",2);
+  g+=SVG.path("M 40 112 L 130 96 L 264 112","var(--principal)",2);
   return g;
 }
 function thumbKt(){
@@ -195,16 +195,16 @@ function thumbKt(){
   let d=""; for(let i=0;i<=40;i++){ const t=i/40, x=x0+w*t, y=y0-h*(1-0.62*t*t);
     d+=(i?" L ":"M ")+x.toFixed(1)+" "+y.toFixed(1); }
   g+=SVG.path(d,"var(--dye)",2.2);
-  g+=SVG.line(x0+w*0.3,y0,x0+w*0.3,y0-h*0.945,"var(--aus)",1.4,"4 3");
-  g+=SVG.line(x0,y0-h*0.945,x0+w*0.3,y0-h*0.945,"var(--aus)",1.4,"4 3");
-  g+=SVG.circle(x0+w*0.3,y0-h*0.945,5,"#fff","var(--aus)",2.4);
+  g+=SVG.line(x0+w*0.3,y0,x0+w*0.3,y0-h*0.945,"var(--principal)",1.4,"4 3");
+  g+=SVG.line(x0,y0-h*0.945,x0+w*0.3,y0-h*0.945,"var(--principal)",1.4,"4 3");
+  g+=SVG.circle(x0+w*0.3,y0-h*0.945,5,"#fff","var(--principal)",2.4);
   return g;
 }
 function thumbMarin(){
   const x0=46,y0=104,bw=26,v=[80,66,60,58,56,52];
   let g=SVG.line(x0-8,y0,266,y0,"#b9c4ce",1.2);
   v.forEach((val,i)=>{ const x=x0+i*36;
-    g+=SVG.rect(x,y0-val,bw,val,i===0?"var(--dye)":"var(--aus)");
+    g+=SVG.rect(x,y0-val,bw,val,i===0?"var(--dye)":"var(--principal)");
     if(i) g+=SVG.line(x-10,y0-v[i-1],x,y0-v[i-1],"#c3ced8",1,"3 2"); });
   return g;
 }
@@ -213,7 +213,7 @@ function thumbAgma(){
   let g=SVG.line(x0-8,y0,266,y0,"#b9c4ce",1.2);
   vals.forEach((v,i)=>{
     const x=x0+i*36;
-    g+=SVG.rect(x,y0-v,bw,v,i===0?"var(--dye)":"var(--aus)");
+    g+=SVG.rect(x,y0-v,bw,v,i===0?"var(--dye)":"var(--principal)");
     if(i) g+=SVG.line(x-10,y0-vals[i-1],x,y0-vals[i-1],"#c3ced8",1,"3 2");
   });
   return g;
@@ -258,7 +258,7 @@ function thumbAgma(){
     g+=SVG.text(mx,my+R*mk+22,"2θ = "+fmt(2*th,0)+"°",{col:"#8493a0",size:11.5,mono:true});
     g+=SVG.text(cx,cy+128,"θ = "+fmt(th,0)+"°",{col:"#8493a0",size:11.5,mono:true});
     if(Math.abs(txp)<0.25)
-      g+=SVG.text(260,40,"τ = 0 — principal plane",{col:"var(--aus)",size:13,weight:700});
+      g+=SVG.text(260,40,"τ = 0 — principal plane",{col:"var(--principal)",size:13,weight:700});
     svg.innerHTML=g;
   }
   paint();

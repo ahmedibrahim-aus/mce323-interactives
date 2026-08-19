@@ -130,13 +130,13 @@ function draw(){
 
   if (M.mode==="d"){
     g += poly(deEllipse(M.Sy),"var(--dye)",2.4,null,"rgba(39,72,140,.05)");
-    g += poly(mssHex(M.Sy),"var(--aus)",2.4);
+    g += poly(mssHex(M.Sy),"var(--principal)",2.4);
     g += SVG.text(f.X(M.Sy*0.62),f.Y(M.Sy*0.90),"DE (von Mises)",{col:"var(--dye)",size:12.5,mono:true,weight:700});
-    g += SVG.text(f.X(-M.Sy*0.30),f.Y(-M.Sy*0.98),"MSS",{col:"var(--aus)",size:12.5,mono:true,weight:700});
+    g += SVG.text(f.X(-M.Sy*0.30),f.Y(-M.Sy*0.98),"MSS",{col:"var(--principal)",size:12.5,mono:true,weight:700});
   } else {
     g += poly(mmPoly(M.Sut,M.Suc),"var(--brass)",2.2,"6 4");
-    g += poly(bcmPoly(M.Sut,M.Suc),"var(--aus)",2.4);
-    g += SVG.text(f.X(-M.Suc*0.55),f.Y(-M.Suc*0.86),"Brittle Coulomb–Mohr",{col:"var(--aus)",size:12.5,mono:true,weight:700});
+    g += poly(bcmPoly(M.Sut,M.Suc),"var(--principal)",2.4);
+    g += SVG.text(f.X(-M.Suc*0.55),f.Y(-M.Suc*0.86),"Brittle Coulomb–Mohr",{col:"var(--principal)",size:12.5,mono:true,weight:700});
     g += SVG.text(f.X(M.Sut*1.1),f.Y(-M.Suc*0.42),"Modified Mohr",{col:"var(--brass)",size:12.5,mono:true,weight:700,anchor:"start"});
   }
 
@@ -190,10 +190,10 @@ function out(){
 
   $("guide").innerHTML = M.mode==="d"
     ? `<p style="margin:0 0 8px"><b>Ductile.</b> Compare a von Mises stress against S<sub>y</sub>.</p>
-       <p style="margin:0 0 8px;color:var(--ink-2)">Use <b style="color:var(--aus)">MSS</b> when you want conservatism — for design, and where reliability matters. Use <b style="color:var(--dye)">DE</b> when you want agreement with test data — for analysis, and when weight is tight.</p>
+       <p style="margin:0 0 8px;color:var(--ink-2)">Use <b style="color:var(--principal)">MSS</b> when you want conservatism — for design, and where reliability matters. Use <b style="color:var(--dye)">DE</b> when you want agreement with test data — for analysis, and when weight is tight.</p>
        <p style="margin:0;color:var(--ink-2)">If tensile and compressive strengths differ, neither applies. Switch the material above.</p>`
     : `<p style="margin:0 0 8px"><b>Brittle.</b> Failure is fracture, not yielding, so the comparison is against S<sub>ut</sub> and S<sub>uc</sub>.</p>
-       <p style="margin:0 0 8px;color:var(--ink-2)"><b style="color:var(--aus)">Coulomb–Mohr</b> is simpler and more conservative. <b style="color:var(--brass)">Modified Mohr</b> fits the fourth-quadrant data better and is usually the better predictor.</p>
+       <p style="margin:0 0 8px;color:var(--ink-2)"><b style="color:var(--principal)">Coulomb–Mohr</b> is simpler and more conservative. <b style="color:var(--brass)">Modified Mohr</b> fits the fourth-quadrant data better and is usually the better predictor.</p>
        <p style="margin:0;color:var(--ink-2)">Cast iron carries roughly three times more in compression than tension — which is why these envelopes are not symmetric.</p>`;
 }
 

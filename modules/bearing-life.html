@@ -115,8 +115,8 @@ function drawLL(){
   const lLd=Math.log10(Ld()), lF=Math.log10(af*Fd);
   g += SVG.line(f.X(lLd),f.t,f.X(lLd),f.Y(lF),"#c3ced8",1,"4 4");
   g += SVG.line(f.l,f.Y(lF),f.X(lLd),f.Y(lF),"#c3ced8",1,"4 4");
-  g += SVG.circle(f.X(lLd),f.Y(lF),7,"#fff","var(--aus)",3);
-  g += SVG.text(f.X(lLd),f.Y(lF)-16,"duty point",{col:"var(--aus)",size:12,mono:true,weight:700});
+  g += SVG.circle(f.X(lLd),f.Y(lF),7,"#fff","var(--principal)",3);
+  g += SVG.text(f.X(lLd),f.Y(lF)-16,"duty point",{col:"var(--principal)",size:12,mono:true,weight:700});
 
   const lC=Math.log10(isFinite(C)?C:C10b());
   g += SVG.circle(f.X(Math.log10(L10)),f.Y(lC),6,"#fff","var(--jade)",3);
@@ -146,8 +146,8 @@ function drawRel(){
   g += SVG.text(f.l+6,f.Y(1)-7,"catalogue basis, R = 0.90",{col:"#8493a0",size:11.5,anchor:"start",mono:true});
   const m=mult(R);
   g += SVG.line(f.X(R),f.t,f.X(R),f.t+f.ph,"#10151b",1.4);
-  g += SVG.circle(f.X(R),f.Y(Math.min(m,f.Y?1e9:1e9)),6,"#fff","var(--aus)",3);
-  g += SVG.text(f.X(R),f.Y(m)-14,"×"+fmt(m,2),{col:"var(--aus)",size:13,mono:true,weight:700});
+  g += SVG.circle(f.X(R),f.Y(Math.min(m,f.Y?1e9:1e9)),6,"#fff","var(--principal)",3);
+  g += SVG.text(f.X(R),f.Y(m)-14,"×"+fmt(m,2),{col:"var(--principal)",size:13,mono:true,weight:700});
   $("rel2").innerHTML=g;
 }
 
@@ -156,13 +156,13 @@ function drawStack(){
   const BASE=162, HMAX=88;
   let g="", x0=70, w=1120, bw=w/12-10;
   g += SVG.text(x0,26,`${nb} bearings at ${fmt(R*100,1)}% each give a machine at ${fmt(Math.pow(R,nb)*100,1)}%`,
-       {col:"var(--aus)",size:15,anchor:"start",weight:700});
+       {col:"var(--principal)",size:15,anchor:"start",weight:700});
   for(let i=1;i<=12;i++){
     const Rsys=Math.pow(R,i), h=Math.max(2,Math.round(HMAX*Rsys)), x=x0+(i-1)*(w/12);
     const on = i===nb;
-    g += SVG.rect(x,BASE-h,bw,h, on?"var(--aus)":(Rsys<0.5?"#e3b3b1":"#bcc8d3"));
-    g += SVG.text(x+bw/2,BASE-h-7,fmt(Rsys*100,0)+"%",{col:on?"var(--aus)":"#8493a0",size:12,mono:true,weight:on?700:600});
-    g += SVG.text(x+bw/2,BASE+18,String(i),{col:on?"var(--aus)":"#8493a0",size:12,mono:true,weight:on?700:500});
+    g += SVG.rect(x,BASE-h,bw,h, on?"var(--principal)":(Rsys<0.5?"#e3b3b1":"#bcc8d3"));
+    g += SVG.text(x+bw/2,BASE-h-7,fmt(Rsys*100,0)+"%",{col:on?"var(--principal)":"#8493a0",size:12,mono:true,weight:on?700:600});
+    g += SVG.text(x+bw/2,BASE+18,String(i),{col:on?"var(--principal)":"#8493a0",size:12,mono:true,weight:on?700:500});
   }
   g += SVG.line(x0-6,BASE,x0+w,BASE,"#b9c4ce",1.4);
   g += SVG.text(x0-14,BASE+4,"R^n",{col:"#46545f",size:12.5,anchor:"end",mono:true,weight:700});

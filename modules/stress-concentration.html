@@ -138,11 +138,11 @@ function drawChart(){
     g=f.g;
     g += f.clip(SVG.path(curve(holeKt,0,0.7,f.X,f.Y,140),"var(--dye)",2.6));
     const lam=clamp(dia/wd,0,0.7), K=holeKt(lam);
-    g += SVG.line(f.X(lam),f.t+f.ph,f.X(lam),f.Y(K),"var(--aus)",1.6,"5 4");
-    g += SVG.line(f.l,f.Y(K),f.X(lam),f.Y(K),"var(--aus)",1.6,"5 4");
-    g += SVG.circle(f.X(lam),f.Y(K),7,"#fff","var(--aus)",3);
-    g += SVG.text(f.X(lam)+10,f.Y(K)-12,"Kt = "+fmt(K,2),{col:"var(--aus)",size:14,anchor:"start",mono:true,weight:700});
-    g += SVG.text(f.X(lam),f.t+f.ph+36,"d/w = "+fmt(lam,3),{col:"var(--aus)",size:12,mono:true,weight:700});
+    g += SVG.line(f.X(lam),f.t+f.ph,f.X(lam),f.Y(K),"var(--principal)",1.6,"5 4");
+    g += SVG.line(f.l,f.Y(K),f.X(lam),f.Y(K),"var(--principal)",1.6,"5 4");
+    g += SVG.circle(f.X(lam),f.Y(K),7,"#fff","var(--principal)",3);
+    g += SVG.text(f.X(lam)+10,f.Y(K)-12,"Kt = "+fmt(K,2),{col:"var(--principal)",size:14,anchor:"start",mono:true,weight:700});
+    g += SVG.text(f.X(lam),f.t+f.ph+36,"d/w = "+fmt(lam,3),{col:"var(--principal)",size:12,mono:true,weight:700});
   } else {
     const tab = geo==="shaftB"?BEND:TORS;
     f=frame({w:660,h:420,l:66,r:26,t:24,b:56,xmin:0,xmax:0.32,ymin:1,ymax:3.0,
@@ -163,11 +163,11 @@ function drawChart(){
     g += SVG.text(f.l+8,f.t+f.ph-10,`grey curves: the rest of the D/d family, ${fmt(tab[0][0],2)} to ${fmt(tab[tab.length-1][0],2)}`,
                   {col:"#9fadba",size:11,anchor:"start",weight:500});
     const x=clamp(r/dd,0.02,0.32), K=A*Math.pow(x,b);
-    g += SVG.line(f.X(x),f.t+f.ph,f.X(x),f.Y(K),"var(--aus)",1.6,"5 4");
-    g += SVG.line(f.l,f.Y(K),f.X(x),f.Y(K),"var(--aus)",1.6,"5 4");
-    g += SVG.circle(f.X(x),f.Y(K),7,"#fff","var(--aus)",3);
-    g += SVG.text(f.X(x)+10,f.Y(K)-12,(geo==="shaftB"?"Kt = ":"Kts = ")+fmt(K,2),{col:"var(--aus)",size:14,anchor:"start",mono:true,weight:700});
-    g += SVG.text(f.X(x),f.t+f.ph+36,"r/d = "+fmt(x,3),{col:"var(--aus)",size:12,mono:true,weight:700});
+    g += SVG.line(f.X(x),f.t+f.ph,f.X(x),f.Y(K),"var(--principal)",1.6,"5 4");
+    g += SVG.line(f.l,f.Y(K),f.X(x),f.Y(K),"var(--principal)",1.6,"5 4");
+    g += SVG.circle(f.X(x),f.Y(K),7,"#fff","var(--principal)",3);
+    g += SVG.text(f.X(x)+10,f.Y(K)-12,(geo==="shaftB"?"Kt = ":"Kts = ")+fmt(K,2),{col:"var(--principal)",size:14,anchor:"start",mono:true,weight:700});
+    g += SVG.text(f.X(x),f.t+f.ph+36,"r/d = "+fmt(x,3),{col:"var(--principal)",size:12,mono:true,weight:700});
   }
   g += SVG.text(f.l+8,f.t+16,"1 · form the ratio   2 · find the curve   3 · read across   4 · check it moved the right way",
         {col:"#8493a0",size:11,anchor:"start",weight:400});
@@ -196,10 +196,10 @@ function drawPart(){
       const s=Math.min(K, prof/3*K);
       d += (i?" L ":"M ")+x.toFixed(1)+" "+(py-ph*s/Math.max(K,1)).toFixed(1);
     }
-    g += SVG.path(d,"var(--aus)",2.4);
+    g += SVG.path(d,"var(--principal)",2.4);
     g += SVG.line(cx-W/2,py,cx+W/2,py,"#b9c4ce",1.4);
-    g += SVG.line(xa,py,xa,py-ph,"var(--aus)",1.2,"3 3");
-    g += SVG.text(xa+6,py-ph-8,"σmax = "+fmt(sn*K,1)+" MPa",{col:"var(--aus)",size:12.5,anchor:"start",mono:true,weight:700});
+    g += SVG.line(xa,py,xa,py-ph,"var(--principal)",1.2,"3 3");
+    g += SVG.text(xa+6,py-ph-8,"σmax = "+fmt(sn*K,1)+" MPa",{col:"var(--principal)",size:12.5,anchor:"start",mono:true,weight:700});
     g += SVG.line(cx-W/2,py-ph/Math.max(K,1),cx+W/2,py-ph/Math.max(K,1),"var(--dye)",1.4,"6 4");
     g += SVG.text(cx-W/2,py-ph/Math.max(K,1)-8,"σnom = "+fmt(sn,1),{col:"var(--dye)",size:12,anchor:"start",mono:true,weight:700});
     g += SVG.text(cx,py+22,"stress across the net section — the peak decays within about one hole diameter",{col:"#8493a0",size:11.5,weight:400});
@@ -208,13 +208,13 @@ function drawPart(){
     g += SVG.centre(60,cy,600,cy);
     g += SVG.rect(120,cy-D0/2,180,D0,"#eef2f5","#46545f",1.8);
     g += SVG.path(`M 300 ${cy-D0/2} L 300 ${cy-d0/2-rr} A ${rr} ${rr} 0 0 1 ${300+rr} ${cy-d0/2} L 540 ${cy-d0/2} L 540 ${cy+d0/2} L ${300+rr} ${cy+d0/2} A ${rr} ${rr} 0 0 1 300 ${cy+d0/2+rr} L 300 ${cy+D0/2} Z`,"#46545f",1.8,"#f6f8f9");
-    g += SVG.circle(300+rr,cy-d0/2-rr,rr,"none","var(--aus)",1.2,"3 3");
-    g += SVG.text(300+rr+8,cy-d0/2-rr-8,"r = "+fmt(r,1),{col:"var(--aus)",size:12,anchor:"start",mono:true,weight:700});
+    g += SVG.circle(300+rr,cy-d0/2-rr,rr,"none","var(--principal)",1.2,"3 3");
+    g += SVG.text(300+rr+8,cy-d0/2-rr-8,"r = "+fmt(r,1),{col:"var(--principal)",size:12,anchor:"start",mono:true,weight:700});
     g += SVG.text(210,cy-D0/2-12,"D = "+fmt(dd*Dd,1),{col:"#8493a0",size:12,mono:true});
     g += SVG.text(440,cy-d0/2-12,"d = "+fmt(dd,1),{col:"#8493a0",size:12,mono:true});
-    g += SVG.circle(300+rr*0.4,cy-d0/2-rr*0.1,7,"none","var(--aus)",2.4);
+    g += SVG.circle(300+rr*0.4,cy-d0/2-rr*0.1,7,"none","var(--principal)",2.4);
     g += SVG.text(300,cy+D0/2+40,"the peak sits in the fillet root, not on the shoulder face",{col:"#8493a0",size:12,weight:400});
-    g += SVG.text(330,330,`σnom = ${fmt(sn,1)} MPa   →   σmax = ${fmt(sn*K,1)} MPa`,{col:"var(--aus)",size:14,mono:true,weight:700});
+    g += SVG.text(330,330,`σnom = ${fmt(sn,1)} MPa   →   σmax = ${fmt(sn*K,1)} MPa`,{col:"var(--principal)",size:14,mono:true,weight:700});
   }
   $("part").innerHTML=g;
 }
@@ -232,8 +232,8 @@ function drawQ(){
     Sut=save;
   });
   g += f.clip(SVG.path(curve(notchQ,0.05,12,f.X,f.Y,200),"var(--dye)",2.6));
-  g += SVG.circle(f.X(clamp(r,0,12)),f.Y(notchQ(r)),6,"#fff","var(--aus)",3);
-  g += SVG.text(f.X(clamp(r,0,12))+10,f.Y(notchQ(r))+22,"q = "+fmt(notchQ(r),3),{col:"var(--aus)",size:13,anchor:"start",mono:true,weight:700});
+  g += SVG.circle(f.X(clamp(r,0,12)),f.Y(notchQ(r)),6,"#fff","var(--principal)",3);
+  g += SVG.text(f.X(clamp(r,0,12))+10,f.Y(notchQ(r))+22,"q = "+fmt(notchQ(r),3),{col:"var(--principal)",size:13,anchor:"start",mono:true,weight:700});
   g += SVG.text(f.l+8,f.t+16,"greyed lines: Sut = 400, 700 and 1200 MPa — harder steel is more notch-sensitive",
         {col:"#8493a0",size:11,anchor:"start",weight:400});
   $("qplot").innerHTML=g;
