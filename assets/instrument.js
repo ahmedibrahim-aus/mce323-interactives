@@ -48,13 +48,15 @@ const SVG = {
   /* text. `mono` switches to the measurement voice. */
   text(x, y, s, o = {}){
     const { col = "#10151b", size = 13, anchor = "middle", weight = 600, mono = false, rot = null, op = 1,
-            onfill = false } = o;
-    const fam = mono
+            onfill = false, math = false } = o;
+    const fam = math
+      ? "Cambria Math,Latin Modern Math,STIX Two Math,Times New Roman,Georgia,serif"
+      : mono
       ? "ui-monospace,SF Mono,Cascadia Mono,Consolas,monospace"
       : "Segoe UI,system-ui,-apple-system,sans-serif";
     const tr = rot !== null ? ` transform="rotate(${rot} ${x} ${y})"` : "";
     return `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}"${onfill ? ' class="onfill"' : ""} fill="${col}"`
-      + ` font-size="${size}" font-weight="${weight}"`
+      + ` font-size="${size}" font-weight="${weight}"${math ? ' font-style="italic"' : ""}`
       + ` text-anchor="${anchor}" font-family="${fam}" opacity="${op}"${tr}>${s}</text>`;
   },
   /* solid-headed arrow, head sits at (x2,y2) */
@@ -67,6 +69,20 @@ const SVG = {
       + `<polygon points="${x2.toFixed(1)},${y2.toFixed(1)} `
       + `${(bx + px * head * .40).toFixed(1)},${(by + py * head * .40).toFixed(1)} `
       + `${(bx - px * head * .40).toFixed(1)},${(by - py * head * .40).toFixed(1)}" fill="${col}"/>`;
+  },
+  /* Shear arrow: the head is halved along the shaft, which is how a shear
+     stress is distinguished from a normal force on a drawing. `side` picks
+     which barb survives. */
+  shearArrow(x1, y1, x2, y2, col, w = 2.8, head = 13, side = 1){
+    const dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy);
+    if (L < 0.8) return "";
+    const ux = dx / L, uy = dy / L;
+    const bx = x2 - ux * head, by = y2 - uy * head;
+    const px = -uy * side, py = ux * side;
+    return SVG.line(x1, y1, bx, by, col, w)
+      + `<polygon points="${x2.toFixed(1)},${y2.toFixed(1)} `
+      + `${(bx + px * head * .46).toFixed(1)},${(by + py * head * .46).toFixed(1)} `
+      + `${bx.toFixed(1)},${by.toFixed(1)}" fill="${col}"/>`;
   },
   /* centreline: the long-dash short-dash of an engineering drawing */
   centre(x1, y1, x2, y2, col = "#8493a0"){

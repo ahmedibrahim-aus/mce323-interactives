@@ -109,13 +109,13 @@ function drawElement(){
   let g="";
 
   g += SVG.centre(cx-172,cy,cx+172,cy) + SVG.centre(cx,cy-160,cx,cy+160);
-  g += SVG.text(cx+180,cy+4,"x",{col:"#8493a0",size:13,anchor:"start",mono:true});
-  g += SVG.text(cx-13,cy-168,"y",{col:"#8493a0",size:13,anchor:"end",mono:true});
+  g += SVG.text(cx+180,cy+5,"x",{col:"#8493a0",size:19,anchor:"start",math:true});
+  g += SVG.text(cx-13,cy-166,"y",{col:"#8493a0",size:19,anchor:"end",math:true});
 
   g += SVG.line(X(-136,0),Y(-136,0),X(136,0),Y(136,0),"#b9c4ce",1.4);
   g += SVG.line(X(0,-128),Y(0,-128),X(0,128),Y(0,128),"#b9c4ce",1.4);
-  g += SVG.text(X(152,0),Y(152,0)+4,"x′",{col:"#46545f",size:14,mono:true});
-  g += SVG.text(X(0,146),Y(0,146),"y′",{col:"#46545f",size:14,mono:true});
+  g += SVG.text(X(152,0),Y(152,0)+5,"x′",{col:"#46545f",size:20,math:true});
+  g += SVG.text(X(0,146),Y(0,146),"y′",{col:"#46545f",size:20,math:true});
 
   g += `<polygon points="${X(-a,-a)},${Y(-a,-a)} ${X(a,-a)},${Y(a,-a)} ${X(a,a)},${Y(a,a)} ${X(-a,a)},${Y(-a,a)}" fill="#eef2f5" stroke="#46545f" stroke-width="2"/>`;
 
@@ -123,7 +123,7 @@ function drawElement(){
     const r=100;
     g += SVG.path(`M ${cx+r} ${cy} A ${r} ${r} 0 ${theta>180?1:0} 0 ${X(r,0)} ${Y(r,0)}`,"var(--principal)",1.8);
     const m=(theta/2)*D;
-    g += SVG.text(cx+(r+16)*Math.cos(m), cy-(r+16)*Math.sin(m)+4, "θ", {col:"var(--principal)",size:15,mono:true,weight:700});
+    g += SVG.text(cx+(r+16)*Math.cos(m), cy-(r+16)*Math.sin(m)+4, "θ", {col:"var(--principal)",size:19,math:true,weight:700});
   }
 
   const L = v => Math.abs(v)*scale;
@@ -143,19 +143,23 @@ function drawElement(){
     g += SVG.arrow(X(0,-u0),Y(0,-u0),X(0,-u1),Y(0,-u1),"var(--dye-2)",3);
   }
 
-  const tl=Math.min(54,Math.abs(st.txp)*scale), ts=st.txp>=0?1:-1;
-  if (tl>3){
-    const h=tl*0.5;
-    g += SVG.arrow(X(a,-h*ts),Y(a,-h*ts),X(a,h*ts),Y(a,h*ts),"var(--jade)",2.8,9);
-    g += SVG.arrow(X(-a,h*ts),Y(-a,h*ts),X(-a,-h*ts),Y(-a,-h*ts),"var(--jade)",2.8,9);
-    g += SVG.arrow(X(-h*ts,a),Y(-h*ts,a),X(h*ts,a),Y(h*ts,a),"var(--jade)",2.8,9);
-    g += SVG.arrow(X(h*ts,-a),Y(h*ts,-a),X(-h*ts,-a),Y(-h*ts,-a),"var(--jade)",2.8,9);
+  /* Shear acts over the whole face, so the arrow runs the full edge. Its head is
+     halved along the shaft — the drawing convention for a shear stress. The
+     surviving barb is kept on the outward side of each face. */
+  const ts = st.txp>=0 ? 1 : -1;
+  if (Math.abs(st.txp)*scale > 0.6){
+    const SA = (p0,p1,side) => SVG.shearArrow(X(...p0),Y(...p0),X(...p1),Y(...p1),"var(--jade)",2.8,13,side);
+    const f = a+8;                    /* just clear of the face, so the outline still reads */
+    g += SA([f,-a*ts],[f, a*ts], ts);
+    g += SA([-f, a*ts],[-f,-a*ts], ts);
+    g += SA([-a*ts,f],[a*ts, f],-ts);
+    g += SA([a*ts,-f],[-a*ts,-f],-ts);
   }
 
   if (!hiding()){
     if(hasX) g += SVG.text(X(a+nx+16,24),Y(a+nx+16,24),fmt(st.sxp,1),{col:"var(--dye)",size:14,mono:true,weight:700});
     if(hasY) g += SVG.text(X(-24,a+ny+16),Y(-24,a+ny+16),fmt(st.syp,1),{col:"var(--dye-2)",size:14,mono:true,weight:700});
-    if(tl>3) g += SVG.text(X(a+30,a+30),Y(a+30,a+30),fmt(st.txp,1),{col:"var(--jade)",size:13.5,mono:true,weight:700});
+    if(Math.abs(st.txp)*scale>0.6) g += SVG.text(X(a+30,a+30),Y(a+30,a+30),fmt(st.txp,1),{col:"var(--jade)",size:13.5,mono:true,weight:700});
     if (Math.abs(st.txp)<0.3)
       g += SVG.text(14,24,"τ = 0 — a principal plane",{col:"var(--principal)",size:15,weight:700,anchor:"start"});
   }
@@ -164,7 +168,7 @@ function drawElement(){
   g += SVG.line(24,ly,46,ly,"var(--dye)",3)+SVG.text(52,ly+4,"σx′",{col:"#46545f",size:12.5,anchor:"start",mono:true});
   g += SVG.line(104,ly,126,ly,"var(--dye-2)",3)+SVG.text(132,ly+4,"σy′",{col:"#46545f",size:12.5,anchor:"start",mono:true});
   g += SVG.line(184,ly,206,ly,"var(--jade)",3)+SVG.text(212,ly+4,"τx′y′",{col:"#46545f",size:12.5,anchor:"start",mono:true});
-  g += SVG.text(250,ly+22,"arrow length ∝ magnitude · arrows reverse in compression",{col:"#8493a0",size:11.5,weight:400});
+  g += SVG.text(250,ly+22,"normal arrows scale with magnitude and reverse in compression · shear runs the full face, half head",{col:"#8493a0",size:11.5,weight:400});
   $("elem").innerHTML=g;
 }
 
