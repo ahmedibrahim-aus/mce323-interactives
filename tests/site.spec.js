@@ -251,6 +251,50 @@ test.describe('physics matches the course notes', () => {
     expect(await cellText(page, 'min teeth')).toBe('18');
   });
 
+  /* The line of action must be tangent to BOTH base circles. That is only true if
+     the pressure angle is measured from the common tangent to the pitch circles,
+     not from the line of centres — the distinction this drawing exists to teach. */
+  test('gear geometry — the line of action is tangent to both base circles', async ({ page }) => {
+    await page.goto(url('modules/gear-geometry.html'));
+    for (const [phi, N1, N2, m] of [[20, 18, 36, 5], [25, 18, 36, 5], [14.5, 24, 48, 5], [20, 12, 60, 5]]) {
+      const g = await page.evaluate(({ phi, N1, N2, m }) => {
+        const set = (id, v, ev) => {
+          const el = document.querySelector('#' + id);
+          el.value = String(v);
+          el.dispatchEvent(new Event(ev, { bubbles: true }));
+        };
+        set('m', m, 'input'); set('phi', phi, 'change');
+        set('n1', N1, 'input'); set('n2', N2, 'input');
+        const svg = document.querySelector('#mesh');
+        const loa = [...svg.querySelectorAll('line')]
+          .find(l => (l.getAttribute('stroke') || '').includes('jade'));
+        const x1 = +loa.getAttribute('x1'), y1 = +loa.getAttribute('y1');
+        const x2 = +loa.getAttribute('x2'), y2 = +loa.getAttribute('y2');
+        const centres = [...svg.querySelectorAll('circle')]
+          .filter(el => el.getAttribute('fill') === '#10151b' && Math.abs(+el.getAttribute('r') - 3) < 0.01)
+          .map(el => ({ x: +el.getAttribute('cx'), y: +el.getAttribute('cy') }))
+          .sort((a, b) => a.x - b.x);
+        const dist = (px, py) => Math.abs((y2 - y1) * px - (x2 - x1) * py + x2 * y1 - y2 * x1)
+                                 / Math.hypot(x2 - x1, y2 - y1);
+        return {
+          sep: Math.hypot(centres[1].x - centres[0].x, centres[1].y - centres[0].y),
+          d1: dist(centres[0].x, centres[0].y),
+          d2: dist(centres[1].x, centres[1].y),
+          ang: Math.atan2(Math.abs(x2 - x1), Math.abs(y2 - y1)) * 180 / Math.PI,
+          maxY: Math.max(y1, y2), minY: Math.min(y1, y2),
+        };
+      }, { phi, N1, N2, m });
+
+      const k = g.sep / ((N1 + N2) * m / 2);              // px per mm, from the centre distance
+      const cos = Math.cos(phi * Math.PI / 180);
+      near(g.d1, (m * N1 / 2) * cos * k, 0.5);            // = r_b of the pinion
+      near(g.d2, (m * N2 / 2) * cos * k, 0.5);            // = r_b of the gear
+      near(g.ang, phi, 0.05);                             // measured from the common tangent
+      expect(g.minY, 'line of action must stay in the panel').toBeGreaterThan(2);
+      expect(g.maxY, 'line of action must stay in the panel').toBeLessThan(458);
+    }
+  });
+
   test('gear geometry — undercut warning appears below the limit', async ({ page }) => {
     await page.goto(url('modules/gear-geometry.html'));
     await page.fill('#n1', '12'); await page.dispatchEvent('#n1', 'input');

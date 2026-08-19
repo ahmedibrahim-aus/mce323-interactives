@@ -211,12 +211,32 @@ function drawMesh(){
   g += SVG.text(pitchX,cy+22,"P",{col:"var(--principal)",size:13,mono:true,weight:700});
 
   if(showLine){
-    const p=phi*D, L=Math.max(g1.rb,g2.rb)*k*1.9;
-    const dx=Math.cos(p), dy=Math.sin(p);
-    g += SVG.line(pitchX-L*dx,cy+L*dy,pitchX+L*dx,cy-L*dy,"var(--jade)",2);
-    g += SVG.text(pitchX+L*dx*0.72,cy-L*dy*0.72-10,"pressure line",{col:"var(--jade)",size:12,mono:true,weight:700});
-    g += SVG.path(`M ${pitchX+40} ${cy} A 40 40 0 0 0 ${pitchX+40*Math.cos(p)} ${cy-40*Math.sin(p)}`,"var(--jade)",1.4);
-    g += SVG.text(pitchX+56,cy-14,"φ "+phi+"°",{col:"var(--jade)",size:12,anchor:"start",mono:true});
+    /* The pressure angle is measured from the COMMON TANGENT to the pitch circles
+       at the pitch point, not from the line of centres. Getting that reference
+       right is exactly what makes the line of action tangent to both base
+       circles: its perpendicular distance from each centre comes out r*cos(phi),
+       which is the base radius by definition. */
+    const p=phi*D, ux=Math.sin(p), uy=-Math.cos(p);        /* unit vector along the line */
+    const t1=g1.r*k*Math.sin(p), t2=g2.r*k*Math.sin(p);    /* pitch point to each tangency */
+    const back=t1*1.8, fwd=t2*1.8;
+
+    /* the reference the angle is measured from, so the construction is legible */
+    const ct=Math.max(back,fwd)*0.62;
+    g += SVG.line(pitchX,cy-ct,pitchX,cy+ct,"#b9c4ce",1.2,"5 4");
+
+    g += SVG.line(pitchX-back*ux,cy-back*uy,pitchX+fwd*ux,cy+fwd*uy,"var(--jade)",2);
+
+    /* the two points of tangency — the visible proof the construction is right */
+    g += SVG.circle(pitchX-t1*ux,cy-t1*uy,3.5,"var(--jade)");
+    g += SVG.circle(pitchX+t2*ux,cy+t2*uy,3.5,"var(--jade)");
+
+    g += SVG.text(pitchX+fwd*ux+9,cy+fwd*uy-4,"pressure line",
+                  {col:"var(--jade)",size:12,mono:true,weight:700,anchor:"start"});
+    const R=44;
+    g += SVG.path(`M ${pitchX.toFixed(1)} ${(cy-R).toFixed(1)} A ${R} ${R} 0 0 1 `
+                + `${(pitchX+R*ux).toFixed(1)} ${(cy+R*uy).toFixed(1)}`,"var(--jade)",1.4);
+    g += SVG.text(pitchX+R*0.62*ux+9,cy+R*0.78*uy+4,"φ "+phi+"°",
+                  {col:"var(--jade)",size:12,anchor:"start",mono:true});
   }
   g += SVG.text(x1,cy+g1.ra*k+26,`${N1}T`,{col:"#46545f",size:13,mono:true,weight:700});
   g += SVG.text(x2,cy+g2.ra*k+26,`${N2}T`,{col:"#46545f",size:13,mono:true,weight:700});
