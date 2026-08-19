@@ -238,7 +238,10 @@ function buildMohr(){
     } else {
       [[P.s1,"σ1"],[P.s2,"σ2"]].forEach(([v,l])=>{
         g += SVG.circle(MX(v),cy,5,"var(--principal)");
-        g += SVG.text(MX(v),cy+22,l+" = "+fmt(v,1),{col:"var(--principal)",size:12.5,mono:true,weight:700});
+        /* anchored away from the centre so they never reach back over the 2θ arc */
+        const outw = v >= P.avg;
+        g += SVG.mtext(MX(v)+(outw?7:-7),cy+22,(l==="σ1"?"σ_1":"σ_2")+" = "+fmt(v,1),
+                       {col:"var(--principal)",size:14,weight:700,anchor:outw?"start":"end"});
       });
       g += SVG.circle(MX(P.avg),MY(P.R),4.5,"var(--brass)");
       g += SVG.mtext(MX(P.avg)+9,MY(P.R)+19,"τ_max in-plane = "+fmt(P.R,1),{col:"var(--brass)",size:12,anchor:"start",mono:true,weight:700});
@@ -267,9 +270,11 @@ function drawMohr(){
   if (!hiding()){
     /* step clear of any marker that already carries a label: the two principal
        points on the axis, and the tau_max point at the foot of the circle */
-    const onAxis = (Math.abs(y-MG.cy) < 24 &&
-                    Math.min(Math.abs(x-MX(P.s1)), Math.abs(x-MX(P.s2))) < 60)
-                || Math.hypot(x-MX(P.avg), y-MY(P.R)) < 78;
+    /* every marker that already carries a label, and where that label actually
+       sits — sigma1/sigma2 are written just below the axis, not on it */
+    const near = (px, py) => Math.hypot(x-px, y-py) < 80;
+    const onAxis = near(MX(P.s1), MG.cy+22) || near(MX(P.s2), MG.cy+22)
+                || near(MX(P.avg), MY(P.R));
     /* a degenerate circle already carries its own explanation at the centre */
     const rightOfCentre = x >= MX(P.avg);
     /* where the point sits on a marker that is already labelled — a principal
@@ -279,8 +284,8 @@ function drawMohr(){
                   {col:"#10151b",size:12,mono:true,anchor:rightOfCentre ? "start" : "end"});
     const clear = P.R >= 0.5
       && Math.hypot(xc-x, yc-y) > 74
-      && !(Math.abs(yc-MG.cy) < 24 &&
-           Math.min(Math.abs(xc-MX(P.s1)), Math.abs(xc-MX(P.s2))) < 66)
+      && Math.hypot(xc-MX(P.s1), yc-(MG.cy+22)) > 80
+      && Math.hypot(xc-MX(P.s2), yc-(MG.cy+22)) > 80
       && Math.hypot(xc-MX(P.avg), yc-MG.cy) > 62;
     const cRight = xc >= MX(P.avg);
     if (clear) g += SVG.mtext(xc + (cRight ? 16 : -16), yc+4, "(σ_y′, −τ)",
