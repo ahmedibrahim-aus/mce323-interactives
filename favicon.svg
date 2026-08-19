@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Mohr's circle: the motif the whole site is built on -->
+  <rect width="32" height="32" rx="6" fill="#fbfcfd"/>
+  <line x1="3" y1="16" x2="29" y2="16" stroke="#b9c4ce" stroke-width="1.5"/>
+  <circle cx="16" cy="16" r="9" fill="none" stroke="#a8322e" stroke-width="2.4"/>
+  <circle cx="16" cy="16" r="1.8" fill="#a8322e"/>
+  <circle cx="22.4" cy="9.6" r="3" fill="#27488c"/>
+</svg>
