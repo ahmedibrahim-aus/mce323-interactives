@@ -23,12 +23,12 @@
     <div class="field"><label for="mat">Material</label>
       <select id="mat"><option value="d">Ductile</option><option value="b">Brittle</option></select>
     </div>
-    <div class="field" id="fdy"><label for="sy">Sy MPa</label><input type="number" id="sy" step="10" value="700"></div>
-    <div class="field" id="fut" hidden><label for="sut">Sut MPa</label><input type="number" id="sut" step="10" value="210"></div>
-    <div class="field" id="fuc" hidden><label for="suc">Suc MPa</label><input type="number" id="suc" step="10" value="630"></div>
+    <div class="field" id="fdy"><label for="sy"><span class="mth"><i>S</i><sub>y</sub></span> MPa</label><input type="number" id="sy" step="10" value="700"></div>
+    <div class="field" id="fut" hidden><label for="sut"><span class="mth"><i>S</i><sub>ut</sub></span> MPa</label><input type="number" id="sut" step="10" value="210"></div>
+    <div class="field" id="fuc" hidden><label for="suc"><span class="mth"><i>S</i><sub>uc</sub></span> MPa</label><input type="number" id="suc" step="10" value="630"></div>
     <div class="divider"></div>
-    <div class="field"><label for="sa">σA</label><input type="number" id="sa" step="5" value="70"></div>
-    <div class="field"><label for="sb">σB</label><input type="number" id="sb" step="5" value="70"></div>
+    <div class="field"><label for="sa"><span class="mth"><i>σ</i><sub>A</sub></span></label><input type="number" id="sa" step="5" value="70"></div>
+    <div class="field"><label for="sb"><span class="mth"><i>σ</i><sub>B</sub></span></label><input type="number" id="sb" step="5" value="70"></div>
     <div class="divider"></div>
     <button id="orbit" class="primary">▶&nbsp; Orbit</button>
     <button id="predict">Predict mode</button>
@@ -70,7 +70,7 @@
 <script src="../assets/instrument.js"></script>
 <script>
 "use strict";
-let M={ mode:"d", Sy:700, Sut:210, Suc:630 };
+let MAT={ mode:"d", Sy:700, Sut:210, Suc:630 };
 let sA=490, sB=490, predict=false, revealed=false, orbitT=0;
 
 mountTopbar({});
@@ -81,10 +81,10 @@ const hiding=()=>predict&&!revealed, q=v=>hiding()?"—":v;
 /* ---------- criteria ------------------------------------------------------ */
 function ordered(){ const s=[sA,sB,0].sort((a,b)=>b-a); return {s1:s[0],s3:s[2]}; }
 const vonMises = () => Math.sqrt(sA*sA - sA*sB + sB*sB);
-function nDE(){ const v=vonMises(); return v<1e-9?Infinity:M.Sy/v; }
-function nMSS(){ const {s1,s3}=ordered(); const d=s1-s3; return d<1e-9?Infinity:M.Sy/d; }
+function nDE(){ const v=vonMises(); return v<1e-9?Infinity:MAT.Sy/v; }
+function nMSS(){ const {s1,s3}=ordered(); const d=s1-s3; return d<1e-9?Infinity:MAT.Sy/d; }
 function nBCM(){
-  const {Sut,Suc}=M;
+  const {Sut,Suc}=MAT;
   if (sA>=0 && sB>=0){ const h=Math.max(sA,sB); return h<1e-9?Infinity:Sut/h; }
   if (sA<=0 && sB<=0) return Math.abs(Math.min(sA,sB))<1e-9?Infinity:Suc/Math.abs(Math.min(sA,sB));
   const hi=Math.max(sA,sB), lo=Math.min(sA,sB);
@@ -92,7 +92,7 @@ function nBCM(){
   return f<1e-9?Infinity:1/f;
 }
 function nMM(){   /* modified Mohr */
-  const {Sut,Suc}=M, hi=Math.max(sA,sB), lo=Math.min(sA,sB);
+  const {Sut,Suc}=MAT, hi=Math.max(sA,sB), lo=Math.min(sA,sB);
   if (sA>=0 && sB>=0) return hi<1e-9?Infinity:Sut/hi;
   if (sA<=0 && sB<=0) return Math.abs(lo)<1e-9?Infinity:Suc/Math.abs(lo);
   if (Math.abs(lo)<=hi) return Sut/hi;          /* eq. 5-32b: |sigB/sigA| <= 1 */
@@ -115,10 +115,10 @@ const mmPoly  = (ut,uc) => [[ut,0],[ut,ut],[0,ut],[-ut,ut],[-uc,0],[-uc,-uc],[0,
 /* ---------- draw ---------------------------------------------------------- */
 let F=null;
 function draw(){
-  const lim = (M.mode==="d" ? M.Sy : Math.max(M.Sut,M.Suc)) * 1.35;
+  const lim = (MAT.mode==="d" ? MAT.Sy : Math.max(MAT.Sut,MAT.Suc)) * 1.35;
   const f = frame({ w:620,h:610,l:66,r:24,t:24,b:56,    /* pw = ph = 530: 45 deg draws at 45 deg */
     xmin:-lim,xmax:lim,ymin:-lim,ymax:lim,
-    xlabel:"σA", ylabel:"σB", zeroY:true, zeroX:true,
+    xlabel:"σ_A", ylabel:"σ_B", zeroY:true, zeroX:true,
     xfmt:v=>fmt(v,0), yfmt:v=>fmt(v,0) });
   F=f;
   let g=f.g;
@@ -128,21 +128,21 @@ function draw(){
     return SVG.path(d+" Z",col,w,fill||"none",dash);
   };
 
-  if (M.mode==="d"){
-    g += poly(deEllipse(M.Sy),"var(--dye)",2.4,null,"rgba(39,72,140,.05)");
-    g += poly(mssHex(M.Sy),"var(--principal)",2.4);
-    g += SVG.text(f.X(M.Sy*0.62),f.Y(M.Sy*0.90),"DE (von Mises)",{col:"var(--dye)",size:12.5,mono:true,weight:700});
-    g += SVG.text(f.X(-M.Sy*0.30),f.Y(-M.Sy*0.98),"MSS",{col:"var(--principal)",size:12.5,mono:true,weight:700});
+  if (MAT.mode==="d"){
+    g += poly(deEllipse(MAT.Sy),"var(--dye)",2.4,null,"rgba(39,72,140,.05)");
+    g += poly(mssHex(MAT.Sy),"var(--principal)",2.4);
+    g += SVG.text(f.X(MAT.Sy*0.62),f.Y(MAT.Sy*0.90),"DE (von Mises)",{col:"var(--dye)",size:12.5,mono:true,weight:700});
+    g += SVG.text(f.X(-MAT.Sy*0.30),f.Y(-MAT.Sy*0.98),"MSS",{col:"var(--principal)",size:12.5,mono:true,weight:700});
   } else {
-    g += poly(mmPoly(M.Sut,M.Suc),"var(--brass)",2.2,"6 4");
-    g += poly(bcmPoly(M.Sut,M.Suc),"var(--principal)",2.4);
-    g += SVG.text(f.X(-M.Suc*0.55),f.Y(-M.Suc*0.86),"Brittle Coulomb–Mohr",{col:"var(--principal)",size:12.5,mono:true,weight:700});
-    g += SVG.text(f.X(M.Sut*1.1),f.Y(-M.Suc*0.42),"Modified Mohr",{col:"var(--brass)",size:12.5,mono:true,weight:700,anchor:"start"});
+    g += poly(mmPoly(MAT.Sut,MAT.Suc),"var(--brass)",2.2,"6 4");
+    g += poly(bcmPoly(MAT.Sut,MAT.Suc),"var(--principal)",2.4);
+    g += SVG.text(f.X(-MAT.Suc*0.55),f.Y(-MAT.Suc*0.86),"Brittle Coulomb–Mohr",{col:"var(--principal)",size:12.5,mono:true,weight:700});
+    g += SVG.text(f.X(MAT.Sut*1.1),f.Y(-MAT.Suc*0.42),"Modified Mohr",{col:"var(--brass)",size:12.5,mono:true,weight:700,anchor:"start"});
   }
 
   /* the 45° hydrostatic line */
   g += SVG.line(f.X(-lim),f.Y(-lim),f.X(lim),f.Y(lim),"#c3ced8",1,"5 5");
-  g += SVG.text(f.X(lim*0.80),f.Y(lim*0.88),"σA = σB",{col:"#9fadba",size:11.5,mono:true});
+  g += SVG.mtext(f.X(lim*0.80),f.Y(lim*0.88),"σ_A = σ_B",{col:"#9fadba",size:11.5,mono:true});
 
   /* the point */
   const px=f.X(sA), py=f.Y(sB);
@@ -160,27 +160,27 @@ function draw(){
 /* ---------- readouts ------------------------------------------------------ */
 function out(){
   const list=[];
-  if (M.mode==="d"){
+  if (MAT.mode==="d"){
     const de=nDE(), mss=nMSS();
-    list.push({k:"σ′ von Mises", v:q(fmt(vonMises(),1)), tone:"blue"});
-    list.push({k:"n — DE",  v:q(isFinite(de)?fmt(de,2):"∞"),  tone:"blue"});
-    list.push({k:"n — MSS", v:q(isFinite(mss)?fmt(mss,2):"∞"), tone:"red", n:"always ≤ DE"});
+    list.push({k:M("σ′") + " von Mises", v:q(fmt(vonMises(),1)), tone:"blue"});
+    list.push({k:M("n") + " — DE",  v:q(isFinite(de)?fmt(de,2):"∞"),  tone:"blue"});
+    list.push({k:M("n") + " — MSS", v:q(isFinite(mss)?fmt(mss,2):"∞"), tone:"red", n:"always ≤ DE"});
     const gap = isFinite(de)&&isFinite(mss)&&mss>0 ? (de/mss-1)*100 : 0;
     list.push({k:"MSS penalty", v:q(fmt(gap,1)+" %"), n:"how much conservatism costs here"});
   } else {
     const bcm=nBCM(), mm=nMM();
-    list.push({k:"n — BCM", v:q(isFinite(bcm)?fmt(bcm,2):"∞"), tone:"red"});
-    list.push({k:"n — Mod. Mohr", v:q(isFinite(mm)?fmt(mm,2):"∞"), tone:"brass", n:"fits data better"});
-    list.push({k:"Suc / Sut", v:q(fmt(M.Suc/M.Sut,2)), n:"why the envelope is lopsided"});
+    list.push({k:M("n") + " — BCM", v:q(isFinite(bcm)?fmt(bcm,2):"∞"), tone:"red"});
+    list.push({k:M("n") + " — Mod. Mohr", v:q(isFinite(mm)?fmt(mm,2):"∞"), tone:"brass", n:"fits data better"});
+    list.push({k:M("S_uc / S_ut"), v:q(fmt(MAT.Suc/MAT.Sut,2)), n:"why the envelope is lopsided"});
   }
   const {s1,s3}=ordered();
-  list.push({k:"σ1", v:q(fmt(s1,1))});
-  list.push({k:"σ3", v:q(fmt(s3,1)), n:"the zero counts"});
+  list.push({k:M("σ_1"), v:q(fmt(s1,1))});
+  list.push({k:M("σ_3"), v:q(fmt(s3,1)), n:"the zero counts"});
   cells("out",list);
 
   let msg="";
   if (hiding()) msg=["<b>Predict mode.</b> Ask which criterion gives the lower factor of safety here, and by how much, before revealing.","neutral"];
-  else if (M.mode==="d"){
+  else if (MAT.mode==="d"){
     const de=nDE(), mss=nMSS();
     if (Math.abs(sA-sB)<1e-6 && Math.abs(sA)>1e-9) msg=["<b>Equal in both directions, not hydrostatic.</b> With σ3 = 0 this state still distorts: σ′ = |σA|, so DE and MSS both predict yielding at σA = σB = Sy. True hydrostatic needs σ1 = σ2 = σ3, which on this plot is only the origin.","neutral"];
     else if (sA>0 && sB<0) msg=["<b>Fourth quadrant.</b> Opposite signs is where the two theories disagree most, and it is where shafts live. Design with MSS here if you want the margin."];
@@ -189,7 +189,7 @@ function out(){
   }
   callout("note", msg?msg[0]:"", msg?msg[1]:null);
 
-  $("guide").innerHTML = M.mode==="d"
+  $("guide").innerHTML = MAT.mode==="d"
     ? `<p style="margin:0 0 8px"><b>Ductile.</b> Compare a von Mises stress against S<sub>y</sub>.</p>
        <p style="margin:0 0 8px;color:var(--ink-2)">Use <b style="color:var(--principal)">MSS</b> when you want conservatism — for design, and where reliability matters. Use <b style="color:var(--dye)">DE</b> when you want agreement with test data — for analysis, and when weight is tight.</p>
        <p style="margin:0;color:var(--ink-2)">If tensile and compressive strengths differ, neither applies. Switch the material above.</p>`
@@ -206,7 +206,7 @@ let dragging=false;
 function toData(e){
   const r=svg.getBoundingClientRect(), vb=svg.viewBox.baseVal;
   const x=(e.clientX-r.left)/r.width*vb.width, y=(e.clientY-r.top)/r.height*vb.height;
-  const lim=(M.mode==="d"?M.Sy:Math.max(M.Sut,M.Suc))*1.35;
+  const lim=(MAT.mode==="d"?MAT.Sy:Math.max(MAT.Sut,MAT.Suc))*1.35;
   sA=(x-F.l)/F.pw*(2*lim)-lim;
   sB=lim-(y-F.t)/F.ph*(2*lim);
   sA=Math.round(sA); sB=Math.round(sB);
@@ -220,12 +220,12 @@ svg.addEventListener("pointerup",()=>dragging=false);
   sA=parseFloat($("sa").value)||0; sB=parseFloat($("sb").value)||0; draw(); out();
 }));
 ["sy","sut","suc"].forEach(id=>$(id).addEventListener("input",()=>{
-  M.Sy=parseFloat($("sy").value)||1; M.Sut=parseFloat($("sut").value)||1; M.Suc=parseFloat($("suc").value)||1; draw(); out();
+  MAT.Sy=parseFloat($("sy").value)||1; MAT.Sut=parseFloat($("sut").value)||1; MAT.Suc=parseFloat($("suc").value)||1; draw(); out();
 }));
 $("mat").addEventListener("change",e=>{
-  M.mode=e.target.value;
-  $("fdy").hidden=M.mode!=="d"; $("fut").hidden=M.mode==="d"; $("fuc").hidden=M.mode==="d";
-  if(M.mode==="b"){ sA=100; sB=-40; } else { sA=70; sB=70; }
+  MAT.mode=e.target.value;
+  $("fdy").hidden=MAT.mode!=="d"; $("fut").hidden=MAT.mode==="d"; $("fuc").hidden=MAT.mode==="d";
+  if(MAT.mode==="b"){ sA=100; sB=-40; } else { sA=70; sB=70; }
   sync();
 });
 $("predict").addEventListener("click",()=>{
@@ -242,14 +242,14 @@ $("presets").innerHTML=PRESETS.map((p,i)=>`<button class="chip" data-i="${i}">${
 $("presets").addEventListener("click",e=>{
   const b=e.target.closest("button"); if(!b) return;
   const [,a,bb,m]=PRESETS[+b.dataset.i];
-  if(M.mode!==m){ M.mode=m; $("mat").value=m;
+  if(MAT.mode!==m){ MAT.mode=m; $("mat").value=m;
     $("fdy").hidden=m!=="d"; $("fut").hidden=m==="d"; $("fuc").hidden=m==="d"; }
   sA=a; sB=bb; sync();
 });
 
 const orb=sweeper("orbit",dt=>{
   orbitT+=dt*0.7;
-  const R=(M.mode==="d"?M.Sy:M.Sut)*0.82;
+  const R=(MAT.mode==="d"?MAT.Sy:MAT.Sut)*0.82;
   sA=Math.round(R*Math.cos(orbitT)); sB=Math.round(R*Math.sin(orbitT)); sync();
 });
 addEventListener("keydown",e=>{

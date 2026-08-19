@@ -20,23 +20,23 @@
   <div class="presets" id="presets"></div>
 
   <div class="controls">
-    <div class="field"><label for="ma">Ma N·m</label><input type="number" id="ma" step="10" value="142.35"></div>
-    <div class="field"><label for="tm">Tm N·m</label><input type="number" id="tm" step="10" value="124.28"></div>
-    <div class="field"><label for="kf">Kf</label><input type="number" id="kf" step="0.05" value="1.58"></div>
-    <div class="field"><label for="kfs">Kfs</label><input type="number" id="kfs" step="0.05" value="1.37"></div>
+    <div class="field"><label for="ma"><span class="mth"><i>M</i><sub>a</sub></span> N·m</label><input type="number" id="ma" step="10" value="142.35"></div>
+    <div class="field"><label for="tm"><span class="mth"><i>T</i><sub>m</sub></span> N·m</label><input type="number" id="tm" step="10" value="124.28"></div>
+    <div class="field"><label for="kf"><span class="mth"><i>K</i><sub>f</sub></span></label><input type="number" id="kf" step="0.05" value="1.58"></div>
+    <div class="field"><label for="kfs"><span class="mth"><i>K</i><sub>fs</sub></span></label><input type="number" id="kfs" step="0.05" value="1.37"></div>
     <div class="divider"></div>
-    <div class="field"><label for="se">Se</label><input type="number" id="se" step="10" value="186.9"></div>
-    <div class="field"><label for="sut">Sut</label><input type="number" id="sut" step="10" value="724"></div>
-    <div class="field"><label for="sy">Sy</label><input type="number" id="sy" step="10" value="565"></div>
+    <div class="field"><label for="se"><span class="mth"><i>S</i><sub>e</sub></span></label><input type="number" id="se" step="10" value="186.9"></div>
+    <div class="field"><label for="sut"><span class="mth"><i>S</i><sub>ut</sub></span></label><input type="number" id="sut" step="10" value="724"></div>
+    <div class="field"><label for="sy"><span class="mth"><i>S</i><sub>y</sub></span></label><input type="number" id="sy" step="10" value="565"></div>
     <div class="divider"></div>
     <div class="field" style="flex:1 1 280px">
-      <label for="d">d mm</label>
+      <label for="d"><span class="mth"><i>d</i></span> mm</label>
       <input type="range" id="d" min="10" max="90" step="0.01" value="27.94">
       <span class="readout" id="dv">27.9</span>
     </div>
     <button id="predict">Predict mode</button>
     <button id="solve" class="primary">Solve d for n = <span id="ntgt">1.5</span></button>
-    <div class="field"><label for="ntarget">target n</label><input type="number" id="ntarget" step="0.25" value="1.5" style="width:70px"></div>
+    <div class="field"><label for="ntarget">target <span class="mth"><i>n</i></span></label><input type="number" id="ntarget" step="0.25" value="1.5" style="width:70px"></div>
   </div>
 
   <div class="grid g2">
@@ -160,8 +160,8 @@ function drawBars(){
   g += SVG.text(x0-10,y+20,"required d³",{col:"#46545f",size:12,anchor:"end",mono:true,weight:700});
   if(wa>70) g += SVG.text(x0+wa/2,y+20,fmt(100*a/tot,0)+"% bending",{col:"#fff",size:12.5,mono:true,weight:700,onfill:true});
   if(w-wa>70) g += SVG.text(x0+wa+(w-wa)/2,y+20,fmt(100*b/tot,0)+"% torsion",{col:"#fff",size:12.5,mono:true,weight:700,onfill:true});
-  g += SVG.text(x0,y+52,"A / Se = "+fmt(a,0)+" mm³",{col:"var(--dye)",size:12.5,anchor:"start",mono:true,weight:700});
-  g += SVG.text(x0+w,y+52,"B / Sut = "+fmt(b,0)+" mm³",{col:"var(--jade)",size:12.5,anchor:"end",mono:true,weight:700});
+  g += SVG.mtext(x0,y+52,"A / S_e = "+fmt(a,0)+" mm³",{col:"var(--dye)",size:12.5,anchor:"start",mono:true,weight:700});
+  g += SVG.mtext(x0+w,y+52,"B / S_ut = "+fmt(b,0)+" mm³",{col:"var(--jade)",size:12.5,anchor:"end",mono:true,weight:700});
   g += SVG.text(x0,y+76,"A = 2·Kf·Ma   ·   B = √3·Kfs·Tm   ·   mm³, for the Mm = Ta = 0 case",{col:"#8493a0",size:11.5,anchor:"start",weight:400});
   $("bars").innerHTML=g;
 }
@@ -195,14 +195,14 @@ function out(){
   const req=solveD(nt);
   const gov = nf<=ny ? "fatigue" : "yielding on the first cycle";
   const rows=[
-    {k:"n fatigue", v:fmt(nf,2), tone:"blue"},
-    {k:"n yield",   v:isFinite(ny)?fmt(ny,2):"∞", tone:"brass"},
+    {k:M("n") + " fatigue", v:fmt(nf,2), tone:"blue"},
+    {k:M("n") + " yield",   v:isFinite(ny)?fmt(ny,2):"∞", tone:"brass"},
     {k:"governs",   v:gov==="fatigue"?"FATIGUE":"YIELD", tone:"red", n:"the lower of the two"},
-    {k:"d required", v:fmt(req,2)+" mm", tone:"red", n:`for n = ${fmt(nt,2)}, ${solveDyld(nt)>solveDfat(nt)?"yield":"fatigue"} governs`},
+    {k:M("d") + " required", v:fmt(req,2)+" mm", tone:"red", n:`for n = ${fmt(nt,2)}, ${solveDyld(nt)>solveDfat(nt)?"yield":"fatigue"} governs`},
     {k:"specify",   v:Math.ceil(req)+" mm", n:"round up, never down"},
     {k:"A", v:sig(A(),4), n:"N·mm, alternating"},
     {k:"B", v:sig(B(),4), n:"N·mm, steady"},
-    {k:"σ′max", v:fmt(Math.sqrt((32*P.Kf*P.Ma*1000/(Math.PI*d**3))**2 + 3*(16*P.Kfs*P.Tm*1000/(Math.PI*d**3))**2),1), n:"MPa, for the yield check"}
+    {k:M("σ′_max"), v:fmt(Math.sqrt((32*P.Kf*P.Ma*1000/(Math.PI*d**3))**2 + 3*(16*P.Kfs*P.Tm*1000/(Math.PI*d**3))**2),1), n:"MPa, for the yield check"}
   ];
   cells("out", hiding() ? rows.map(r=>({...r, v:"—"})) : rows);
   let msg=null;

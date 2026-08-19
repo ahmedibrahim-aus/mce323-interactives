@@ -22,16 +22,16 @@
   <div class="controls">
     <div class="field"><label for="m">module mm</label><input type="number" id="m" step="0.5" min="0.5" value="5"></div>
     <div class="field" style="flex:1 1 220px">
-      <label for="n1">N pinion</label>
+      <label for="n1"><span class="mth"><i>N</i></span> pinion</label>
       <input type="range" id="n1" min="8" max="40" step="1" value="18">
       <span class="readout" id="n1v">18</span>
     </div>
     <div class="field" style="flex:1 1 220px">
-      <label for="n2">N gear</label>
+      <label for="n2"><span class="mth"><i>N</i></span> gear</label>
       <input type="range" id="n2" min="10" max="80" step="1" value="36">
       <span class="readout" id="n2v">36</span>
     </div>
-    <div class="field"><label for="phi">φ</label>
+    <div class="field"><label for="phi"><span class="mth"><i>φ</i></span></label>
       <select id="phi"><option>14.5</option><option selected>20</option><option>25</option></select>
     </div>
     <div class="divider"></div>
@@ -273,12 +273,12 @@ function drawMesh(){
 function out(){
   const g1=geom(N1), g2=geom(N2), nm=Nrack();
   cells("out",[
-    {k:"d pinion", v:fmt(g1.r*2,1)+" mm", tone:"red", n:"d = mN"},
-    {k:"d gear",   v:fmt(g2.r*2,1)+" mm", tone:"red"},
+    {k:M("d") + " pinion", v:fmt(g1.r*2,1)+" mm", tone:"red", n:"d = mN"},
+    {k:M("d") + " gear",   v:fmt(g2.r*2,1)+" mm", tone:"red"},
     {k:"C",        v:fmt(g1.r+g2.r,1)+" mm", n:"(dp + dg)/2"},
     {k:"p",        v:fmt(Math.PI*m,2)+" mm", tone:"blue", n:"circular pitch, πm"},
-    {k:"db pinion",v:fmt(g1.rb*2,1)+" mm", tone:"blue", n:"d cos φ"},
-    {k:"a / b",    v:fmt(m,2)+" / "+fmt(1.25*m,2), n:"addendum / dedendum"},
+    {k:M("d_b") + " pinion",v:fmt(g1.rb*2,1)+" mm", tone:"blue", n:"d cos φ"},
+    {k:M("a / b"),    v:fmt(m,2)+" / "+fmt(1.25*m,2), n:"addendum / dedendum"},
     {k:"ratio",    v:fmt(N2/N1,3)+" : 1", n:`${N1} → ${N2} teeth`},
     {k:"min teeth, rack",v:String(nm), tone:Math.min(N1,N2)<nm?"red":"jade", n:`against a rack, at φ = ${phi}°`},
     {k:"min teeth, this pair",v:String(Npair()), tone:Math.min(N1,N2)<Npair()?"red":"jade", n:"eq. 13-11, for the pair drawn"}

@@ -27,13 +27,13 @@
       <select id="basis"><option value="1000000">SKF · L10 = 10⁶ rev</option><option value="90000000">Timken · L10 = 90×10⁶</option></select>
     </div>
     <div class="divider"></div>
-    <div class="field"><label for="fd">Fd kN</label><input type="number" id="fd" step="0.1" value="1.779"></div>
+    <div class="field"><label for="fd"><span class="mth"><i>F</i><sub>d</sub></span> kN</label><input type="number" id="fd" step="0.1" value="1.779"></div>
     <div class="field"><label for="hrs">life h</label><input type="number" id="hrs" step="500" value="5000"></div>
     <div class="field"><label for="rpm">rev/min</label><input type="number" id="rpm" step="100" value="1725"></div>
-    <div class="field"><label for="af">af</label><input type="number" id="af" step="0.1" value="1"></div>
+    <div class="field"><label for="af"><span class="mth"><i>a</i><sub>f</sub></span></label><input type="number" id="af" step="0.1" value="1"></div>
     <div class="divider"></div>
     <div class="field" style="flex:1 1 260px">
-      <label for="rel">R</label>
+      <label for="rel"><span class="mth"><i>R</i></span></label>
       <input type="range" id="rel" min="0.9" max="0.999" step="0.001" value="0.9">
       <span class="readout" id="relv">0.900</span>
     </div>
@@ -127,7 +127,7 @@ function drawLL(){
 
   const lC=Math.log10(isFinite(C)?C:C10b());
   g += SVG.circle(f.X(Math.log10(L10)),f.Y(lC),6,"#fff","var(--jade)",3);
-  g += SVG.text(f.X(Math.log10(L10))+10,f.Y(lC)-10,"C10 = "+fmt(isFinite(C)?C:0,2)+" kN",{col:"var(--jade)",size:12.5,anchor:"start",mono:true,weight:700});
+  g += SVG.mtext(f.X(Math.log10(L10))+10,f.Y(lC)-10,"C_10 = "+fmt(isFinite(C)?C:0,2)+" kN",{col:"var(--jade)",size:12.5,anchor:"start",mono:true,weight:700});
 
   /* the doubling illustration */
   const l2=Math.log10(Ld()/Math.pow(2,a));
@@ -144,7 +144,7 @@ const sup = n => String(n).split("").map(c=>c==="-"?"⁻":SUP[+c]).join("");
 function drawRel(){
   const f=frame({w:660,h:260,l:70,r:26,t:20,b:50,
     xmin:0.5,xmax:0.999,ymin:0,ymax:Math.max(2.2,C10r()/C10b()*1.25||2.2),
-    xlabel:"reliability R", ylabel:"C10 multiplier",
+    xlabel:"reliability R", ylabel:"C_10 multiplier",
     xstep:0.1, xfmt:v=>fmt(v,2), yfmt:v=>fmt(v,1), zeroY:false});
   let g=f.g;
   const mult = r => Math.pow(1/relFactor(r), 1/a);   /* same basis as the readout */
@@ -181,9 +181,9 @@ function drawStack(){
 function out(){
   const C=C10r(), Cb=C10b(), Rn=Math.pow(R,nb);
   const rows=[
-    {k:"Ld", v:sig(Ld(),3)+" rev", n:`${fmt(hrs,0)} h at ${fmt(rpm,0)} rev/min`},
-    {k:"xD", v:sig(xD(),4), n:"Ld / L10"},
-    {k:"C10 catalog basis", v:fmt(Cb,2)+" kN", tone:"jade", n:"the rating you look up"},
+    {k:M("L_d"), v:sig(Ld(),3)+" rev", n:`${fmt(hrs,0)} h at ${fmt(rpm,0)} rev/min`},
+    {k:M("x_D"), v:sig(xD(),4), n:"Ld / L10"},
+    {k:M("C_10") + " catalog basis", v:fmt(Cb,2)+" kN", tone:"jade", n:"the rating you look up"},
     {k:`C10 needed, R = ${fmt(R,3)}`, v:isFinite(C)?fmt(C,2)+" kN":"—", tone:"red", n:"Weibull corrected, eq. 11-18"},
     {k:"penalty", v:isFinite(C)?"×"+fmt(C/Cb,2):"—", n:"cost of the extra reliability"},
     {k:"life if load ×2", v:fmt(Ld()/Math.pow(2,a)/1e6,2)+"×10⁶", tone:"brass", n:`divided by ${fmt(Math.pow(2,a),1)}`},

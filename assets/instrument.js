@@ -26,6 +26,55 @@ function sig(v, n = 3){
 }
 
 /* ---------- svg primitives ----------------------------------------------- */
+/* ---------------------------------------------------------------------------
+   Math typesetting, without a library.
+
+   Write symbols in a compact spec — "S_ut", "sigma_x'", "C_10", "(S_H)^2" —
+   and get back something that reads like an equation editor: the base italic in
+   a math face, the subscript smaller and dropped onto the baseline, the
+   superscript raised. Subscripts are set upright, which is how Shigley prints
+   S_ut, K_t, Y_N and the rest.
+
+   M(spec)              -> HTML, for labels and prose
+   SVG.mtext(x,y,spec)  -> an SVG <text> built from tspans
+--------------------------------------------------------------------------- */
+const MATH_FONT = "Cambria Math,Latin Modern Math,STIX Two Math,Times New Roman,Georgia,serif";
+
+/* split "S_ut" into [["S",""],["ut","sub"]] */
+function mparse(spec){
+  const out = []; let buf = "", mode = "";
+  const push = () => { if (buf) out.push([buf, mode]); buf = ""; };
+  for (let i = 0; i < spec.length; i++){
+    const c = spec[i];
+    if (c === "_" || c === "^"){
+      push(); mode = c === "_" ? "sub" : "sup";
+      if (spec[i+1] === "{"){                       // _{anything}
+        const j = spec.indexOf("}", i+2);
+        out.push([spec.slice(i+2, j), mode]); i = j; mode = ""; continue;
+      }
+      /* otherwise take the whole run: S_ut, C_10, tau_x'y' all work unbraced */
+      let j = i + 1;
+      while (j < spec.length && /[A-Za-z0-9'′]/.test(spec[j])) j++;
+      out.push([spec.slice(i+1, j), mode]); i = j - 1; mode = ""; continue;
+    }
+    buf += c;
+  }
+  push();
+  return out;
+}
+
+const VAR = /(^|[^A-Za-zͰ-Ͽ])([A-Za-zͰ-Ͽ])(?![A-Za-zͰ-Ͽ])/g;
+/* italicise lone letters only — "mean stress σ" sets the words upright */
+function mvar(t, wrap){
+  return String(t).replace(VAR, (_, pre, ch) => pre + wrap(ch));
+}
+function M(spec){
+  return `<span class="mth">` + mparse(spec).map(([t, m]) =>
+    m === "sub" ? `<sub>${t}</sub>` : m === "sup" ? `<sup>${t}</sup>`
+                : mvar(t, c => `<i>${c}</i>`)
+  ).join("") + `</span>`;
+}
+
 const SVG = {
   line(x1, y1, x2, y2, col, w = 1.5, dash, op = 1){
     return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" `
@@ -58,6 +107,21 @@ const SVG = {
     return `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}"${onfill ? ' class="onfill"' : ""} fill="${col}"`
       + ` font-size="${size}" font-weight="${weight}"${math ? ' font-style="italic"' : ""}`
       + ` text-anchor="${anchor}" font-family="${fam}" opacity="${op}"${tr}>${s}</text>`;
+  },
+  /* A symbol set as maths: italic base, upright subscript dropped a little and
+     smaller, superscript raised. Same spec language as M(). */
+  mtext(x, y, spec, o = {}){
+    const { col = "#10151b", size = 15, anchor = "middle", weight = 600, rot = null, op = 1 } = o;
+    const tr = rot !== null ? ` transform="rotate(${rot} ${x} ${y})"` : "";
+    const body = mparse(spec).map(([t, m]) => {
+      const esc = String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+      if (m === "sub") return `<tspan font-size="${(size*0.62).toFixed(1)}" dy="${(size*0.22).toFixed(1)}" font-style="normal">${esc}</tspan><tspan dy="${(-size*0.22).toFixed(1)}"></tspan>`;
+      if (m === "sup") return `<tspan font-size="${(size*0.62).toFixed(1)}" dy="${(-size*0.40).toFixed(1)}" font-style="normal">${esc}</tspan><tspan dy="${(size*0.40).toFixed(1)}"></tspan>`;
+      return mvar(esc, c => `<tspan font-style="italic">${c}</tspan>`);
+    }).join("");
+    return `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" fill="${col}" font-size="${size}"`
+      + ` font-weight="${weight}" text-anchor="${anchor}" font-family="${MATH_FONT}"`
+      + ` opacity="${op}"${tr}>${body}</text>`;
   },
   /* solid-headed arrow, head sits at (x2,y2) */
   arrow(x1, y1, x2, y2, col, w = 3, head = 10){
@@ -117,8 +181,17 @@ function frame(opt){
   }
   if (zeroY && ymin < 0 && ymax > 0) g += SVG.line(l, Y(0), l + pw, Y(0), "#b9c4ce", 1.5);
   if (zeroX && xmin < 0 && xmax > 0) g += SVG.line(X(0), t, X(0), t + ph, "#b9c4ce", 1.5);
-  if (xlabel) g += SVG.text(l + pw / 2, h - 10, xlabel, { col: "#46545f", size: 12.5 });
-  if (ylabel) g += SVG.text(14, t + ph / 2, ylabel, { col: "#46545f", size: 12.5, rot: -90 });
+  /* axis names carry symbols, so set them as maths; "|" splits the symbol part
+     from any plain wording that follows, e.g. "sigma_m|mean stress" */
+  const axlab = (x, y, spec, rot) => {
+    const [sym, words] = String(spec).split("|");
+    return words
+      ? SVG.mtext(x, y, sym, { col: "#46545f", size: 15, rot })
+      + SVG.text(x, y, "", {})
+      : SVG.mtext(x, y, sym, { col: "#46545f", size: 15, rot });
+  };
+  if (xlabel) g += axlab(l + pw / 2, h - 9, xlabel, null);
+  if (ylabel) g += axlab(15, t + ph / 2, ylabel, -90);
   return { g, X, Y, l, t, r, b, pw, ph, cid,
            clip: inner => `<g clip-path="url(#${cid})">${inner}</g>` };
 }

@@ -45,18 +45,18 @@
   <div class="presets" id="presets"></div>
 
   <div class="controls">
-    <div class="field"><label for="np">NP</label><input type="number" id="np" step="1" value="17" style="width:64px"></div>
-    <div class="field"><label for="ng">NG</label><input type="number" id="ng" step="1" value="52" style="width:64px"></div>
-    <div class="field"><label for="mn">mn</label><input type="number" id="mn" step="0.5" value="2.5" style="width:64px"></div>
-    <div class="field"><label for="psi">ψ°</label><input type="number" id="psi" step="5" value="30" style="width:60px"></div>
-    <div class="field"><label for="fw">face F</label><input type="number" id="fw" step="2" value="38" style="width:64px"></div>
+    <div class="field"><label for="np"><span class="mth"><i>N</i><sub>P</sub></span></label><input type="number" id="np" step="1" value="17" style="width:64px"></div>
+    <div class="field"><label for="ng"><span class="mth"><i>N</i><sub>G</sub></span></label><input type="number" id="ng" step="1" value="52" style="width:64px"></div>
+    <div class="field"><label for="mn"><span class="mth"><i>m</i><sub>n</sub></span></label><input type="number" id="mn" step="0.5" value="2.5" style="width:64px"></div>
+    <div class="field"><label for="psi"><span class="mth"><i>ψ</i></span>°</label><input type="number" id="psi" step="5" value="30" style="width:60px"></div>
+    <div class="field"><label for="fw">face <span class="mth"><i>F</i></span></label><input type="number" id="fw" step="2" value="38" style="width:64px"></div>
     <div class="divider"></div>
     <div class="field"><label for="pw">power W</label><input type="number" id="pw" step="100" value="2980" style="width:80px"></div>
     <div class="field"><label for="rpm">rev/min</label><input type="number" id="rpm" step="100" value="1800" style="width:76px"></div>
-    <div class="field"><label for="hb">HB</label><input type="number" id="hb" step="10" value="240" style="width:64px"></div>
-    <div class="field"><label for="qv">Qv</label><input type="number" id="qv" step="1" min="6" max="12" value="6" style="width:56px"></div>
+    <div class="field"><label for="hb"><span class="mth"><i>H</i><sub>B</sub></span></label><input type="number" id="hb" step="10" value="240" style="width:64px"></div>
+    <div class="field"><label for="qv"><span class="mth"><i>Q</i><sub>v</sub></span></label><input type="number" id="qv" step="1" min="6" max="12" value="6" style="width:56px"></div>
     <div class="field"><label for="qual">gearing</label><select id="qual"><option value="open">open</option><option value="comm" selected>commercial enclosed</option><option value="prec">precision</option><option value="xprec">extra precision</option></select></div>
-    <div class="field"><label for="ko">Ko</label><select id="ko"><option value="1.00" selected>1.00 uniform</option><option value="1.25">1.25 light shock</option><option value="1.50">1.50 medium shock</option><option value="1.75">1.75 heavy shock</option></select></div>
+    <div class="field"><label for="ko"><span class="mth"><i>K</i><sub>o</sub></span></label><select id="ko"><option value="1.00" selected>1.00 uniform</option><option value="1.25">1.25 light shock</option><option value="1.50">1.50 medium shock</option><option value="1.75">1.75 heavy shock</option></select></div>
     <div class="divider"></div>
     <button id="allon">All factors on</button>
     <button id="alloff" class="primary">Reset to 1</button>
@@ -181,7 +181,7 @@ function drawFall(){
   const b=base(), g=geomJ();
   const s0=b.Wt/(G.F*b.mt*g.J);
   const seq=[["baseline",1],["Ko",val("Ko")],["Kv",val("Kv")],["Ks",val("Ks")],["KH",val("KH")],["KB",val("KB")]];
-  let run=s0; const steps=[{k:"W t /(F·mt·J)",v:s0,d:s0}];
+  let run=s0; const steps=[{k:M("W_t /(F·m_t·J)"),v:s0,d:s0}];
   seq.slice(1).forEach(([k,f])=>{ const nv=run*f; steps.push({k,v:nv,d:nv-run,f}); run=nv; });
   const max=Math.max(...steps.map(s=>s.v))*1.22;
   const f2=frame({w:660,h:400,l:66,r:24,t:22,b:66,xmin:0,xmax:steps.length,ymin:0,ymax:max,
@@ -260,17 +260,17 @@ document.addEventListener("change",e=>{
 function out(){
   const r=results();
   cells("out",[
-    {k:"mt", v:fmt(r.mt,3)+" mm", n:"mn / cos ψ"},
-    {k:"dP", v:fmt(r.dP,2)+" mm"},
+    {k:M("m_t"), v:fmt(r.mt,3)+" mm", n:"mn / cos ψ"},
+    {k:M("d_P"), v:fmt(r.dP,2)+" mm"},
     {k:"V",  v:fmt(r.V,2)+" m/s", n:"pitch-line velocity"},
-    {k:"Wt", v:fmt(r.Wt,1)+" N", tone:"blue", n:"H / V"},
+    {k:M("W_t"), v:fmt(r.Wt,1)+" N", tone:"blue", n:"H / V"},
     {k:"J", v:fmt(r.J,3), n:"pinned to example 14-5, not interpolated"},
-    {k:"σ bending", v:fmt(r.sig,2)+" MPa", tone:"blue"},
-    {k:"σc contact", v:fmt(r.sc,1)+" MPa", tone:"red"},
-    {k:"St / Sc", v:fmt(r.St,0)+" / "+fmt(r.Sc,0), n:`grade 1, HB ${G.HB}`},
-    {k:"S_F", v:fmt(r.SF,2), tone:"blue"},
-    {k:"S_H", v:fmt(r.SH,2), tone:"red"},
-    {k:"(S_H)²", v:fmt(r.SH*r.SH,2), tone:"red", n:"compare this with S_F"}
+    {k:M("σ") + " bending", v:fmt(r.sig,2)+" MPa", tone:"blue"},
+    {k:M("σ_c") + " contact", v:fmt(r.sc,1)+" MPa", tone:"red"},
+    {k:M("S_t / S_c"), v:fmt(r.St,0)+" / "+fmt(r.Sc,0), n:`grade 1, HB ${G.HB}`},
+    {k:M("S_F"), v:fmt(r.SF,2), tone:"blue"},
+    {k:M("S_H"), v:fmt(r.SH,2), tone:"red"},
+    {k:M("(S_H)^2"), v:fmt(r.SH*r.SH,2), tone:"red", n:"compare this with S_F"}
   ]);
 }
 

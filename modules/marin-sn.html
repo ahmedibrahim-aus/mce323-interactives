@@ -20,7 +20,7 @@
   <div class="presets" id="presets"></div>
 
   <div class="controls">
-    <div class="field"><label for="sut">Sut MPa</label><input type="number" id="sut" step="10" value="690" style="width:84px"></div>
+    <div class="field"><label for="sut"><span class="mth"><i>S</i><sub>ut</sub></span> MPa</label><input type="number" id="sut" step="10" value="690" style="width:84px"></div>
     <div class="field"><label for="surf">Surface</label>
       <select id="surf">
         <option value="1.58,-0.085">Ground</option>
@@ -33,7 +33,7 @@
     <div class="field"><label for="load">Loading</label>
       <select id="load"><option value="bend">Bending</option><option value="ax">Axial</option><option value="tors">Torsion</option></select>
     </div>
-    <div class="field" style="flex:1 1 230px"><label for="d">d mm</label>
+    <div class="field" style="flex:1 1 230px"><label for="d"><span class="mth"><i>d</i></span> mm</label>
       <input type="range" id="d" min="5" max="150" step="0.01" value="32"><span class="readout" id="dv">32</span></div>
     <div class="field"><label for="temp">T °C</label><input type="number" id="temp" step="25" min="20" max="538" value="20" style="width:72px"></div>
     <div class="field"><label for="rel">Reliability</label>
@@ -44,7 +44,7 @@
       </select>
     </div>
     <div class="divider"></div>
-    <div class="field" style="flex:1 1 250px"><label for="sa">σa MPa</label>
+    <div class="field" style="flex:1 1 250px"><label for="sa"><span class="mth"><i>σ</i><sub>a</sub></span> MPa</label>
       <input type="range" id="sa" min="20" max="900" step="5" value="335"><span class="readout" id="sav">335</span></div>
     <button id="predict">Predict mode</button>
   </div>
@@ -128,12 +128,12 @@ const strengthAt = N => aCo()*Math.pow(N,bCo());
 function drawFall(){
   const shown = v => hiding() ? "—" : v;
   const steps=[
-    {k:"S′e", v:Sep(), f:null},
-    {k:"ka", v:Sep()*ka(), f:ka()},
-    {k:"kb", v:Sep()*ka()*kb(), f:kb()},
-    {k:"kc", v:Sep()*ka()*kb()*kc(), f:kc()},
-    {k:"kd", v:Sep()*ka()*kb()*kc()*kd(), f:kd()},
-    {k:"ke", v:Se(), f:ke}
+    {k:M("S′_e"), v:Sep(), f:null},
+    {k:M("k_a"), v:Sep()*ka(), f:ka()},
+    {k:M("k_b"), v:Sep()*ka()*kb(), f:kb()},
+    {k:M("k_c"), v:Sep()*ka()*kb()*kc(), f:kc()},
+    {k:M("k_d"), v:Sep()*ka()*kb()*kc()*kd(), f:kd()},
+    {k:M("k_e"), v:Se(), f:ke}
   ];
   const max=Sep()*1.2;
   const f2=frame({w:660,h:420,l:70,r:24,t:24,b:70,xmin:0,xmax:steps.length,ymin:0,ymax:max,
@@ -152,8 +152,8 @@ function drawFall(){
     g += SVG.text(x, Math.min(y0,y1)-8, shown(fmt(s.v,0)), {col:"#10151b",size:12,mono:true,weight:700});
   });
   g += SVG.line(f2.l,f2.Y(Se()),f2.l+f2.pw,f2.Y(Se()),"var(--jade)",1.4,"6 4");
-  g += SVG.text(f2.l+f2.pw*0.20,f2.Y(Se())+17,"Se = "+shown(fmt(Se(),1)+" MPa"),{col:"var(--jade)",size:12.5,anchor:"start",mono:true,weight:700});
-  g += SVG.text(f2.l+6,f2.t+16,`the specimen starts at ${Sut<=1400?"0.5 Sut":"700 MPa (Sut > 1400)"} = ${shown(fmt(Sep(),0))} MPa`,{col:"#8493a0",size:11.5,anchor:"start",weight:400});
+  g += SVG.mtext(f2.l+f2.pw*0.20,f2.Y(Se())+17,"S_e = "+shown(fmt(Se(),1)+" MPa"),{col:"var(--jade)",size:12.5,anchor:"start",mono:true,weight:700});
+  g += SVG.mtext(f2.l+6,f2.t+16,`the specimen starts at ${Sut<=1400?"0.5 S_ut":"700 MPa (Sut > 1400)"} = ${shown(fmt(Sep(),0))} MPa`,{col:"#8493a0",size:11.5,anchor:"start",weight:400});
   $("fall").innerHTML=g;
 }
 
@@ -163,7 +163,7 @@ const sup = n => String(n).split("").map(c=>SUP[+c]||c).join("");
 function drawSN(){
   const y1=Math.log10(Sut*1.25), y0=Math.log10(Math.max(Se()*0.45,10));
   const f=frame({w:660,h:420,l:74,r:26,t:24,b:56,xmin:0,xmax:8,ymin:y0,ymax:y1,
-    xlabel:"life N (cycles)", ylabel:"fatigue strength Sf (MPa)",
+    xlabel:"life N (cycles)", ylabel:"fatigue strength S_f (MPa)",
     xstep:1, ystep:0.2, xfmt:v=>"10"+sup(Math.round(v)), yfmt:v=>fmt(Math.pow(10,v),0), zeroY:false});
   let g=f.g, inner="";
   const S3=fFrac()*Sut, S6=Se();
@@ -173,14 +173,14 @@ function drawSN(){
   inner += SVG.line(f.X(6),f.Y(Math.log10(S6)),f.X(8),f.Y(Math.log10(S6)),"var(--dye)",3);
   g += f.clip(inner);
   g += SVG.circle(f.X(3),f.Y(Math.log10(S3)),5,"var(--dye)");
-  g += SVG.text(f.X(3),f.Y(Math.log10(S3))-12,"f·Sut = "+fmt(S3,0),{col:"var(--dye)",size:12,mono:true,weight:700});
+  g += SVG.mtext(f.X(3),f.Y(Math.log10(S3))-12,"f·S_ut = "+fmt(S3,0),{col:"var(--dye)",size:12,mono:true,weight:700});
   g += SVG.circle(f.X(6),f.Y(Math.log10(S6)),5,"var(--jade)");
-  g += SVG.text(f.X(6)+8,f.Y(Math.log10(S6))-10,"Se = "+fmt(S6,1),{col:"var(--jade)",size:12,anchor:"start",mono:true,weight:700});
+  g += SVG.mtext(f.X(6)+8,f.Y(Math.log10(S6))-10,"S_e = "+fmt(S6,1),{col:"var(--jade)",size:12,anchor:"start",mono:true,weight:700});
 
   if(!hiding()){
     const N=lifeAt(sa);
     g += SVG.line(f.l,f.Y(Math.log10(sa)),f.l+f.pw,f.Y(Math.log10(sa)),"var(--principal)",1.5,"5 4");
-    g += SVG.text(f.l+6,f.Y(Math.log10(sa))-8,"σa = "+fmt(sa,0),{col:"var(--principal)",size:12,anchor:"start",mono:true,weight:700});
+    g += SVG.mtext(f.l+6,f.Y(Math.log10(sa))-8,"σ_a = "+fmt(sa,0),{col:"var(--principal)",size:12,anchor:"start",mono:true,weight:700});
     if(sa>S6 && sa<S3 && isFinite(N)){
       const lN=Math.log10(N);
       g += SVG.line(f.X(lN),f.Y(Math.log10(sa)),f.X(lN),f.t+f.ph,"var(--principal)",1.5,"5 4");
@@ -198,15 +198,15 @@ function drawSN(){
 function out(){
   const N=lifeAt(sa), inf = sa<=Se();
   cells("out",[
-    {k:"S′e", v:q_(fmt(Sep(),0)+" MPa"), tone:"blue", n:Sut<=1400?"0.5 Sut":"capped, Sut > 1400"},
-    {k:"ka", v:q_(fmt(ka(),3))}, {k:"kb", v:q_(fmt(kb(),3))},
-    {k:"kc", v:q_(fmt(kc(),3))}, {k:"kd", v:q_(fmt(kd(),3))},
-    {k:"ke", v:q_(fmt(ke,3))},
-    {k:"Se", v:q_(fmt(Se(),1)+" MPa"), tone:"jade", n:"the corrected value"},
+    {k:M("S′_e"), v:q_(fmt(Sep(),0)+" MPa"), tone:"blue", n:Sut<=1400?"0.5 Sut":"capped, Sut > 1400"},
+    {k:M("k_a"), v:q_(fmt(ka(),3))}, {k:M("k_b"), v:q_(fmt(kb(),3))},
+    {k:M("k_c"), v:q_(fmt(kc(),3))}, {k:M("k_d"), v:q_(fmt(kd(),3))},
+    {k:M("k_e"), v:q_(fmt(ke,3))},
+    {k:M("S_e"), v:q_(fmt(Se(),1)+" MPa"), tone:"jade", n:"the corrected value"},
     {k:"f", v:q_(fmt(fFrac(),3)), n:"fraction of Sut at 10³"},
     {k:"a", v:q_(fmt(aCo(),0))}, {k:"b", v:q_(fmt(bCo(),4))},
     {k:"life at σa", v:q_(inf?"infinite":sig(N,3)+" cycles"), tone:inf?"jade":"red"},
-    {k:"n at ∞ life", v:q_(fmt(Se()/sa,2)), tone:"red", n:"Se / σa"}
+    {k:M("n") + " at ∞ life", v:q_(fmt(Se()/sa,2)), tone:"red", n:"Se / σa"}
   ]);
   let msg=null;
   if(hiding()) msg=["<b>Predict mode.</b> Ask which correction takes the biggest bite before you reveal the waterfall.","neutral"];

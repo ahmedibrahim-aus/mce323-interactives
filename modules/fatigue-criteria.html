@@ -20,12 +20,12 @@
   <div class="presets" id="presets"></div>
 
   <div class="controls">
-    <div class="field"><label for="se">Se</label><input type="number" id="se" step="10" value="186.9"></div>
-    <div class="field"><label for="sut">Sut</label><input type="number" id="sut" step="10" value="724"></div>
-    <div class="field"><label for="sy">Sy</label><input type="number" id="sy" step="10" value="565"></div>
+    <div class="field"><label for="se"><span class="mth"><i>S</i><sub>e</sub></span></label><input type="number" id="se" step="10" value="186.9"></div>
+    <div class="field"><label for="sut"><span class="mth"><i>S</i><sub>ut</sub></span></label><input type="number" id="sut" step="10" value="724"></div>
+    <div class="field"><label for="sy"><span class="mth"><i>S</i><sub>y</sub></span></label><input type="number" id="sy" step="10" value="565"></div>
     <div class="divider"></div>
-    <div class="field"><label for="sm">σm</label><input type="number" id="sm" step="10" value="200"></div>
-    <div class="field"><label for="sa">σa</label><input type="number" id="sa" step="10" value="120"></div>
+    <div class="field"><label for="sm"><span class="mth"><i>σ</i><sub>m</sub></span></label><input type="number" id="sm" step="10" value="200"></div>
+    <div class="field"><label for="sa"><span class="mth"><i>σ</i><sub>a</sub></span></label><input type="number" id="sa" step="10" value="120"></div>
     <div class="divider"></div>
     <button id="ray" class="primary">▶&nbsp; Push out along the load line</button>
     <button id="predict">Predict mode</button>
@@ -98,7 +98,7 @@ function draw(){
   const xm=Sut*1.12, ym=Math.max(Se,Sy*0.55)*1.5;
   const f=frame({w:660,h:500,l:66,r:26,t:26,b:56,
     xmin:0,xmax:xm,ymin:0,ymax:ym,
-    xlabel:"mean stress σm", ylabel:"alternating σa",
+    xlabel:"mean stress σ_m", ylabel:"alternating σ_a",
     xfmt:v=>fmt(v,0), yfmt:v=>fmt(v,0), zeroY:false});
   F=f; let g=f.g;
 
@@ -156,11 +156,11 @@ function drawWave(){
     xlabel:"time (cycles)", ylabel:"σ", xstep:1, xfmt:v=>fmt(v,0), yfmt:v=>fmt(v,0)});
   let g=f.g;
   g += SVG.line(f.l,f.Y(sm),f.l+f.pw,f.Y(sm),"var(--principal)",1.4,"6 4");
-  g += SVG.text(f.l+f.pw-4,f.Y(sm)+16,"σm = "+fmt(sm,0),{col:"var(--principal)",size:11.5,anchor:"end",mono:true,weight:700});
+  g += SVG.mtext(f.l+f.pw-4,f.Y(sm)+16,"σ_m = "+fmt(sm,0),{col:"var(--principal)",size:11.5,anchor:"end",mono:true,weight:700});
   g += SVG.path(curve(t=>sm+sa*Math.sin(2*Math.PI*t),0,3,f.X,f.Y,300),"var(--dye)",2.4);
   if(!hiding()){
     g += SVG.line(f.X(0.25),f.Y(sm),f.X(0.25),f.Y(sm+sa),"var(--jade)",2);
-    g += SVG.text(f.X(0.25)+7,f.Y(sm+sa/2)+4,"σa",{col:"var(--jade)",size:12,anchor:"start",mono:true,weight:700});
+    g += SVG.mtext(f.X(0.25)+7,f.Y(sm+sa/2)+4,"σ_a",{col:"var(--jade)",size:12,anchor:"start",mono:true,weight:700});
     const R = (sm-sa)===0 ? 0 : (sm-sa)/(sm+sa);
     g += SVG.text(f.l+f.pw-4,f.t+14,`σmax ${fmt(sm+sa,0)}   σmin ${fmt(sm-sa,0)}   R ${fmt(R,2)}`,
       {col:"#46545f",size:12,anchor:"end",mono:true});
@@ -177,7 +177,7 @@ function out(){
             n:c.note};
   });
   const ny=nLanger();
-  rows.push({k:"ny — Langer", v:q(isFinite(ny)?fmt(ny,2):"∞"), n:"yielding on the first cycle"});
+  rows.push({k:M("n_y") + " — Langer", v:q(isFinite(ny)?fmt(ny,2):"∞"), n:"yielding on the first cycle"});
   cells("out",rows);
 
   let msg=null;

@@ -21,13 +21,13 @@
   <div class="presets" id="presets"></div>
 
   <div class="controls">
-    <div class="field"><label for="sx">σx</label><input type="number" id="sx" step="5" value="10"></div>
-    <div class="field"><label for="sy">σy</label><input type="number" id="sy" step="5" value="0"></div>
-    <div class="field"><label for="txy">τxy</label><input type="number" id="txy" step="5" value="5"></div>
+    <div class="field"><label for="sx"><span class="mth"><i>σ</i><sub>x</sub></span></label><input type="number" id="sx" step="5" value="10"></div>
+    <div class="field"><label for="sy"><span class="mth"><i>σ</i><sub>y</sub></span></label><input type="number" id="sy" step="5" value="0"></div>
+    <div class="field"><label for="txy"><span class="mth"><i>τ</i><sub>xy</sub></span></label><input type="number" id="txy" step="5" value="5"></div>
     <button id="sense" class="chip" title="Shigley's convention: a counter-clockwise shear couple is positive">ccw (+)</button>
     <div class="divider"></div>
     <div class="field" style="flex:1 1 300px">
-      <label for="th">θ</label>
+      <label for="th"><span class="mth"><i>θ</i></span></label>
       <input type="range" id="th" min="0" max="180" step="0.5" value="0">
       <span class="readout" id="thv">0.0°</span>
     </div>
@@ -165,9 +165,9 @@ function drawElement(){
   }
 
   const ly=396;
-  g += SVG.line(24,ly,46,ly,"var(--dye)",3)+SVG.text(52,ly+4,"σx′",{col:"#46545f",size:12.5,anchor:"start",mono:true});
-  g += SVG.line(104,ly,126,ly,"var(--dye-2)",3)+SVG.text(132,ly+4,"σy′",{col:"#46545f",size:12.5,anchor:"start",mono:true});
-  g += SVG.line(184,ly,206,ly,"var(--jade)",3)+SVG.text(212,ly+4,"τx′y′",{col:"#46545f",size:12.5,anchor:"start",mono:true});
+  g += SVG.line(24,ly,46,ly,"var(--dye)",3)+SVG.mtext(52,ly+4,"σ_x′",{col:"#46545f",size:12.5,anchor:"start",mono:true});
+  g += SVG.line(104,ly,126,ly,"var(--dye-2)",3)+SVG.mtext(132,ly+4,"σ_y′",{col:"#46545f",size:12.5,anchor:"start",mono:true});
+  g += SVG.line(184,ly,206,ly,"var(--jade)",3)+SVG.mtext(212,ly+4,"τ_x′y′",{col:"#46545f",size:12.5,anchor:"start",mono:true});
   g += SVG.text(250,ly+22,"normal arrows scale with magnitude and reverse in compression · shear runs the full face, half head",{col:"#8493a0",size:11.5,weight:400});
   $("elem").innerHTML=g;
 }
@@ -181,7 +181,7 @@ function buildPlot(){
     xstep:30, xfmt:v=>v+"°", yfmt:v=>fmt(v,0)});
   let g=f.g;
   g += SVG.line(f.l,f.Y(P.avg),f.l+f.pw,f.Y(P.avg),"var(--dye)",1.3,"7 5");
-  g += SVG.text(f.l+6,f.Y(P.avg)-9,"σavg",{col:"var(--dye)",size:11.5,anchor:"start",mono:true,weight:700});
+  g += SVG.mtext(f.l+6,f.Y(P.avg)-9,"σ_avg",{col:"var(--dye)",size:11.5,anchor:"start",mono:true,weight:700});
   g += f.clip(
         SVG.path(curve(th=>at(th).sxp,0,180,f.X,f.Y,360),"var(--dye)",2.6)
       + SVG.path(curve(th=>at(th).syp,0,180,f.X,f.Y,360),"var(--dye-2)",2.6)
@@ -193,8 +193,8 @@ function buildPlot(){
     });
     [n180(P.ths),n180(P.ths+90)].forEach(A=>
       g += SVG.circle(f.X(A),f.Y(at(A).txp),4.5,"var(--brass)"));
-    g += SVG.text(f.X(n180(P.thp)),f.t+13,"θp",{col:"var(--principal)",size:12.5,mono:true,weight:700});
-    g += SVG.text(f.X(n180(P.ths)),f.t+13,"θs",{col:"var(--brass)",size:12.5,mono:true,weight:700});
+    g += SVG.mtext(f.X(n180(P.thp)),f.t+13,"θ_p",{col:"var(--principal)",size:12.5,mono:true,weight:700});
+    g += SVG.mtext(f.X(n180(P.ths)),f.t+13,"θ_s",{col:"var(--brass)",size:12.5,mono:true,weight:700});
   }
   plotBase=g; PF=f;
 }
@@ -216,13 +216,13 @@ function buildMohr(){
   g += SVG.line(48,cy,596,cy,"#b9c4ce",1.5);
   g += SVG.text(600,cy+4,"σ",{col:"#46545f",size:14,anchor:"start",mono:true});
   g += SVG.centre(MX(P.avg),36,MX(P.avg),372);
-  g += SVG.text(MX(P.avg)-10,388,"σavg",{col:"#8493a0",size:11.5,anchor:"end",mono:true});
+  g += SVG.mtext(MX(P.avg)-10,388,"σ_avg",{col:"#8493a0",size:11.5,anchor:"end",mono:true});
   /* the real tau axis is at sigma = 0, which is NOT the circle center */
   /* when sigma_avg is itself zero the centre line already IS the tau axis, so a
      second line and label there would just duplicate it */
   if (MX(0) > 52 && MX(0) < 592 && Math.abs(P.avg) > 0.05*Math.max(P.R,1)){
     g += SVG.line(MX(0),46,MX(0),362,"#8493a0",1.2,"3 4");
-    g += SVG.text(MX(0)+6,58,"σ = 0",{col:"#8493a0",size:11,anchor:"start",mono:true});
+    g += SVG.mtext(MX(0)+6,58,"σ = 0",{col:"#8493a0",size:11,anchor:"start",mono:true});
   }
   g += SVG.text(56,388,"τ ↓ positive",{col:"#8493a0",size:11.5,anchor:"start",mono:true});
   g += SVG.circle(MX(P.avg),cy,P.R*k,"none","#8493a0",2.2);
@@ -232,7 +232,7 @@ function buildMohr(){
       /* Equal σx and σy: the circle degenerates to a point. Three labels would sit
          on top of each other — say the one thing that is actually true instead. */
       g += SVG.circle(MX(P.avg),cy,5,"var(--principal)");
-      g += SVG.text(MX(P.avg),cy-16,"σ1 = σ2 = "+fmt(P.s1,1),{col:"var(--principal)",size:12.5,mono:true,weight:700});
+      g += SVG.mtext(MX(P.avg),cy-16,"σ_1 = σ_2 = "+fmt(P.s1,1),{col:"var(--principal)",size:12.5,mono:true,weight:700});
       g += SVG.text(MX(P.avg),cy+26,"in-plane circle is a point — but σ3 = 0, so τmax = σ1/2 out of plane",
                     {col:"var(--brass)",size:12,mono:true,weight:700});
     } else {
@@ -241,7 +241,7 @@ function buildMohr(){
         g += SVG.text(MX(v),cy+22,l+" = "+fmt(v,1),{col:"var(--principal)",size:12.5,mono:true,weight:700});
       });
       g += SVG.circle(MX(P.avg),MY(P.R),4.5,"var(--brass)");
-      g += SVG.text(MX(P.avg)+9,MY(P.R)+19,"τmax in-plane = "+fmt(P.R,1),{col:"var(--brass)",size:12,anchor:"start",mono:true,weight:700});
+      g += SVG.mtext(MX(P.avg)+9,MY(P.R)+19,"τ_max in-plane = "+fmt(P.R,1),{col:"var(--brass)",size:12,anchor:"start",mono:true,weight:700});
     }
   }
   mohrBase=g; MG={cx,cy,MX,MY,k,P};
@@ -265,12 +265,17 @@ function drawMohr(){
   g += SVG.circle(xc,yc,4.5,"#fff","#9fadba",2.2);
   g += SVG.circle(x,y,7,"#fff","#10151b",3);
   if (!hiding()){
-    const onAxis = Math.abs(y-MG.cy) < 24 &&
-      Math.min(Math.abs(x-MX(P.s1)), Math.abs(x-MX(P.s2))) < 60;
+    /* step clear of any marker that already carries a label: the two principal
+       points on the axis, and the tau_max point at the foot of the circle */
+    const onAxis = (Math.abs(y-MG.cy) < 24 &&
+                    Math.min(Math.abs(x-MX(P.s1)), Math.abs(x-MX(P.s2))) < 60)
+                || Math.hypot(x-MX(P.avg), y-MY(P.R)) < 78;
     /* a degenerate circle already carries its own explanation at the centre */
     const rightOfCentre = x >= MX(P.avg);
-    if (P.R >= 0.5)
-    g += SVG.text(x + (rightOfCentre ? 16 : -16), y + (onAxis ? -16 : 4), "(σx′, τx′y′)",
+    /* where the point sits on a marker that is already labelled — a principal
+       point, or tau_max — that label says it; a second one is just clutter */
+    if (P.R >= 0.5 && !onAxis)
+    g += SVG.mtext(x + (rightOfCentre ? 16 : -16), y + 4, "(σ_x′, τ_x′y′)",
                   {col:"#10151b",size:12,mono:true,anchor:rightOfCentre ? "start" : "end"});
     const clear = P.R >= 0.5
       && Math.hypot(xc-x, yc-y) > 74
@@ -278,7 +283,7 @@ function drawMohr(){
            Math.min(Math.abs(xc-MX(P.s1)), Math.abs(xc-MX(P.s2))) < 66)
       && Math.hypot(xc-MX(P.avg), yc-MG.cy) > 62;
     const cRight = xc >= MX(P.avg);
-    if (clear) g += SVG.text(xc + (cRight ? 16 : -16), yc+4, "(σy′, −τ)",
+    if (clear) g += SVG.mtext(xc + (cRight ? 16 : -16), yc+4, "(σ_y′, −τ)",
                              {col:"#9fadba",size:11.5,mono:true,anchor:cRight ? "start" : "end"});
   }
   g += SVG.text(310,406,"rotate the element θ and this point travels 2θ",{col:"#8493a0",size:12,weight:400});
@@ -289,16 +294,16 @@ function drawMohr(){
 function drawOut(){
   const st=at(theta), P=principal();
   cells("out",[
-    {k:"σx′",       v:q(fmt(st.sxp)),           tone:"blue"},
-    {k:"σy′",       v:q(fmt(st.syp))},
-    {k:"τx′y′",     v:q(fmt(st.txp)),           tone:"jade"},
-    {k:"σx′ + σy′", v:q(fmt(st.sxp+st.syp)),    tone:"blue", n:"invariant — never changes"},
-    {k:"σ1",        v:q(fmt(P.s1)),             tone:"red"},
-    {k:"σ2",        v:q(fmt(P.s2)),             tone:"red"},
-    {k:"θp",        v:q(angPlain(P.thp)),       tone:"red",  n:"planes of zero shear"},
-    {k:"τmax in-plane", v:q(fmt(P.R)), tone:"brass", n:"σ3 = 0, so check (σ1−σ3)/2 too"},
-    {k:"θs",        v:q(angPlain(P.ths)),       tone:"brass",n:"45° from θp"},
-    {k:"σavg",      v:q(fmt(P.avg)),                         n:"center of Mohr's circle"}
+    {k:M("σ_x′"),       v:q(fmt(st.sxp)),           tone:"blue"},
+    {k:M("σ_y′"),       v:q(fmt(st.syp))},
+    {k:M("τ_x′y′"),     v:q(fmt(st.txp)),           tone:"jade"},
+    {k:M("σ_x′ + σ_y′"), v:q(fmt(st.sxp+st.syp)),    tone:"blue", n:"invariant — never changes"},
+    {k:M("σ_1"),        v:q(fmt(P.s1)),             tone:"red"},
+    {k:M("σ_2"),        v:q(fmt(P.s2)),             tone:"red"},
+    {k:M("θ_p"),        v:q(angPlain(P.thp)),       tone:"red",  n:"planes of zero shear"},
+    {k:M("τ_max") + " in-plane", v:q(fmt(P.R)), tone:"brass", n:"σ3 = 0, so check (σ1−σ3)/2 too"},
+    {k:M("θ_s"),        v:q(angPlain(P.ths)),       tone:"brass",n:"45° from θp"},
+    {k:M("σ_avg"),      v:q(fmt(P.avg)),                         n:"center of Mohr's circle"}
   ]);
   if (hiding())
     callout("note","<b>Predict mode.</b> Ask where the principal planes are and take a vote on the angle before you press Reveal.","neutral");

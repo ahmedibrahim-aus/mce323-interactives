@@ -28,17 +28,17 @@
       </select>
     </div>
     <div class="divider"></div>
-    <div class="field" id="fw"><label for="wd">width w</label><input type="number" id="wd" step="5" value="100" style="width:76px"></div>
-    <div class="field" id="fd"><label for="dia">hole d</label><input type="number" id="dia" step="1" value="20" style="width:70px"></div>
-    <div class="field" id="fD" hidden><label for="Dd">D/d</label><input type="number" id="Dd" step="0.05" value="1.5" style="width:70px"></div>
-    <div class="field" id="fdd" hidden><label for="dd">d</label><input type="number" id="dd" step="1" value="30" style="width:70px"></div>
-    <div class="field" id="frr" style="flex:1 1 240px"><label for="rr">r mm</label>
+    <div class="field" id="fw"><label for="wd">width <span class="mth"><i>w</i></span></label><input type="number" id="wd" step="5" value="100" style="width:76px"></div>
+    <div class="field" id="fd"><label for="dia">hole <span class="mth"><i>d</i></span></label><input type="number" id="dia" step="1" value="20" style="width:70px"></div>
+    <div class="field" id="fD" hidden><label for="Dd"><span class="mth"><i>D/d</i></span></label><input type="number" id="Dd" step="0.05" value="1.5" style="width:70px"></div>
+    <div class="field" id="fdd" hidden><label for="dd"><span class="mth"><i>d</i></span></label><input type="number" id="dd" step="1" value="30" style="width:70px"></div>
+    <div class="field" id="frr" style="flex:1 1 240px"><label for="rr"><span class="mth"><i>r</i></span> mm</label>
       <input type="range" id="rr" min="0.5" max="12" step="0.1" value="3"><span class="readout" id="rrv">3.0</span></div>
     <div class="divider"></div>
     <div class="field"><label for="F" id="Flab">load N</label><input type="number" id="F" step="1000" value="10000" style="width:84px"></div>
-    <div class="field"><label for="t">thick b</label><input type="number" id="t" step="0.5" value="2.5" style="width:70px"></div>
-    <div class="field"><label for="sut">Sut</label><input type="number" id="sut" step="10" value="690" style="width:76px"></div>
-    <div class="field"><label for="sy">Sy</label><input type="number" id="sy" step="10" value="580" style="width:76px"></div>
+    <div class="field"><label for="t">thick <span class="mth"><i>b</i></span></label><input type="number" id="t" step="0.5" value="2.5" style="width:70px"></div>
+    <div class="field"><label for="sut"><span class="mth"><i>S</i><sub>ut</sub></span></label><input type="number" id="sut" step="10" value="690" style="width:76px"></div>
+    <div class="field"><label for="sy"><span class="mth"><i>S</i><sub>y</sub></span></label><input type="number" id="sy" step="10" value="580" style="width:76px"></div>
     <button id="predict">Predict mode</button>
   </div>
 
@@ -138,7 +138,7 @@ function drawChart(){
   let g, f;
   if(geo==="hole"){
     f=frame({w:660,h:420,l:66,r:26,t:24,b:56,xmin:0,xmax:0.7,ymin:1,ymax:3.2,
-      xlabel:"d / w", ylabel:"Kt", xstep:0.1, ystep:0.5,
+      xlabel:"d / w", ylabel:"K_t", xstep:0.1, ystep:0.5,
       xfmt:v=>fmt(v,1), yfmt:v=>fmt(v,1), zeroY:false});
     g=f.g;
     g += f.clip(SVG.path(curve(holeKt,0,0.7,f.X,f.Y,140),"var(--dye)",2.6));
@@ -146,7 +146,7 @@ function drawChart(){
     g += SVG.line(f.X(lam),f.t+f.ph,f.X(lam),f.Y(K),"var(--principal)",1.6,"5 4");
     g += SVG.line(f.l,f.Y(K),f.X(lam),f.Y(K),"var(--principal)",1.6,"5 4");
     g += SVG.circle(f.X(lam),f.Y(K),7,"#fff","var(--principal)",3);
-    g += SVG.text(f.X(lam)+10,f.Y(K)-12,"Kt = "+fmt(K,2),{col:"var(--principal)",size:14,anchor:"start",mono:true,weight:700});
+    g += SVG.mtext(f.X(lam)+10,f.Y(K)-12,"K_t = "+fmt(K,2),{col:"var(--principal)",size:14,anchor:"start",mono:true,weight:700});
     g += SVG.text(f.X(lam),f.t+f.ph+36,"d/w = "+fmt(lam,3),{col:"var(--principal)",size:12,mono:true,weight:700});
   } else {
     const tab = geo==="shaftB"?BEND:TORS;
@@ -171,7 +171,7 @@ function drawChart(){
     g += SVG.line(f.X(x),f.t+f.ph,f.X(x),f.Y(K),"var(--principal)",1.6,"5 4");
     g += SVG.line(f.l,f.Y(K),f.X(x),f.Y(K),"var(--principal)",1.6,"5 4");
     g += SVG.circle(f.X(x),f.Y(K),7,"#fff","var(--principal)",3);
-    g += SVG.text(f.X(x)+10,f.Y(K)-12,(geo==="shaftB"?"Kt = ":"Kts = ")+fmt(K,2),{col:"var(--principal)",size:14,anchor:"start",mono:true,weight:700});
+    g += SVG.mtext(f.X(x)+10,f.Y(K)-12,(geo==="shaftB"?"K_t = ":"Kts = ")+fmt(K,2),{col:"var(--principal)",size:14,anchor:"start",mono:true,weight:700});
     g += SVG.text(f.X(x),f.t+f.ph+36,"r/d = "+fmt(x,3),{col:"var(--principal)",size:12,mono:true,weight:700});
   }
   g += SVG.text(f.l+8,f.t+16,"1 · form the ratio   2 · find the curve   3 · read across   4 · check it moved the right way",
@@ -204,9 +204,9 @@ function drawPart(){
     g += SVG.path(d,"var(--principal)",2.4);
     g += SVG.line(cx-W/2,py,cx+W/2,py,"#b9c4ce",1.4);
     g += SVG.line(xa,py,xa,py-ph,"var(--principal)",1.2,"3 3");
-    g += SVG.text(xa+6,py-ph-8,"σmax = "+fmt(sn*K,1)+" MPa",{col:"var(--principal)",size:12.5,anchor:"start",mono:true,weight:700});
+    g += SVG.mtext(xa+6,py-ph-8,"σ_max = "+fmt(sn*K,1)+" MPa",{col:"var(--principal)",size:12.5,anchor:"start",mono:true,weight:700});
     g += SVG.line(cx-W/2,py-ph/Math.max(K,1),cx+W/2,py-ph/Math.max(K,1),"var(--dye)",1.4,"6 4");
-    g += SVG.text(cx-W/2,py-ph/Math.max(K,1)-8,"σnom = "+fmt(sn,1),{col:"var(--dye)",size:12,anchor:"start",mono:true,weight:700});
+    g += SVG.mtext(cx-W/2,py-ph/Math.max(K,1)-8,"σ_nom = "+fmt(sn,1),{col:"var(--dye)",size:12,anchor:"start",mono:true,weight:700});
     g += SVG.text(cx,py+22,"stress across the reduced section — the peak decays within about one hole diameter",{col:"#8493a0",size:11.5,weight:400});
   } else {
     const sc=3.0, d0=dd*sc, D0=dd*Dd*sc, rr=r*sc, cy=150;
@@ -255,15 +255,15 @@ function out(){
     {k:geo==="shaftT"?"Kts":"Kt", v:q_(fmt(K,2)), tone:"red"},
     {k:tors?"τnom":"σnom", v:q_(fmt(sn,1)+" MPa"), tone:"blue", n:tors?"16T/πd³ on the small d":"on the reduced section"},
     {k:tors?"τmax":"σmax", v:q_(fmt(smax,1)+" MPa"), tone:"red", n:(tors?"Kts × τnom":"Kt × σnom")},
-    {k:"n ignoring Kt", v:q_(fmt(nIgnored,2)), n:tors?"against 0.577 Sy":"nominal only"},
-    {k:"n with Kt", v:q_(fmt(nHonest,2)), tone:"red", n:"brittle, or any repeated load"},
+    {k:M("n") + " ignoring " + M("K_t"), v:q_(fmt(nIgnored,2)), n:tors?"against 0.577 Sy":"nominal only"},
+    {k:M("n") + " with " + M("K_t"), v:q_(fmt(nHonest,2)), tone:"red", n:"brittle, or any repeated load"},
     {k:"overestimate", v:q_(fmt(K,2)+"×"), tone:"brass", n:"how far off ignoring it puts you"}
   ]);
   cells("out2",[
     {k:"q", v:q_(fmt(notchQ(notchR()),3)), tone:"blue", n:geo==="hole"?"at r = d/2":"notch sensitivity"},
-    {k:"Kf", v:q_(fmt(Kf(),2)), tone:"red", n:"1 + q(Kt − 1)"},
+    {k:M("K_f"), v:q_(fmt(Kf(),2)), tone:"red", n:"1 + q(Kt − 1)"},
     {k:"√a", v:q_(fmt(sqrtA(),3)+" √mm"), n:`notch constant, at Sut = ${fmt(Sut,0)}`},
-    {k:"Kf / Kt", v:q_(fmt(Kf()/K,3)), n:"how much fatigue discounts the notch"}
+    {k:M("K_f / K_t"), v:q_(fmt(Kf()/K,3)), n:"how much fatigue discounts the notch"}
   ]);
   let msg=null;
   if(hiding()) msg=["<b>Predict mode.</b> Ask the class to read K<sub>t</sub> off the chart before you reveal it — and to say whether K<sub>f</sub> will be larger or smaller.","neutral"];

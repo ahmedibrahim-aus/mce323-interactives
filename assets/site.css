@@ -53,6 +53,25 @@ a{ color:var(--dye); text-underline-offset:3px }
 
 /* ---------- the mono voice: identifiers and measurements ---------------- */
 .mono, .tag, .val, .axis, kbd { font-family:var(--mono) }
+
+/* ---------- maths ---------------------------------------------------------
+   Symbols are set the way an equation editor sets them: the base italic in a
+   math face, the subscript upright, smaller, and dropped just below the
+   baseline rather than jammed alongside. */
+.mth{
+  font-family:"Cambria Math","Latin Modern Math","STIX Two Math","Times New Roman",Georgia,serif;
+  font-style:normal; letter-spacing:0; white-space:nowrap;
+  text-transform:none;              /* S_e must not become S_E in an uppercased header */
+}
+.mth i{ font-style:italic }
+.mth sub, .mth sup{
+  font-style:normal; font-size:.64em; line-height:0; letter-spacing:.01em;
+}
+.mth sub{ vertical-align:-.28em }
+.mth sup{ vertical-align:.52em }
+/* inside the monospace readout labels, keep the maths from looking undersized */
+.cell .k .mth, .field label .mth{ font-size:1.24em }
+.cell .v .mth{ font-size:1.02em }
 .tag{
   font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
   color:var(--tick);
