@@ -35,7 +35,7 @@
     </div>
     <div class="field" style="flex:1 1 230px"><label for="d">d mm</label>
       <input type="range" id="d" min="5" max="150" step="0.01" value="32"><span class="readout" id="dv">32</span></div>
-    <div class="field"><label for="temp">T °C</label><input type="number" id="temp" step="25" value="20" style="width:72px"></div>
+    <div class="field"><label for="temp">T °C</label><input type="number" id="temp" step="25" min="20" max="538" value="20" style="width:72px"></div>
     <div class="field"><label for="rel">Reliability</label>
       <select id="rel">
         <option value="1.000">50 %</option><option value="0.897" selected>90 %</option>
@@ -75,7 +75,7 @@
       <li><b>The specimen value is optimistic and you never get to use it.</b> Start from a polished specimen and switch on a hot-rolled surface: S<sub>e</sub> can lose more than half its value before any other correction lands.</li>
       <li><b>Surface finish is usually the biggest single bite</b>, and it gets worse as the steel gets stronger. Push S<sub>ut</sub> up with a hot-rolled surface and watch k<sub>a</sub> collapse — strong steel only pays off if you also pay for the finish.</li>
       <li><b>Axial loading has no size effect but a permanent 15% penalty.</b> k<sub>b</sub> = 1, k<sub>c</sub> = 0.85. Torsion is harsher still at 0.59.</li>
-      <li><b>The finite-life line pivots, it does not just drop.</b> Both ends move: the 10³ end is anchored to f·S<sub>ut</sub>, the 10⁶ end to S<sub>e</sub>. That is why a correction to S<sub>e</sub> changes the slope as well as the intercept.</li>
+      <li><b>The finite-life line pivots, it does not just drop.</b> Only the 10⁶ end moves — the 10³ end stays anchored to f·S<sub>ut</sub>, which the Marin factors never touch. That fixed anchor is exactly why a correction to S<sub>e</sub> changes the slope and not just the intercept.</li>
     </ol>
     <p class="foot"><kbd>←</kbd> <kbd>→</kbd> change the diameter · every constant here is from Shigley's tables 6-2, 6-4 and 6-5</p>
   </div>
@@ -105,15 +105,18 @@ function kb(){
 }
 const kc = () => load==="bend"?1:(load==="ax"?0.85:0.59);
 function kd(){
-  if(T<=20) return 1;
-  const t=Math.min(T,550);
-  return 0.975 + 0.432e-3*t - 0.115e-5*t*t + 0.104e-8*t*t*t - 0.595e-12*t*t*t*t;
+  /* Shigley eq. 6-27 is fitted in DEGREES FAHRENHEIT over 70 <= TF <= 1000.
+     Feeding it Celsius reproduces nothing in table 6-4 and makes a hot shaft
+     look stronger, so convert first and clamp at the fit's upper limit. */
+  if(T<=21) return 1;
+  const tF = Math.min(T*9/5 + 32, 1000);
+  return 0.975 + 0.432e-3*tF - 0.115e-5*tF*tF + 0.104e-8*tF**3 - 0.595e-12*tF**4;
 }
 const Se = () => Sep()*ka()*kb()*kc()*kd()*ke;
 
 /* fraction f of Sut at 10^3 cycles, Shigley's fit to Fig. 6-18 */
 function fFrac(){
-  if(Sut<490) return 0.9;
+  if(Sut<483) return 0.9;          /* 70 kpsi */
   return clamp(1.06 - 4.1e-4*Sut + 1.5e-7*Sut*Sut, 0.75, 0.9);
 }
 const aCo = () => Math.pow(fFrac()*Sut,2)/Se();
@@ -123,6 +126,7 @@ const strengthAt = N => aCo()*Math.pow(N,bCo());
 
 /* ---------- waterfall ------------------------------------------------------ */
 function drawFall(){
+  const shown = v => hiding() ? "—" : v;
   const steps=[
     {k:"S′e", v:Sep(), f:null},
     {k:"ka", v:Sep()*ka(), f:ka()},
@@ -144,12 +148,12 @@ function drawFall(){
     g += SVG.rect(x-w/2, Math.min(y0,y1), w, Math.max(2,Math.abs(y1-y0)), col);
     if(i>0) g += SVG.line(f2.X(i-0.5)+w/2, f2.Y(prev), x-w/2, f2.Y(prev), "#c3ced8",1,"3 3");
     g += SVG.text(x, f2.t+f2.ph+20, s.k, {col:"#46545f",size:13,mono:true,weight:700});
-    if(s.f!==null) g += SVG.text(x, f2.t+f2.ph+38, "×"+fmt(s.f,3), {col:drop?"var(--principal)":"#8493a0",size:11.5,mono:true});
-    g += SVG.text(x, Math.min(y0,y1)-8, fmt(s.v,0), {col:"#10151b",size:12,mono:true,weight:700});
+    if(s.f!==null) g += SVG.text(x, f2.t+f2.ph+38, "×"+shown(fmt(s.f,3)), {col:drop?"var(--principal)":"#8493a0",size:11.5,mono:true});
+    g += SVG.text(x, Math.min(y0,y1)-8, shown(fmt(s.v,0)), {col:"#10151b",size:12,mono:true,weight:700});
   });
   g += SVG.line(f2.l,f2.Y(Se()),f2.l+f2.pw,f2.Y(Se()),"var(--jade)",1.4,"6 4");
-  g += SVG.text(f2.l+f2.pw*0.20,f2.Y(Se())+17,"Se = "+fmt(Se(),1)+" MPa",{col:"var(--jade)",size:12.5,anchor:"start",mono:true,weight:700});
-  g += SVG.text(f2.l+6,f2.t+16,`the specimen starts at 0.5 Sut = ${fmt(Sep(),0)} MPa`,{col:"#8493a0",size:11.5,anchor:"start",weight:400});
+  g += SVG.text(f2.l+f2.pw*0.20,f2.Y(Se())+17,"Se = "+shown(fmt(Se(),1)+" MPa"),{col:"var(--jade)",size:12.5,anchor:"start",mono:true,weight:700});
+  g += SVG.text(f2.l+6,f2.t+16,`the specimen starts at ${Sut<=1400?"0.5 Sut":"700 MPa (Sut > 1400)"} = ${shown(fmt(Sep(),0))} MPa`,{col:"#8493a0",size:11.5,anchor:"start",weight:400});
   $("fall").innerHTML=g;
 }
 
@@ -194,7 +198,7 @@ function drawSN(){
 function out(){
   const N=lifeAt(sa), inf = sa<=Se();
   cells("out",[
-    {k:"S′e", v:q_(fmt(Sep(),0)+" MPa"), tone:"blue", n:"0.5 Sut"},
+    {k:"S′e", v:q_(fmt(Sep(),0)+" MPa"), tone:"blue", n:Sut<=1400?"0.5 Sut":"capped, Sut > 1400"},
     {k:"ka", v:q_(fmt(ka(),3))}, {k:"kb", v:q_(fmt(kb(),3))},
     {k:"kc", v:q_(fmt(kc(),3))}, {k:"kd", v:q_(fmt(kd(),3))},
     {k:"ke", v:q_(fmt(ke,3))},
@@ -212,6 +216,8 @@ function out(){
   callout("note",msg[0],msg[1]);
 }
 function steps(){
+  if(hiding()){ $("steps").innerHTML = '<p style="color:var(--tick)">Hidden — work S<sub>e</sub> out first, then press Reveal.</p>'; return; }
+
   const surfName = $("surf").selectedOptions[0].textContent;
   $("steps").innerHTML = `
   <ol style="margin:0;padding-left:20px">
@@ -219,7 +225,7 @@ function steps(){
     <li><b>k<sub>a</sub></b> = a·S<sub>ut</sub><sup>b</sup> = <b>${fmt(ka(),3)}</b> <span style="color:var(--tick)">— ${surfName}</span></li>
     <li><b>k<sub>b</sub></b> = <b>${fmt(kb(),3)}</b> <span style="color:var(--tick)">— ${load==="ax"?"axial, so no size effect":`d = ${fmt(d,0)} mm`}</span></li>
     <li><b>k<sub>c</sub></b> = <b>${fmt(kc(),3)}</b> <span style="color:var(--tick)">— ${load==="bend"?"bending":load==="ax"?"axial":"torsion"}</span></li>
-    <li><b>k<sub>d</sub></b> = <b>${fmt(kd(),3)}</b> <span style="color:var(--tick)">— ${T<=20?"room temperature":"at "+fmt(T,0)+" °C"}</span></li>
+    <li><b>k<sub>d</sub></b> = <b>${fmt(kd(),3)}</b> <span style="color:var(--tick)">— ${T<=21?"room temperature":"at "+fmt(T,0)+" °C"}</span></li>
     <li><b>k<sub>e</sub></b> = <b>${fmt(ke,3)}</b> <span style="color:var(--tick)">— ${$("rel").selectedOptions[0].textContent} reliability</span></li>
   </ol>
   <p style="margin:10px 0 0;padding-top:10px;border-top:1px solid var(--rule)">

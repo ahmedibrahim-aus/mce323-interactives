@@ -32,10 +32,10 @@
     <div class="field" id="fd"><label for="dia">hole d</label><input type="number" id="dia" step="1" value="20" style="width:70px"></div>
     <div class="field" id="fD" hidden><label for="Dd">D/d</label><input type="number" id="Dd" step="0.05" value="1.5" style="width:70px"></div>
     <div class="field" id="fdd" hidden><label for="dd">d</label><input type="number" id="dd" step="1" value="30" style="width:70px"></div>
-    <div class="field" style="flex:1 1 240px"><label for="rr">r mm</label>
+    <div class="field" id="frr" style="flex:1 1 240px"><label for="rr">r mm</label>
       <input type="range" id="rr" min="0.5" max="12" step="0.1" value="3"><span class="readout" id="rrv">3.0</span></div>
     <div class="divider"></div>
-    <div class="field"><label for="F">load</label><input type="number" id="F" step="1000" value="10000" style="width:84px"></div>
+    <div class="field"><label for="F" id="Flab">load N</label><input type="number" id="F" step="1000" value="10000" style="width:84px"></div>
     <div class="field"><label for="t">thick b</label><input type="number" id="t" step="0.5" value="2.5" style="width:70px"></div>
     <div class="field"><label for="sut">Sut</label><input type="number" id="sut" step="10" value="690" style="width:76px"></div>
     <div class="field"><label for="sy">Sy</label><input type="number" id="sy" step="10" value="580" style="width:76px"></div>
@@ -91,7 +91,7 @@ const hiding=()=>predict&&!revealed, q_=v=>hiding()?"—":v;
 /* ---- Kt correlations, the fits behind Shigley's charts -------------------- */
 const holeKt = lam => 3.00 - 3.13*lam + 3.66*lam*lam - 1.53*lam*lam*lam;
 const BEND=[[1.02,0.96048,-0.17711],[1.05,0.98137,-0.19653],[1.07,0.97527,-0.20958],
-            [1.10,0.95120,-0.23757],[1.20,0.97098,-0.21796],[1.50,0.93836,-0.25759],
+            [1.10,0.97098,-0.21796],[1.20,0.95120,-0.23757],[1.50,0.93836,-0.25759],
             [2.00,0.90879,-0.28598],[3.00,0.89334,-0.30860],[6.00,0.87868,-0.33243]];
 const TORS=[[1.09,0.90337,-0.12692],[1.20,0.83425,-0.21649],[1.33,0.84897,-0.23161],
             [2.00,0.86331,-0.23865]];
@@ -108,17 +108,22 @@ function interpAB(tab,x){
 function Kt(){
   if(geo==="hole") return holeKt(clamp(dia/wd,0,0.7));
   const [A,b] = interpAB(geo==="shaftB"?BEND:TORS, Dd);
-  return A*Math.pow(clamp(r/dd,0.02,0.5), b);
+  return A*Math.pow(clamp(r/dd,0.02,0.30), b);   /* the charts stop near 0.3 */
 }
 /* Neuber constant, SI (root-mm), then Kuhn–Hardrath */
 function sqrtA(){
   const S=Sut;
+  /* eq. 6-35 bending/axial, eq. 6-36 torsion — two separate fits. Torsion has the
+     SMALLER sqrt(a), hence the HIGHER q: shear notches are more sensitive. */
   return geo==="shaftT"
-    ? 1.24 - 2.25e-3*S + 1.60e-6*S*S - 4.11e-10*S*S*S + 0.19    /* torsion runs a touch higher */
-    : 1.24 - 2.25e-3*S + 1.60e-6*S*S - 4.11e-10*S*S*S;
+    ? 0.958 - 1.83e-3*S + 1.43e-6*S*S - 4.11e-10*S*S*S
+    : 1.24  - 2.25e-3*S + 1.60e-6*S*S - 4.11e-10*S*S*S;
 }
 const notchQ = rad => 1/(1 + Math.max(0,sqrtA())/Math.sqrt(Math.max(rad,1e-4)));
-const Kf = () => 1 + notchQ(r)*(Kt()-1);
+/* For a plate with a central hole the notch root radius IS the hole radius —
+   it is not a free parameter. The r slider drives the two shaft geometries. */
+const notchR = () => geo==="hole" ? dia/2 : r;
+const Kf = () => 1 + notchQ(notchR())*(Kt()-1);
 
 /* nominal stress on the net section */
 function nominal(){
@@ -126,7 +131,7 @@ function nominal(){
   if(geo==="shaftB") return 32*F/(Math.PI*Math.pow(dd,3));      /* F is a moment, N·mm */
   return 16*F/(Math.PI*Math.pow(dd,3));                          /* torsion */
 }
-const unitLabel = () => geo==="hole" ? "N" : "N·mm";
+const unitLabel = () => geo==="hole" ? "load N" : (geo==="shaftB" ? "M N·mm" : "T N·mm");
 
 /* ---------- chart --------------------------------------------------------- */
 function drawChart(){
@@ -162,7 +167,7 @@ function drawChart(){
     g += SVG.text(f.X(0.305),f.Y(yA)+4,"D/d "+fmt(Dd,2),{col:"var(--dye)",size:11.5,anchor:"start",mono:true,weight:700});
     g += SVG.text(f.l+8,f.t+f.ph-10,`grey curves: the rest of the D/d family, ${fmt(tab[0][0],2)} to ${fmt(tab[tab.length-1][0],2)}`,
                   {col:"#9fadba",size:11,anchor:"start",weight:500});
-    const x=clamp(r/dd,0.02,0.32), K=A*Math.pow(x,b);
+    const x=clamp(r/dd,0.02,0.30), K=A*Math.pow(x,b);   /* same clamp as Kt() */
     g += SVG.line(f.X(x),f.t+f.ph,f.X(x),f.Y(K),"var(--principal)",1.6,"5 4");
     g += SVG.line(f.l,f.Y(K),f.X(x),f.Y(K),"var(--principal)",1.6,"5 4");
     g += SVG.circle(f.X(x),f.Y(K),7,"#fff","var(--principal)",3);
@@ -207,7 +212,7 @@ function drawPart(){
     const sc=3.0, d0=dd*sc, D0=dd*Dd*sc, rr=r*sc, cy=150;
     g += SVG.centre(60,cy,600,cy);
     g += SVG.rect(120,cy-D0/2,180,D0,"#eef2f5","#46545f",1.8);
-    g += SVG.path(`M 300 ${cy-D0/2} L 300 ${cy-d0/2-rr} A ${rr} ${rr} 0 0 1 ${300+rr} ${cy-d0/2} L 540 ${cy-d0/2} L 540 ${cy+d0/2} L ${300+rr} ${cy+d0/2} A ${rr} ${rr} 0 0 1 300 ${cy+d0/2+rr} L 300 ${cy+D0/2} Z`,"#46545f",1.8,"#f6f8f9");
+    g += SVG.path(`M 300 ${cy-D0/2} L 300 ${cy-d0/2-rr} A ${rr} ${rr} 0 0 0 ${300+rr} ${cy-d0/2} L 540 ${cy-d0/2} L 540 ${cy+d0/2} L ${300+rr} ${cy+d0/2} A ${rr} ${rr} 0 0 0 300 ${cy+d0/2+rr} L 300 ${cy+D0/2} Z`,"#46545f",1.8,"#f6f8f9");
     g += SVG.circle(300+rr,cy-d0/2-rr,rr,"none","var(--principal)",1.2,"3 3");
     g += SVG.text(300+rr+8,cy-d0/2-rr-8,"r = "+fmt(r,1),{col:"var(--principal)",size:12,anchor:"start",mono:true,weight:700});
     g += SVG.text(210,cy-D0/2-12,"D = "+fmt(dd*Dd,1),{col:"#8493a0",size:12,mono:true});
@@ -232,8 +237,8 @@ function drawQ(){
     Sut=save;
   });
   g += f.clip(SVG.path(curve(notchQ,0.05,12,f.X,f.Y,200),"var(--dye)",2.6));
-  g += SVG.circle(f.X(clamp(r,0,12)),f.Y(notchQ(r)),6,"#fff","var(--principal)",3);
-  g += SVG.text(f.X(clamp(r,0,12))+10,f.Y(notchQ(r))+22,"q = "+fmt(notchQ(r),3),{col:"var(--principal)",size:13,anchor:"start",mono:true,weight:700});
+  g += SVG.circle(f.X(clamp(notchR(),0,12)),f.Y(notchQ(notchR())),6,"#fff","var(--principal)",3);
+  g += SVG.text(f.X(clamp(notchR(),0,12))+10,f.Y(notchQ(notchR()))+22,"q = "+fmt(notchQ(notchR()),3),{col:"var(--principal)",size:13,anchor:"start",mono:true,weight:700});
   g += SVG.text(f.l+8,f.t+16,"greyed lines: Sut = 400, 700 and 1200 MPa — harder steel is more notch-sensitive",
         {col:"#8493a0",size:11,anchor:"start",weight:400});
   $("qplot").innerHTML=g;
@@ -242,17 +247,20 @@ function drawQ(){
 /* ---------- readouts -------------------------------------------------------- */
 function out(){
   const K=Kt(), sn=nominal(), smax=sn*K;
-  const nIgnored = Sy/sn, nHonest = Sy/smax;
+  /* torsion gives a shear stress, so the strength it must be compared against is
+     the shear yield Ssy = 0.577 Sy (distortion energy, eq. 5-21) */
+  const tors = geo==="shaftT", Sstr = tors ? 0.577*Sy : Sy;
+  const nIgnored = Sstr/sn, nHonest = Sstr/smax;
   cells("out",[
     {k:geo==="shaftT"?"Kts":"Kt", v:q_(fmt(K,2)), tone:"red"},
-    {k:"σnom", v:q_(fmt(sn,1)+" MPa"), tone:"blue", n:"on the net section"},
-    {k:"σmax", v:q_(fmt(smax,1)+" MPa"), tone:"red", n:"Kt × σnom"},
-    {k:"n if you ignore Kt", v:q_(fmt(nIgnored,2)), n:"the wrong answer"},
-    {k:"n, honest", v:q_(fmt(nHonest,2)), tone:"red"},
+    {k:tors?"τnom":"σnom", v:q_(fmt(sn,1)+" MPa"), tone:"blue", n:tors?"16T/πd³ on the small d":"on the net section"},
+    {k:tors?"τmax":"σmax", v:q_(fmt(smax,1)+" MPa"), tone:"red", n:(tors?"Kts × τnom":"Kt × σnom")},
+    {k:"n ignoring Kt", v:q_(fmt(nIgnored,2)), n:tors?"against Ssy = 0.577 Sy":"nominal only"},
+    {k:"n with Kt", v:q_(fmt(nHonest,2)), tone:"red", n:"brittle, or any repeated load"},
     {k:"overestimate", v:q_(fmt(K,2)+"×"), tone:"brass", n:"how far off ignoring it puts you"}
   ]);
   cells("out2",[
-    {k:"q", v:q_(fmt(notchQ(r),3)), tone:"blue", n:"notch sensitivity"},
+    {k:"q", v:q_(fmt(notchQ(notchR()),3)), tone:"blue", n:geo==="hole"?"at r = d/2":"notch sensitivity"},
     {k:"Kf", v:q_(fmt(Kf(),2)), tone:"red", n:"1 + q(Kt − 1)"},
     {k:"√a", v:q_(fmt(sqrtA(),3)+" √mm"), n:`Neuber, at Sut = ${fmt(Sut,0)}`},
     {k:"Kf / Kt", v:q_(fmt(Kf()/K,3)), n:"how much fatigue discounts the notch"}
@@ -271,6 +279,8 @@ function read(){
   geo=$("geo").value;
   const hole = geo==="hole";
   $("fw").hidden=!hole; $("fd").hidden=!hole; $("fD").hidden=hole; $("fdd").hidden=hole;
+  $("Flab").textContent = unitLabel();          /* the box changes meaning with the geometry */
+  $("frr").hidden = hole;                       /* a hole has no free notch radius */
   wd=parseFloat($("wd").value)||100; dia=parseFloat($("dia").value)||1;
   Dd=clamp(parseFloat($("Dd").value)||1.5,1.01,6); dd=parseFloat($("dd").value)||30;
   r=parseFloat($("rr").value); F=parseFloat($("F").value)||1;

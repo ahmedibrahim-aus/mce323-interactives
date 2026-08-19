@@ -31,7 +31,7 @@
     <div class="divider"></div>
     <div class="field" style="flex:1 1 280px">
       <label for="d">d mm</label>
-      <input type="range" id="d" min="10" max="90" step="0.5" value="27.94">
+      <input type="range" id="d" min="10" max="90" step="0.01" value="27.94">
       <span class="readout" id="dv">27.9</span>
     </div>
     <button id="predict">Predict mode</button>
@@ -63,9 +63,9 @@
     <h2>What to notice</h2>
     <ol>
       <li><b>Stress goes as 1/d³.</b> Drag the diameter and watch the curve — a 10% larger shaft buys about 33% more factor of safety. That cubic is the single most useful number in shaft design.</li>
-      <li><b>Two checks, and the lower one wins.</b> Fatigue usually governs, but the first-cycle yield check is not optional. Push the loads up and watch which one crosses 1 first.</li>
-      <li><b>Look at the split.</b> The bar shows how much of the required diameter comes from the alternating bending term A/S<sub>e</sub> versus the steady torsion term B/S<sub>ut</sub>. In most rotating shafts bending dominates heavily — and if it does not, check your units.</li>
-      <li><b>Round up, then re-check.</b> Solve for d and you get a decimal. Real shafts come in stock sizes, so specify the next size up and confirm n has not fallen below target.</li>
+      <li><b>Two checks, and the lower one wins.</b> Fatigue usually governs, but the first-cycle yield check is not optional. Scaling both loads together will never change which one governs — that is set by the M<sub>a</sub>:T<sub>m</sub> ratio and the strengths. Try <em>Torque-dominated</em> and watch the two margins close.</li>
+      <li><b>Look at the split.</b> The bar shows how much of the required d³ comes from the alternating bending term A/S<sub>e</sub> versus the steady torsion term B/S<sub>ut</sub>, both in mm³. In most rotating shafts bending dominates — but a mixer or a low-speed drive is legitimately torsion-dominated, as the <em>Torque-dominated</em> preset shows.</li>
+      <li><b>Round up, then re-check.</b> Solve for d and you get a decimal. This rounds to the next whole millimetre; a real specification would go to the next preferred size (R20: 25, 28, 30, 32, 35, 40 …) and re-confirm n.</li>
     </ol>
     <p class="foot"><kbd>←</kbd> <kbd>→</kbd> step the diameter · <kbd>Shift</kbd> for a larger step</p>
   </div>
@@ -96,7 +96,12 @@ function nYld(dd){
   const vm = Math.sqrt(sig*sig + 3*tau*tau);
   return vm<1e-9 ? Infinity : P.Sy/vm;
 }
-const solveD = n => Math.cbrt((16*n/Math.PI)*(A()/P.Se + B()/P.Sut));
+/* The diameter must satisfy whichever check governs. Solving the fatigue equation
+   alone undersizes the shaft whenever first-cycle yielding is the binding one —
+   for pure steady torsion that is always, since ny/nf -> Sy/Sut < 1. */
+const solveDfat = n => Math.cbrt((16*n/Math.PI)*(A()/P.Se + B()/P.Sut));
+const solveDyld = n => Math.cbrt((16*n/Math.PI)*Math.hypot(A(),B())/P.Sy);
+const solveD = n => Math.max(solveDfat(n), solveDyld(n));
 
 /* ---------- shaft drawing ------------------------------------------------- */
 function drawShaft(){
@@ -108,7 +113,7 @@ function drawShaft(){
   /* the larger shoulder */
   g += SVG.rect(x0,cy-DD/2,x1-x0,DD,"#eef2f5","#46545f",1.8);
   /* the sized section, with fillet radius shown */
-  g += SVG.path(`M ${x1} ${cy-DD/2} L ${x1} ${cy-dd/2-r} A ${r} ${r} 0 0 1 ${x1+r} ${cy-dd/2} L ${x2} ${cy-dd/2} L ${x2} ${cy+dd/2} L ${x1+r} ${cy+dd/2} A ${r} ${r} 0 0 1 ${x1} ${cy+dd/2+r} L ${x1} ${cy+DD/2} Z`,"#46545f",1.8,"#f6f8f9");
+  g += SVG.path(`M ${x1} ${cy-DD/2} L ${x1} ${cy-dd/2-r} A ${r} ${r} 0 0 0 ${x1+r} ${cy-dd/2} L ${x2} ${cy-dd/2} L ${x2} ${cy+dd/2} L ${x1+r} ${cy+dd/2} A ${r} ${r} 0 0 0 ${x1} ${cy+dd/2+r} L ${x1} ${cy+DD/2} Z`,"#46545f",1.8,"#f6f8f9");
   /* hatching on the sized section */
   for(let x=x1+8;x<x2;x+=13)
     g += SVG.line(x,cy-dd/2+2,x-9,cy+dd/2-2,"#c3ced8",1);
@@ -155,9 +160,9 @@ function drawBars(){
   g += SVG.text(x0-10,y+20,"required d³",{col:"#46545f",size:12,anchor:"end",mono:true,weight:700});
   if(wa>70) g += SVG.text(x0+wa/2,y+20,fmt(100*a/tot,0)+"% bending",{col:"#fff",size:12.5,mono:true,weight:700,onfill:true});
   if(w-wa>70) g += SVG.text(x0+wa+(w-wa)/2,y+20,fmt(100*b/tot,0)+"% torsion",{col:"#fff",size:12.5,mono:true,weight:700,onfill:true});
-  g += SVG.text(x0,y+52,"A / Se = "+fmt(a,0),{col:"var(--dye)",size:12.5,anchor:"start",mono:true,weight:700});
-  g += SVG.text(x0+w,y+52,"B / Sut = "+fmt(b,0),{col:"var(--jade)",size:12.5,anchor:"end",mono:true,weight:700});
-  g += SVG.text(x0,y+76,"A = 2·Kf·Ma (alternating)   ·   B = √3·Kfs·Tm (steady)",{col:"#8493a0",size:11.5,anchor:"start",weight:400});
+  g += SVG.text(x0,y+52,"A / Se = "+fmt(a,0)+" mm³",{col:"var(--dye)",size:12.5,anchor:"start",mono:true,weight:700});
+  g += SVG.text(x0+w,y+52,"B / Sut = "+fmt(b,0)+" mm³",{col:"var(--jade)",size:12.5,anchor:"end",mono:true,weight:700});
+  g += SVG.text(x0,y+76,"A = 2·Kf·Ma   ·   B = √3·Kfs·Tm   ·   mm³, for the Mm = Ta = 0 case",{col:"#8493a0",size:11.5,anchor:"start",weight:400});
   $("bars").innerHTML=g;
 }
 
@@ -193,7 +198,7 @@ function out(){
     {k:"n fatigue", v:fmt(nf,2), tone:"blue"},
     {k:"n yield",   v:isFinite(ny)?fmt(ny,2):"∞", tone:"brass"},
     {k:"governs",   v:gov==="fatigue"?"FATIGUE":"YIELD", tone:"red", n:"the lower of the two"},
-    {k:"d required", v:fmt(req,2)+" mm", tone:"red", n:`for n = ${fmt(nt,2)}`},
+    {k:"d required", v:fmt(req,2)+" mm", tone:"red", n:`for n = ${fmt(nt,2)}, ${solveDyld(nt)>solveDfat(nt)?"yield":"fatigue"} governs`},
     {k:"specify",   v:Math.ceil(req)+" mm", n:"round up, never down"},
     {k:"A", v:sig(A(),4), n:"N·mm, alternating"},
     {k:"B", v:sig(B(),4), n:"N·mm, steady"},
@@ -202,9 +207,9 @@ function out(){
   cells("out", hiding() ? rows.map(r=>({...r, v:"—"})) : rows);
   let msg=null;
   if (nf<1) msg=[`<b>Below one.</b> At ⌀${fmt(d,1)} mm this shaft does not survive. It needs at least ⌀${fmt(solveD(1),1)} mm just to reach n = 1, and ⌀${Math.ceil(req)} mm for your target.`];
-  else if (ny<nf) msg=[`<b>Yielding governs here.</b> n<sub>y</sub> = ${fmt(ny,2)} is below the fatigue factor. Check the peak load case — something is overloading this shaft on the first revolution.`];
+  else if (ny<nf) msg=[`<b>Yielding governs here.</b> n<sub>y</sub> = ${fmt(ny,2)} is below the fatigue factor. That is a loading-ratio result, not an overload: as M<sub>a</sub> → 0 the ratio n<sub>y</sub>/n<sub>f</sub> → S<sub>y</sub>/S<sub>ut</sub> &lt; 1, so a torsion-dominated shaft yields first at perfectly nominal load. Size on the yield check, and confirm the true start-up torque separately.`];
   else if (nf<nt) msg=[`<b>Short of target.</b> n = ${fmt(nf,2)} against a target of ${fmt(nt,2)}. Specify ⌀${Math.ceil(req)} mm.`,"neutral"];
-  else msg=[`<b>Adequate.</b> n = ${fmt(nf,2)} on fatigue and ${fmt(ny,2)} on yielding, both above the target. Fatigue is ${fmt(ny/nf,1)}× more critical than yielding here.`,"neutral"];
+  else msg=[`<b>Adequate.</b> n = ${fmt(nf,2)} on fatigue and ${fmt(ny,2)} on yielding, both above the target. The fatigue margin is ${fmt(ny/nf,1)}× smaller than the yield margin here.`,"neutral"];
   callout("note",msg[0],msg[1]);
 }
 

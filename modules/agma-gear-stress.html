@@ -54,7 +54,9 @@
     <div class="field"><label for="pw">power W</label><input type="number" id="pw" step="100" value="2980" style="width:80px"></div>
     <div class="field"><label for="rpm">rev/min</label><input type="number" id="rpm" step="100" value="1800" style="width:76px"></div>
     <div class="field"><label for="hb">HB</label><input type="number" id="hb" step="10" value="240" style="width:64px"></div>
-    <div class="field"><label for="qv">Qv</label><input type="number" id="qv" step="1" min="3" max="12" value="6" style="width:56px"></div>
+    <div class="field"><label for="qv">Qv</label><input type="number" id="qv" step="1" min="6" max="12" value="6" style="width:56px"></div>
+    <div class="field"><label for="qual">gearing</label><select id="qual"><option value="open">open</option><option value="comm" selected>commercial enclosed</option><option value="prec">precision</option><option value="xprec">extra precision</option></select></div>
+    <div class="field"><label for="ko">Ko</label><select id="ko"><option value="1.00" selected>1.00 uniform</option><option value="1.25">1.25 light shock</option><option value="1.50">1.50 medium shock</option><option value="1.75">1.75 heavy shock</option></select></div>
     <div class="divider"></div>
     <button id="allon">All factors on</button>
     <button id="alloff" class="primary">Reset to 1</button>
@@ -108,7 +110,7 @@
 mountTopbar({});
 $("tb").innerHTML = titleblock({ sheet:"07", title:"AGMA gear stress", ch:"14" });
 
-let G={ NP:17, NG:52, mn:2.5, psi:30, F:38, P:2980, n:1800, HB:240, Qv:6 };
+let G={ NP:17, NG:52, mn:2.5, psi:30, F:38, P:2980, n:1800, HB:240, Qv:6, qual:"comm", Ko:1.00 };
 const ON={ Ko:false, Kv:false, Ks:false, KH:false, KB:false, YN:false, YZ:false };
 
 /* Lewis form factor, Table 14-2, interpolated */
@@ -132,20 +134,36 @@ function factors(){
   const {mt,dP,V,Wt}=base();
   const B=0.25*Math.pow(12-G.Qv,2/3), A=50+56*(1-B);
   const Kv=Math.pow((A+Math.sqrt(200*V))/A,B);
-  const Ks=1.192*Math.pow(G.F*mt*Math.sqrt(lewisY(G.NP)),0.0535);
-  const Cpf=clamp(G.F/(10*dP)-0.0375+4.92e-4*G.F,0,0.4);
-  const KH=1+1*(Cpf+0.15);
+  /* Shigley's Ks = 1.192(F sqrt(Y)/P)^0.0535 is in INCHES. F*m in mm^2 is
+     645.16x larger, so the SI constant is 1.192/645.16^0.0535 = 0.8433.
+     Shigley also says to use 1 if the expression falls below it. */
+  const Ks=Math.max(1, 0.8433*Math.pow(G.F*mt*Math.sqrt(lewisY(G.NP)),0.0535));
+  const ratio=Math.max(G.F/(10*dP),0.05);          /* Shigley: use 0.05 below that */
+  const Cpf = G.F<=25 ? ratio-0.025                 /* eq. 14-32, F <= 25 mm */
+                      : ratio-0.0375+4.92e-4*G.F;   /*           25 < F <= 432 mm */
+  /* Cma, Shigley table 14-9, in mm. Open gearing is the coarsest of the four. */
+  const CMA={open:[0.247,6.575e-4,-1.186e-7], comm:[0.127,6.220e-4,-1.441e-7],
+             prec:[0.0675,5.040e-4,-1.144e-7], xprec:[0.00360,5.024e-4,-1.144e-7]};
+  const cm=CMA[G.qual]||CMA.comm;
+  const Cma=cm[0]+cm[1]*G.F+cm[2]*G.F*G.F;
+  const KH=1+1*(Cpf+Cma);
   const YN=1.3558*Math.pow(1e8,-0.0178), ZN=1.4488*Math.pow(1e8,-0.023);
-  return {Ko:1.00, Kv, Ks, KH, KB:1.0, YN, YZ:0.85, ZN, ZW:1, ZE:191, ZR:1};
+  return {Ko:G.Ko, Kv, Ks, KH, KB:1.0, YN, YZ:0.85, ZN, ZW:1, ZE:191, ZR:1};
 }
 const val = k => ON[k] ? factors()[k] : 1;
 
 /* transverse pressure angle and the geometry factors */
 function geomJ(){
   const phit=Math.atan(Math.tan(20*D)/Math.cos(G.psi*D));
-  const mG=G.NG/G.NP, mN=0.6895;
+  const mG=G.NG/G.NP;
+  /* Load-sharing ratio. Spur gears carry the load on one pair, so mN = 1
+     (eq. 14-23); 0.6895 is the helical value for the 30 deg example. */
+  const mN = G.psi===0 ? 1 : 0.6895;
   const ZI=Math.cos(phit)*Math.sin(phit)/(2*mN)*(mG/(mG+1));
-  const J=0.423;                       /* Fig. 14-7/14-8 for this geometry */
+  /* PINNED. J comes off figs 14-6/14-7/14-8 by eye and is not interpolated here,
+     so it stays at the example's value while NP, NG and psi are live inputs.
+     Surfaced as a readout so nobody mistakes it for a computed quantity. */
+  const J=0.423;
   return {phit:phit/D, ZI, J, mG};
 }
 function results(){
@@ -204,9 +222,10 @@ function drawGov(){
   $("verdict").innerHTML =
     `<h3>Verdict</h3><div class="big"><em>${wins}</em> governs this gearset.</div>
      <p style="margin:8px 0 0;color:var(--ink-2);font-size:14.5px">
-     S<sub>F</sub> = ${fmt(sf,2)} against (S<sub>H</sub>)² = ${fmt(sh2,2)}.
-     Comparing S<sub>F</sub> with S<sub>H</sub> = ${fmt(r.SH,2)} directly would have pointed the other way — which is
-     the mistake this comparison exists to prevent.</p>`;
+     S<sub>F</sub> = ${fmt(sf,2)} against (S<sub>H</sub>)² = ${fmt(sh2,2)}, for the pinion.
+     ${(r.SH<sf)!==(sh2<sf)
+        ? `Comparing S<sub>F</sub> with S<sub>H</sub> = ${fmt(r.SH,2)} directly would have pointed the other way — which is the mistake this comparison exists to prevent.`
+        : `Here both comparisons happen to agree, but only the squared one is valid: contact stress goes as the square root of load, so S<sub>H</sub> and S<sub>F</sub> are not on the same footing.`}</p>`;
 }
 
 /* ---------- layers ------------------------------------------------------------ */
@@ -214,10 +233,10 @@ const LAYERS=[
   ["grp1","Ko","overload from the driven machine — shock, starts, jams"],
   ["grp1","Kv","dynamic — teeth strike each other at speed, and manufacturing quality decides how hard"],
   ["grp2","KH","load distribution — the face is never loaded evenly"],
-  ["grp2","KB","rim thickness — a thin rim flexes under the tooth"],
+  ["grp2","KB","rim thickness — 1.0 here: a solid-blank gear has nothing to flex"],
   ["grp3","Ks","size — big teeth are weaker per unit area than small ones"],
-  ["grp3","YN","stress-cycle — the strength you get at 10⁸ cycles, not at 10⁷"],
-  ["grp3","YZ","reliability — the published strengths are 99% values"]
+  ["grp3","YN","stress-cycle at 10⁸ — YN = 0.977 for bending, ZN = 0.948 for wear"],
+  ["grp3","YZ","reliability — St and Sc are published at R = 0.99; YZ = 0.85 relaxes to R = 0.90"]
 ];
 function renderLayers(){
   const f=factors();
@@ -245,6 +264,7 @@ function out(){
     {k:"dP", v:fmt(r.dP,2)+" mm"},
     {k:"V",  v:fmt(r.V,2)+" m/s", n:"pitch-line velocity"},
     {k:"Wt", v:fmt(r.Wt,1)+" N", tone:"blue", n:"H / V"},
+    {k:"J", v:fmt(r.J,3), n:"pinned to example 14-5, not interpolated"},
     {k:"σ bending", v:fmt(r.sig,2)+" MPa", tone:"blue"},
     {k:"σc contact", v:fmt(r.sc,1)+" MPa", tone:"red"},
     {k:"St / Sc", v:fmt(r.St,0)+" / "+fmt(r.Sc,0), n:`grade 1, HB ${G.HB}`},
@@ -259,10 +279,11 @@ function redraw(){ renderLayers(); drawFall(); drawGov(); out(); }
 function read(){
   G.NP=+$("np").value||17; G.NG=+$("ng").value||52; G.mn=+$("mn").value||2.5;
   G.psi=+$("psi").value||0; G.F=+$("fw").value||10; G.P=+$("pw").value||100;
-  G.n=+$("rpm").value||100; G.HB=+$("hb").value||200; G.Qv=clamp(+$("qv").value||6,3,12);
+  G.n=+$("rpm").value||100; G.HB=clamp(+$("hb").value||200,180,400); G.Qv=clamp(+$("qv").value||6,6,12);
+  G.qual=$("qual").value; G.Ko=+$("ko").value||1;
   redraw();
 }
-["np","ng","mn","psi","fw","pw","rpm","hb","qv"].forEach(id=>$(id).addEventListener("input",read));
+["np","ng","mn","psi","fw","pw","rpm","hb","qv","qual","ko"].forEach(id=>$(id).addEventListener("input",read));
 $("allon").addEventListener("click",()=>{ Object.keys(ON).forEach(k=>ON[k]=true); redraw(); });
 $("alloff").addEventListener("click",()=>{ Object.keys(ON).forEach(k=>ON[k]=false); redraw(); });
 

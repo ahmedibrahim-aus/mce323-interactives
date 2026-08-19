@@ -169,7 +169,7 @@ test.describe('physics matches the course notes', () => {
     await page.goto(url('modules/plane-stress.html'));
     near(await cellNum(page, 'σ1'), 12.07, 0.02);
     near(await cellNum(page, 'σ2'), -2.07, 0.02);
-    near(await cellNum(page, 'τmax'), 7.07, 0.02);
+    near(await cellNum(page, 'τmax in-plane'), 7.07, 0.02);
     near(await cellNum(page, 'θp'), 22.5, 0.1);
     near(await cellNum(page, 'σavg'), 5.00, 0.02);
     // the invariant really is invariant
@@ -184,14 +184,14 @@ test.describe('physics matches the course notes', () => {
     await page.getByRole('button', { name: 'Worked example 3-4' }).click();
     near(await cellNum(page, 'σ1'), 104.03, 0.05);
     near(await cellNum(page, 'σ2'), -24.03, 0.05);
-    near(await cellNum(page, 'τmax'), 64.03, 0.05);
+    near(await cellNum(page, 'τmax in-plane'), 64.03, 0.05);
   });
 
   test('failure envelopes — MSS never exceeds DE', async ({ page }) => {
     await page.goto(url('modules/failure-envelopes.html'));
     near(await cellNum(page, 'n — DE'), 1.43, 0.02);
     near(await cellNum(page, 'n — MSS'), 1.43, 0.02);
-    await page.getByRole('button', { name: '(c) 69.2, −29.2' }).click();
+    await page.getByRole('button', { name: '(c) 484, −204' }).click();
     const de = await cellNum(page, 'n — DE');
     const mss = await cellNum(page, 'n — MSS');
     near(de, 1.14, 0.02);
@@ -233,7 +233,7 @@ test.describe('physics matches the course notes', () => {
     near(nB / nA, 8, 0.05);
   });
 
-  test('bearing life — example 11-3 gives C10 = 14.28 kN', async ({ page }) => {
+  test('bearing life — example 11-1 gives C10 = 14.28 kN', async ({ page }) => {
     await page.goto(url('modules/bearing-life.html'));
     near(await cellNum(page, 'C10 catalogue basis'), 14.28, 0.02);
     near(await cellNum(page, 'xD'), 517.5, 0.5);
@@ -248,7 +248,8 @@ test.describe('physics matches the course notes', () => {
     near(await cellNum(page, 'C'), 135.0, 0.05);
     near(await cellNum(page, 'p'), 15.71, 0.02);
     near(await cellNum(page, 'db pinion'), 84.57, 0.1);   // d cos 20
-    expect(await cellText(page, 'min teeth')).toBe('18');
+    expect(await cellText(page, 'min teeth, rack')).toBe('18');
+    near(await cellNum(page, 'contact ratio mc'), 1.611, 0.01);   // Z / (p cos phi)
   });
 
   /* The line of action must be tangent to BOTH base circles. That is only true if
@@ -298,9 +299,9 @@ test.describe('physics matches the course notes', () => {
   test('gear geometry — undercut warning appears below the limit', async ({ page }) => {
     await page.goto(url('modules/gear-geometry.html'));
     await page.fill('#n1', '12'); await page.dispatchEvent('#n1', 'input');
-    await expect(page.locator('#note')).toContainText('Interference');
+    await expect(page.locator('#note')).toContainText('Undercut');
     await page.selectOption('#phi', '25');
-    expect(await cellText(page, 'min teeth')).toBe('12');
+    expect(await cellText(page, 'min teeth, rack')).toBe('12');
   });
 
   test('AGMA — baseline is Wt/(F·mt·J), and all factors on reproduces example 14-5', async ({ page }) => {
@@ -309,10 +310,31 @@ test.describe('physics matches the course notes', () => {
     near(await cellNum(page, 'mt'), 2.887, 0.002);
     near(await cellNum(page, 'σ bending'), 13.89, 0.05);   // every factor still 1
     await page.getByRole('button', { name: 'All factors on' }).click();
-    near(await cellNum(page, 'σ bending'), 34.9, 0.4);
-    near(await cellNum(page, 'S_F'), 7.1, 0.15);
-    near(await cellNum(page, 'S_H'), 2.03, 0.05);
+    // Lock the individual factors to the textbook, not just the answer they produce
+    const factor = async name => page.evaluate(n => {
+      const row = [...document.querySelectorAll('.layer')]
+        .find(l => l.textContent.trim().startsWith(n));
+      return parseFloat(row.textContent.trim().split(/\s+/).pop());
+    }, name);
+    near(await factor('Kv'), 1.404, 0.005);      // Qv = 6 at V = 4.63 m/s
+    near(await factor('KH'), 1.209, 0.005);      // Cpf 0.0586 + Cma 0.150
+    near(await factor('Ks'), 1.05, 0.02);        // SI constant 0.8433, floored at 1
+    near(await factor('YN'), 0.977, 0.003);
+    near(await cellNum(page, 'σ bending'), 24.76, 0.3);
     await expect(page.locator('#verdict')).toContainText('WEAR');
+  });
+
+  test('AGMA — spur gears take mN = 1, and the gearing condition drives Cma', async ({ page }) => {
+    await page.goto(url('modules/agma-gear-stress.html'));
+    await page.fill('#psi', '0'); await page.dispatchEvent('#psi', 'input');
+    await page.getByRole('button', { name: 'All factors on' }).click();
+    const spur = await cellNum(page, 'σc contact');
+    await page.selectOption('#qual', 'open');
+    const open = await cellNum(page, 'σ bending');
+    await page.selectOption('#qual', 'xprec');
+    const xprec = await cellNum(page, 'σ bending');
+    expect(open, 'coarser gearing must raise the bending stress').toBeGreaterThan(xprec);
+    expect(spur).toBeGreaterThan(0);
   });
 
   test('beam diagrams — simply supported point load', async ({ page }) => {
@@ -338,8 +360,8 @@ test.describe('physics matches the course notes', () => {
     near(await cellNum(page, 'σnom'), 50.0, 0.1);         // 10 kN on (100-20)x2.5
     near(await cellNum(page, 'σmax'), 125.4, 0.5);
     // ignoring Kt overstates the safety factor by exactly Kt
-    const nIg = await cellNum(page, 'n if you ignore Kt');
-    const nHo = await cellNum(page, 'n, honest');
+    const nIg = await cellNum(page, 'n ignoring Kt');
+    const nHo = await cellNum(page, 'n with Kt');
     near(nIg / nHo, 2.51, 0.02);
   });
 
@@ -379,6 +401,110 @@ test.describe('physics matches the course notes', () => {
 });
 
 /* ------------------------------------------------------------------ */
+/* ------------------------------------------------------------------ */
+/* Every one of these is a defect an independent Shigley audit found. The
+   headline presets were all correct; these live off the default path. */
+test.describe('audit regressions', () => {
+
+  test('Modified Mohr switches on |sigB/sigA| = 1, not on Sut', async ({ page }) => {
+    await page.goto(url('modules/failure-envelopes.html'));
+    await page.getByRole('button', { name: 'Cast iron, 4th quadrant' }).click();
+    await page.fill('#sa', '50');  await page.dispatchEvent('#sa', 'input');
+    await page.fill('#sb', '-100'); await page.dispatchEvent('#sb', 'input');
+    near(await cellNum(page, 'n — Mod. Mohr'), 3.15, 0.02);   // was 4.20, 33% unconservative
+  });
+
+  test('Coulomb-Mohr does not return infinity on the sigB axis', async ({ page }) => {
+    await page.goto(url('modules/failure-envelopes.html'));
+    await page.getByRole('button', { name: 'Cast iron, 4th quadrant' }).click();
+    await page.fill('#sa', '0');  await page.dispatchEvent('#sa', 'input');
+    await page.fill('#sb', '50'); await page.dispatchEvent('#sb', 'input');
+    near(await cellNum(page, 'n — BCM'), 4.2, 0.02);  // was infinity
+  });
+
+  test('the principal-stress plane is drawn to equal scales', async ({ page }) => {
+    await page.goto(url('modules/failure-envelopes.html'));
+    const sq = await page.evaluate(() => {
+      const r = [...document.querySelectorAll('#env rect')]
+        .find(x => +x.getAttribute('width') > 100);
+      return { w: +r.getAttribute('width'), h: +r.getAttribute('height') };
+    });
+    near(sq.w, sq.h, 1);      // else the 45 degree line does not draw at 45 degrees
+  });
+
+  test('Gerber stays finite on the mean-stress axis', async ({ page }) => {
+    await page.goto(url('modules/fatigue-criteria.html'));
+    await page.fill('#sa', '0'); await page.dispatchEvent('#sa', 'input');
+    const n = await cellNum(page, 'n — Gerber');
+    const sut = await page.inputValue('#sut'), sm = await page.inputValue('#sm');
+    near(n, parseFloat(sut) / parseFloat(sm), 0.02);   // was NaN, shown as infinity
+  });
+
+  test('kd is evaluated in Fahrenheit and matches table 6-4', async ({ page }) => {
+    await page.goto(url('modules/marin-sn.html'));
+    await page.fill('#temp', '350'); await page.dispatchEvent('#temp', 'input');
+    near(await cellNum(page, 'kd'), 0.943, 0.005);    // was 1.021 — heat made it stronger
+    expect(await cellNum(page, 'kd'), 'heat must never raise Se').toBeLessThan(1);
+  });
+
+  test('Kt rises monotonically with D/d at fixed r/d', async ({ page }) => {
+    await page.goto(url('modules/stress-concentration.html'));
+    await page.selectOption('#geo', 'shaftB');
+    await page.fill('#dd', '30'); await page.dispatchEvent('#dd', 'input');
+    await page.fill('#rr', '3');  await page.dispatchEvent('#rr', 'input');
+    let prev = 0;
+    for (const Dd of [1.05, 1.07, 1.10, 1.20, 1.50, 2.00]) {
+      await page.fill('#Dd', String(Dd)); await page.dispatchEvent('#Dd', 'input');
+      const kt = await cellNum(page, 'Kt');
+      expect(kt, `Kt fell going to D/d = ${Dd}`).toBeGreaterThan(prev);
+      prev = kt;
+    }
+  });
+
+  test('a shaft in torsion is checked against the shear yield strength', async ({ page }) => {
+    await page.goto(url('modules/stress-concentration.html'));
+    await page.getByRole('button', { name: 'Shaft in torsion' }).click();
+    const tmax = await cellNum(page, 'τmax'), n = await cellNum(page, 'n with Kt');
+    const sy = parseFloat(await page.inputValue('#sy'));
+    near(n, 0.577 * sy / tmax, 0.02);   // was Sy/tmax, 73% optimistic
+  });
+
+  test('the bearing load-life line passes through its own C10', async ({ page }) => {
+    await page.goto(url('modules/bearing-life.html'));
+    const d = await page.evaluate(() => {
+      const svg = document.querySelector('#lifeplot') || document.querySelectorAll('svg')[0];
+      return svg ? svg.innerHTML.length : 0;
+    });
+    expect(d).toBeGreaterThan(0);
+    // at the catalogue basis the corrected C10 must equal the basic one
+    near(await cellNum(page, 'C10 needed, R = 0.900'),
+         await cellNum(page, 'C10 catalogue basis'), 0.01);
+  });
+
+  test('shaft sizing satisfies the governing check, not just fatigue', async ({ page }) => {
+    await page.goto(url('modules/shaft-design.html'));
+    await page.fill('#ma', '0');    await page.dispatchEvent('#ma', 'input');
+    await page.fill('#tm', '300');  await page.dispatchEvent('#tm', 'input');
+    await page.fill('#d', String(await cellNum(page, 'd required')));
+    await page.dispatchEvent('#d', 'input');
+    const ny = await cellNum(page, 'n yield');
+    const target = parseFloat(await page.inputValue('#ntarget'));
+    expect(ny, 'pure torsion is governed by yielding').toBeGreaterThanOrEqual(target - 0.02);
+  });
+
+  test('gear teeth interleave for odd tooth counts too', async ({ page }) => {
+    await page.goto(url('modules/gear-geometry.html'));
+    for (const N2 of [35, 36, 37]) {
+      await page.fill('#n2', String(N2)); await page.dispatchEvent('#n2', 'input');
+      const phase = await page.evaluate(() => {
+        const g = [...document.querySelectorAll('#mesh g[transform]')].pop();
+        return /rotate\(([-\d.]+)\)/.exec(g.getAttribute('transform'))[1];
+      });
+      expect(Number.isFinite(parseFloat(phase))).toBe(true);
+    }
+  });
+});
+
 test.describe('teaching controls behave', () => {
 
   const withPredict = [

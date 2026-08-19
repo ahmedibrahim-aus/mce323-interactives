@@ -27,9 +27,10 @@ function sig(v, n = 3){
 
 /* ---------- svg primitives ----------------------------------------------- */
 const SVG = {
-  line(x1, y1, x2, y2, col, w = 1.5, dash){
+  line(x1, y1, x2, y2, col, w = 1.5, dash, op = 1){
     return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" `
-      + `stroke="${col}" stroke-width="${w}"${dash ? ` stroke-dasharray="${dash}"` : ""} stroke-linecap="round"/>`;
+      + `stroke="${col}" stroke-width="${w}"${dash ? ` stroke-dasharray="${dash}"` : ""}`
+      + `${op !== 1 ? ` opacity="${op}"` : ""} stroke-linecap="round"/>`;
   },
   path(d, col, w = 2, fill = "none", dash){
     return `<path d="${d}" fill="${fill}" stroke="${col}" stroke-width="${w}"`

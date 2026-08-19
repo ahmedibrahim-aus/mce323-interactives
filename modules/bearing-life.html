@@ -34,7 +34,7 @@
     <div class="divider"></div>
     <div class="field" style="flex:1 1 260px">
       <label for="rel">R</label>
-      <input type="range" id="rel" min="0.5" max="0.999" step="0.001" value="0.9">
+      <input type="range" id="rel" min="0.9" max="0.999" step="0.001" value="0.9">
       <span class="readout" id="relv">0.900</span>
     </div>
     <button id="predict">Predict mode</button>
@@ -68,7 +68,7 @@
     <h2>What to notice</h2>
     <ol>
       <li><b>Double the load and a ball bearing loses seven-eighths of its life.</b> Life goes as (C/F)<sup>a</sup> with a = 3. Shave 20% off the load instead and life almost doubles — which is usually the cheapest engineering available.</li>
-      <li><b>Rollers are less forgiving of load and better at carrying it.</b> Switch the type: a = 10/3 makes the line steeper still.</li>
+      <li><b>Rollers are less forgiving of load.</b> Switch the type: a = 10/3 means doubling the load costs 2<sup>10/3</sup> = 10.1× the life instead of 8×. On these axes (load against life) the slope is −1/a, so the line actually gets slightly <em>flatter</em> — a smaller change in load sweeps a wider range of life.</li>
       <li><b>Catalogue ratings are 90% reliability, not 100%.</b> Ask for 99% and the required capacity jumps by roughly two thirds for the same duty. That is the Weibull correction, and it is not a small effect.</li>
       <li><b>Reliabilities multiply.</b> Six bearings at 90% each give a machine at 0.9⁶ = 53%. Specifying every bearing individually at 90% is not the same as designing a reliable machine.</li>
     </ol>
@@ -90,8 +90,13 @@ mountTopbar({});
 $("tb").innerHTML = titleblock({ sheet:"05", title:"Bearing load, life and reliability", ch:"11" });
 
 /* Weibull parameters for a typical manufacturer, Shigley eq. (11-6) */
-const X0=0.02, TH=4.439, BW=1.483;
-const relFactor = r => r>=0.999999 ? 0 : X0 + TH*Math.pow(1-r, 1/BW);
+const X0=0.02, TH=4.439, BW=1.483;   /* x0, (theta - x0), b — note TH is theta MINUS x0 */
+/* Shigley eq. 11-18. The fit is intended for R > 0.90 and returns 0.960, not
+   1.000, at R = 0.90 exactly. Normalising against its own value at 0.90 keeps the
+   catalogue basis and the corrected answer consistent, and makes the multiplier
+   read 1.000 where the catalogue rating is defined. */
+const relRaw    = r => r>=0.999999 ? 0 : X0 + TH*Math.pow(1-r, 1/BW);
+const relFactor = r => relRaw(r)/relRaw(0.9);
 const Ld   = () => hrs*rpm*60;
 const xD   = () => Ld()/L10;
 const C10b = () => af*Fd*Math.pow(xD(),1/a);                       /* at catalogue 90% */
@@ -109,7 +114,9 @@ function drawLL(){
     xfmt:v=>"10"+sup(Math.round(v)), yfmt:v=>fmt(Math.pow(10,v),Math.pow(10,v)<10?1:0), zeroY:false});
   let g=f.g;
   /* F L^(1/a) = const  ->  log F = logC + (1/a)(logL10 - logL) */
-  const lineF = lL => Math.log10(Cv/1.8) + (1/a)*(Math.log10(L10)-lL);
+  /* the locus is F*L^(1/a) = C10*L10^(1/a); the intercept is log(C10), and the
+     1.8 below is only the y-axis headroom, which must not enter here */
+  const lineF = lL => Math.log10(C10b()) + (1/a)*(Math.log10(L10)-lL);
   g += f.clip(SVG.path(curve(lineF,lx0,lx1,f.X,f.Y,120),"var(--dye)",2.6));
 
   const lLd=Math.log10(Ld()), lF=Math.log10(af*Fd);
@@ -140,7 +147,7 @@ function drawRel(){
     xlabel:"reliability R", ylabel:"C10 multiplier",
     xstep:0.1, xfmt:v=>fmt(v,2), yfmt:v=>fmt(v,1), zeroY:false});
   let g=f.g;
-  const mult = r => Math.pow(relFactor(0.9)/relFactor(r), 1/a);
+  const mult = r => Math.pow(1/relFactor(r), 1/a);   /* same basis as the readout */
   g += f.clip(SVG.path(curve(mult,0.5,0.998,f.X,f.Y,200),"var(--dye)",2.6));
   g += SVG.line(f.l,f.Y(1),f.l+f.pw,f.Y(1),"#c3ced8",1.2,"5 4");
   g += SVG.text(f.l+6,f.Y(1)-7,"catalogue basis, R = 0.90",{col:"#8493a0",size:11.5,anchor:"start",mono:true});
@@ -175,7 +182,7 @@ function out(){
   const C=C10r(), Cb=C10b(), Rn=Math.pow(R,nb);
   const rows=[
     {k:"Ld", v:sig(Ld(),3)+" rev", n:`${fmt(hrs,0)} h at ${fmt(rpm,0)} rev/min`},
-    {k:"xD", v:sig(xD(),3), n:"Ld / L10"},
+    {k:"xD", v:sig(xD(),4), n:"Ld / L10"},
     {k:"C10 catalogue basis", v:fmt(Cb,2)+" kN", tone:"jade", n:"the rating you look up"},
     {k:`C10 needed, R = ${fmt(R,3)}`, v:isFinite(C)?fmt(C,2)+" kN":"—", tone:"red", n:"Weibull corrected, eq. 11-18"},
     {k:"penalty", v:isFinite(C)?"×"+fmt(C/Cb,2):"—", n:"cost of the extra reliability"},
@@ -205,10 +212,10 @@ $("rel").addEventListener("input",e=>{ R=parseFloat(e.target.value); redraw(); }
 keyboard("rel",()=>{ R=parseFloat($("rel").value); redraw(); });
 
 const PRESETS=[
-  ["Example 11-3",3,1e6,1.779,5000,1725,1,0.9,1],
-  ["Gearbox, six bearings",3,1e6,4.2,10000,1200,1.2,0.9,6],
-  ["Roller, heavy duty",3.3333,1e6,12,20000,600,1.5,0.95,4],
-  ["99% reliability",3,1e6,1.779,5000,1725,1,0.99,1]
+  ["Example 11-1",3,1000000,1.779,5000,1725,1,0.9,1],
+  ["Gearbox, six bearings",3,1000000,4.2,10000,1200,1.2,0.9,6],
+  ["Roller, heavy duty",3.3333,1000000,12,20000,600,1.5,0.95,4],
+  ["99% reliability",3,1000000,1.779,5000,1725,1,0.99,1]
 ];
 $("presets").innerHTML=PRESETS.map((p,i)=>`<button class="chip" data-i="${i}">${p[0]}</button>`).join("");
 $("presets").addEventListener("click",e=>{

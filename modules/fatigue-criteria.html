@@ -54,7 +54,7 @@
     <ol>
       <li><b>Mean stress is what hurts.</b> Set σa = 100 and slide σm from 0 outward. The amplitude never changes, yet every factor of safety falls. A part cycling 0→200 MPa is in more danger than one cycling −100→+100 MPa.</li>
       <li><b>The load line matters, not just the point.</b> Press <em>Push out</em>: the point travels along a fixed R-ratio and the safety factor is the ratio of where it crosses the envelope to where it sits now.</li>
-      <li><b>Two failure modes, not one.</b> The Langer line is first-cycle yielding. At high mean stress it cuts in front of every fatigue criterion — the part yields before it ever gets the chance to fatigue.</li>
+      <li><b>Two failure modes, not one.</b> The Langer line is first-cycle yielding. At high mean stress it cuts in front of Goodman, Gerber and ASME-elliptic — the part yields before it ever gets the chance to fatigue. Not Soderberg, though: that one shares the point (S<sub>y</sub>, 0) with Langer and is never above it, which is exactly why Soderberg guards against yielding on its own.</li>
       <li><b>The criteria fan out to the right.</b> Near σm = 0 they agree. Push σm toward Sut and Soderberg is far below Gerber. Choosing between them is a real design decision, not bookkeeping.</li>
     </ol>
     <p class="foot"><kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> nudge the point · <kbd>Space</kbd> pushes along the load line</p>
@@ -81,6 +81,7 @@ const nASME     = () => 1/Math.sqrt((sa/Se)**2 + (sm/Sy)**2);
 const nLanger   = () => Sy/(sa+sm);
 function nGerber(){
   if (sm<=1e-9) return Se/sa;
+  if (sa<=1e-9) return Sut/sm;      /* the parabola meets the mean-stress axis at Sut */
   const r=(Sut/sm)**2*(sa/Se)*0.5;
   return r*(-1+Math.sqrt(1+(2*sm*Se/(Sut*sa))**2));
 }
@@ -111,7 +112,7 @@ function draw(){
   g += f.clip(inner);
   const lx = clamp(Sy*0.55, xm*0.06, xm*0.72);
   g += SVG.text(f.X(lx),f.Y(Math.max(0,Sy-lx)+ym*0.05),"Langer — first-cycle yield",
-        {col:"#10151b",size:11.5,mono:true,weight:700,rot:-30});
+        {col:"#10151b",size:11.5,mono:true,weight:700,rot:Math.atan2(f.ph/ym, f.pw/xm)*180/Math.PI});
   g += SVG.text(f.X(Sut*0.60),f.Y(Se*0.52),"Goodman",{col:"var(--principal)",size:12,mono:true,weight:700});
   g += SVG.text(f.X(Sut*0.72),f.Y(Se*0.60),"Gerber",{col:"var(--jade)",size:12,mono:true,weight:700});
   g += SVG.text(f.X(Sy*0.42),f.Y(Se*0.42),"Soderberg",{col:"var(--dye-2)",size:12,mono:true,weight:700});
@@ -184,7 +185,7 @@ function out(){
   else {
     const g=nGoodman(), ny2=nLanger();
     if (ny2<g) msg=[`<b>Yielding governs.</b> n<sub>y</sub> = ${fmt(ny2,2)} is below the fatigue numbers. At this mean stress the part yields on the first cycle — it never survives long enough to fatigue.`];
-    else if (sm<1e-6) msg=["<b>Fully reversed.</b> With σm = 0 every criterion collapses to the same answer, n = Se/σa. This is the only case where the choice of criterion does not matter.","neutral"];
+    else if (sm<1e-6) msg=["<b>Fully reversed.</b> With σm = 0 every <em>fatigue</em> criterion collapses to the same answer, n = Se/σa. This is the only case where the choice of criterion does not matter.","neutral"];
     else if (g<1) msg=[`<b>Below one.</b> Goodman gives n = ${fmt(g,2)}. This point sits outside the envelope — infinite life is not available here.`];
   }
   callout("note", msg?msg[0]:"", msg?msg[1]:null);

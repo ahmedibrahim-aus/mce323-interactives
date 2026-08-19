@@ -62,9 +62,9 @@
     <h2>What to notice</h2>
     <ol>
       <li><b>Two gears mesh if they share a module and a pressure angle.</b> Nothing else has to match — not the diameter, not the tooth count. Change N and watch the pitch circles resize while the teeth still fit.</li>
-      <li><b>The pressure line is straight, and contact runs along it.</b> That straightness is conjugate action: the velocity ratio stays constant through the whole engagement, which is why the involute won and other profiles did not.</li>
+      <li><b>The pressure line is straight, and contact runs along it</b> — between the two points of tangency, not beyond them. Conjugate action only requires the common normal to pass through the pitch point; a straight, fixed line of action is the involute’s particular gift, and it is why the ratio survives an error in centre distance.</li>
       <li><b>Drop the pinion below about 18 teeth at φ = 20°</b> and the flank gets undercut at the root — material removed where the bending stress is highest. The warning appears automatically. Raise φ to 25° and the limit falls to 12.</li>
-      <li><b>The base circle is the generator, not a construction line.</b> Below it there is no involute at all, only a radial flank. Watch it cross the dedendum circle as the tooth count drops — that is the moment undercutting begins.</li>
+      <li><b>The base circle is the generator, not a construction line.</b> Below it there is no involute at all, only a radial flank. Undercutting is not about the base circle crossing the root circle — that is normal and harmless — it is the hob’s tip reaching below the interference point as the tooth count falls.</li>
     </ol>
     <p class="foot"><kbd>←</kbd> <kbd>→</kbd> change the pinion tooth count · <kbd>Space</kbd> runs the mesh</p>
   </div>
@@ -86,7 +86,25 @@ const geom = N => {
   const p = phi*D, r = m*N/2;
   return { N, r, rb:r*Math.cos(p), ra:r+m, rf:r-1.25*m, p };
 };
-const Nmin = () => Math.ceil(2/Math.pow(Math.sin(phi*D),2));   /* full-depth, meshing a rack */
+/* Two different limits, and students conflate them constantly:
+   Nrack is the smallest full-depth pinion a HOB can cut without undercutting it;
+   Npair is Shigley eq. 13-11, the smallest pinion that will mesh with a specific
+   gear without interference. Nrack is the m -> infinity bound, so it is always
+   the more demanding of the two. */
+const Nrack = () => Math.ceil(2/Math.pow(Math.sin(phi*D),2));
+function Npair(){
+  const NP=Math.min(N1,N2), NG=Math.max(N1,N2), mG=NG/NP, k=1, s2=Math.pow(Math.sin(phi*D),2);
+  return Math.ceil( 2*k/((1+2*mG)*s2) * (mG + Math.sqrt(mG*mG + (1+2*mG)*s2)) );
+}
+const Nmin = Nrack;
+/* Length of action between the two addendum circles, over the base pitch. Below
+   about 1.2 the mesh is running on a single tooth pair for most of its cycle. */
+function mc(){
+  const g1=geom(N1), g2=geom(N2), p=phi*D, C=g1.r+g2.r;
+  const Z = Math.sqrt(Math.max(0,g1.ra**2-g1.rb**2))
+          + Math.sqrt(Math.max(0,g2.ra**2-g2.rb**2)) - C*Math.sin(p);
+  return Z/(Math.PI*m*Math.cos(p));
+}
 
 /* One closed outline for a whole gear, in millimetres, centred on the origin. */
 function gearPath(N){
@@ -109,7 +127,7 @@ function gearPath(N){
     /* top land */
     d += ` A ${ra.toFixed(2)} ${ra.toFixed(2)} 0 0 1 `+pt(ra,flank(ra)).join(" ");
     /* left flank, tip -> root */
-    for(let i=STEP-1;i>=1;i--){ const rr=start+(ra-start)*i/STEP; d+=" L "+pt(rr,flank(rr)).join(" "); }
+    for(let i=STEP-1;i>=0;i--){ const rr=start+(ra-start)*i/STEP; d+=" L "+pt(rr,flank(rr)).join(" "); }
     if (rf<rb) d += " L "+pt(rb,half).join(" ")+" L "+pt(rf,half).join(" ");
     /* root arc to the next tooth */
     const nb = 2*Math.PI*(k+1)/N;
@@ -151,12 +169,12 @@ function drawTooth(){
   for(let t=-1;t<=1;t++){
     const off=t*2*Math.PI/N1;
     const P=(rr,th)=>`${PX(rr,off+th).toFixed(1)} ${PY(rr,off+th).toFixed(1)}`;
-    let d="M "+P(g1.rf,-half);
+    let d="M "+P(g1.rf,-flank(g1.rf));   /* above the base circle the flank has already wound in */
     if(g1.rf<g1.rb) d+=" L "+P(g1.rb,-half);
     for(let i=1;i<=SEG;i++){ const rr=r0+(g1.ra-r0)*i/SEG; d+=" L "+P(rr,-flank(rr)); }
     for(let i=SEG;i>=1;i--){ const rr=r0+(g1.ra-r0)*i/SEG; d+=" L "+P(rr, flank(rr)); }
     if(g1.rf<g1.rb) d+=" L "+P(g1.rb,half);
-    d+=" L "+P(g1.rf,half)+" Z";
+    d+=" L "+P(g1.rf,flank(g1.rf))+" Z";
     g += SVG.path(d,"#46545f",1.8,t===0?"#dde5ec":"#f1f4f7");
   }
 
@@ -176,8 +194,8 @@ function drawTooth(){
   g += SVG.line(xl,yP,xr2,yP,"var(--principal)",2.4);
   g += SVG.text(cx,yP-12,"t = p/2 = "+fmt(Math.PI*m/2,2),{col:"var(--principal)",size:12.5,mono:true,weight:700});
 
-  if (N1 < Nmin())
-    g += SVG.text(310,34,"undercut — the base circle has risen above the dedendum circle",
+  if (N1 < Nrack())
+    g += SVG.text(310,34,"undercut — the hob cuts away the flank below the base circle",
         {col:"var(--principal)",size:14,weight:700});
   else
     g += SVG.text(310,34,`${N1} teeth · module ${fmt(m,2)} mm · φ ${phi}°`,
@@ -188,11 +206,14 @@ function drawTooth(){
 /* ---------- mesh ------------------------------------------------------------ */
 function drawMesh(){
   const g1=geom(N1), g2=geom(N2), C=g1.r+g2.r;
-  const k=Math.min(196/Math.max(g2.ra,1), 578/(g1.ra+C+g2.ra));
+  const k=Math.min(196/Math.max(g1.ra,g2.ra,1), 578/(g1.ra+C+g2.ra));
   const x1=21+g1.ra*k, cy=230, x2=x1+C*k;
   let g="";
   g += SVG.centre(20,cy,600,cy);
-  const rot1=psi, rot2=-psi*N1/N2 + Math.PI/N2;      /* half-tooth phase so they interleave */
+  /* The pinion always has a tooth centred at theta = 0, so the gear needs a SPACE
+     centred at theta = pi. That needs a half-tooth offset only when N2 is even;
+     with N2 odd a space already sits there and the offset makes them collide. */
+  const rot1=psi, rot2=-psi*N1/N2 + (N2 % 2 ? 0 : Math.PI/N2);
 
   if(showCirc){
     [[x1,g1],[x2,g2]].forEach(([cx,gg])=>{
@@ -218,7 +239,7 @@ function drawMesh(){
        which is the base radius by definition. */
     const p=phi*D, ux=Math.sin(p), uy=-Math.cos(p);        /* unit vector along the line */
     const t1=g1.r*k*Math.sin(p), t2=g2.r*k*Math.sin(p);    /* pitch point to each tangency */
-    const back=t1*1.8, fwd=t2*1.8;
+    const back=t1*1.06, fwd=t2*1.06;   /* the tangent segment T1-T2, barely extended */
 
     /* the reference the angle is measured from, so the construction is legible */
     const ct=Math.max(back,fwd)*0.62;
@@ -230,6 +251,12 @@ function drawMesh(){
     g += SVG.circle(pitchX-t1*ux,cy-t1*uy,3.5,"var(--jade)");
     g += SVG.circle(pitchX+t2*ux,cy+t2*uy,3.5,"var(--jade)");
 
+    /* Contact only occupies the part of T1-T2 between the two addendum circles.
+       Its length Z divided by the base pitch is the contact ratio — the number
+       that says whether more than one tooth pair is ever carrying the load. */
+    const sA = g2.r*k*Math.sin(p) - Math.sqrt(Math.max(0,(g2.ra*k)**2-(g2.rb*k)**2));
+    const sB = Math.sqrt(Math.max(0,(g1.ra*k)**2-(g1.rb*k)**2)) - g1.r*k*Math.sin(p);
+    g += SVG.line(pitchX+sA*ux,cy+sA*uy,pitchX+sB*ux,cy+sB*uy,"var(--jade)",5,"",0.28);
     g += SVG.text(pitchX+fwd*ux+9,cy+fwd*uy-4,"pressure line",
                   {col:"var(--jade)",size:12,mono:true,weight:700,anchor:"start"});
     const R=44;
@@ -246,7 +273,7 @@ function drawMesh(){
 
 /* ---------- readouts --------------------------------------------------------- */
 function out(){
-  const g1=geom(N1), g2=geom(N2), nm=Nmin();
+  const g1=geom(N1), g2=geom(N2), nm=Nrack();
   cells("out",[
     {k:"d pinion", v:fmt(g1.r*2,1)+" mm", tone:"red", n:"d = mN"},
     {k:"d gear",   v:fmt(g2.r*2,1)+" mm", tone:"red"},
@@ -255,10 +282,12 @@ function out(){
     {k:"db pinion",v:fmt(g1.rb*2,1)+" mm", tone:"blue", n:"d cos φ"},
     {k:"a / b",    v:fmt(m,2)+" / "+fmt(1.25*m,2), n:"addendum / dedendum"},
     {k:"ratio",    v:fmt(N2/N1,3)+" : 1", n:`${N1} → ${N2} teeth`},
-    {k:"min teeth",v:String(nm), tone:N1<nm?"red":"jade", n:`at φ = ${phi}°`}
+    {k:"min teeth, rack",v:String(nm), tone:Math.min(N1,N2)<nm?"red":"jade", n:`hob-cut, at φ = ${phi}°`},
+    {k:"min teeth, this pair",v:String(Npair()), tone:Math.min(N1,N2)<Npair()?"red":"jade", n:"eq. 13-11, for the pair drawn"},
+    {k:"contact ratio mc", v:fmt(mc(),3), tone:mc()<1.2?"red":"blue", n:"teeth in mesh on average"}
   ]);
   if (N1<nm)
-    callout("note",`<b>Interference.</b> ${N1} teeth is below the ${nm}-tooth limit at φ = ${phi}°, so the mating tips gouge the pinion flank below its base circle. Fixes: raise the tooth count, go to φ = 25° (limit drops to ${Math.ceil(2/Math.pow(Math.sin(25*D),2))}), or use stub teeth.`);
+    callout("note",`<b>Undercut.</b> ${N1} teeth is below the ${nm}-tooth rack limit at φ = ${phi}°, so the hob cuts away the flank below the base circle as it generates the tooth. Fixes: raise the tooth count${phi!==25?`, go to φ = 25° (the rack limit drops to ${Math.ceil(2/Math.pow(Math.sin(25*D),2))})`:""}, or use stub teeth. Note this is the rack limit — against the ${N2}-tooth gear actually drawn, eq. 13-11 asks for ${Npair()}.`);
   else if (N1===nm)
     callout("note",`<b>Exactly at the limit.</b> ${nm} teeth is the smallest full-depth pinion that avoids interference at φ = ${phi}°. One tooth fewer and the flank is undercut.`,"neutral");
   else callout("note","");

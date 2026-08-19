@@ -128,15 +128,19 @@ function drawElement(){
 
   const L = v => Math.abs(v)*scale;
   const LIVE = 0.05;                       /* a zero stress gets no arrow at all */
-  const nx=L(st.sxp), gx=st.sxp>=0?1:-1, hasX=Math.abs(st.sxp)>LIVE;
+  /* Tension pulls the face outward, compression pushes it inward. The faces stay
+     at +/-a either way; it is the arrow that turns round, not the face. */
+  const nx=L(st.sxp), hasX=Math.abs(st.sxp)>LIVE;
   if(hasX){
-    g += SVG.arrow(X(a*gx,0),Y(a*gx,0),X((a+nx)*gx,0),Y((a+nx)*gx,0),"var(--dye)",3);
-    g += SVG.arrow(X(-a*gx,0),Y(-a*gx,0),X(-(a+nx)*gx,0),Y(-(a+nx)*gx,0),"var(--dye)",3);
+    const t0 = st.sxp>=0 ? a : a+nx, t1 = st.sxp>=0 ? a+nx : a;
+    g += SVG.arrow(X(t0,0),Y(t0,0),X(t1,0),Y(t1,0),"var(--dye)",3);
+    g += SVG.arrow(X(-t0,0),Y(-t0,0),X(-t1,0),Y(-t1,0),"var(--dye)",3);
   }
-  const ny=L(st.syp), gy=st.syp>=0?1:-1, hasY=Math.abs(st.syp)>LIVE;
+  const ny=L(st.syp), hasY=Math.abs(st.syp)>LIVE;
   if(hasY){
-    g += SVG.arrow(X(0,a*gy),Y(0,a*gy),X(0,(a+ny)*gy),Y(0,(a+ny)*gy),"var(--dye-2)",3);
-    g += SVG.arrow(X(0,-a*gy),Y(0,-a*gy),X(0,-(a+ny)*gy),Y(0,-(a+ny)*gy),"var(--dye-2)",3);
+    const u0 = st.syp>=0 ? a : a+ny, u1 = st.syp>=0 ? a+ny : a;
+    g += SVG.arrow(X(0,u0),Y(0,u0),X(0,u1),Y(0,u1),"var(--dye-2)",3);
+    g += SVG.arrow(X(0,-u0),Y(0,-u0),X(0,-u1),Y(0,-u1),"var(--dye-2)",3);
   }
 
   const tl=Math.min(54,Math.abs(st.txp)*scale), ts=st.txp>=0?1:-1;
@@ -149,8 +153,8 @@ function drawElement(){
   }
 
   if (!hiding()){
-    if(hasX) g += SVG.text(X((a+nx+8)*gx,20),Y((a+nx+8)*gx,20),fmt(st.sxp,1),{col:"var(--dye)",size:14,mono:true,weight:700});
-    if(hasY) g += SVG.text(X(22,(a+ny+10)*gy),Y(22,(a+ny+10)*gy),fmt(st.syp,1),{col:"var(--dye-2)",size:14,mono:true,weight:700});
+    if(hasX) g += SVG.text(X(a+nx+8,20),Y(a+nx+8,20),fmt(st.sxp,1),{col:"var(--dye)",size:14,mono:true,weight:700});
+    if(hasY) g += SVG.text(X(22,a+ny+10),Y(22,a+ny+10),fmt(st.syp,1),{col:"var(--dye-2)",size:14,mono:true,weight:700});
     if(tl>3) g += SVG.text(X(a+30,42),Y(a+30,42),fmt(st.txp,1),{col:"var(--jade)",size:13.5,mono:true,weight:700});
     if (Math.abs(st.txp)<0.3)
       g += SVG.text(14,24,"τ = 0 — a principal plane",{col:"var(--principal)",size:15,weight:700,anchor:"start"});
@@ -208,7 +212,13 @@ function buildMohr(){
   g += SVG.line(48,cy,596,cy,"#b9c4ce",1.5);
   g += SVG.text(600,cy+4,"σ",{col:"#46545f",size:14,anchor:"start",mono:true});
   g += SVG.centre(MX(P.avg),36,MX(P.avg),372);
-  g += SVG.text(MX(P.avg)-10,388,"τ ↓ positive",{col:"#8493a0",size:11.5,anchor:"end",mono:true});
+  g += SVG.text(MX(P.avg)-10,388,"σavg",{col:"#8493a0",size:11.5,anchor:"end",mono:true});
+  /* the real tau axis is at sigma = 0, which is NOT the circle centre */
+  if (MX(0) > 52 && MX(0) < 592){
+    g += SVG.line(MX(0),46,MX(0),362,"#8493a0",1.2,"3 4");
+    g += SVG.text(MX(0)+6,58,"σ = 0",{col:"#8493a0",size:11,anchor:"start",mono:true});
+  }
+  g += SVG.text(56,388,"τ ↓ positive",{col:"#8493a0",size:11.5,anchor:"start",mono:true});
   g += SVG.circle(MX(P.avg),cy,P.R*k,"none","#8493a0",2.2);
   g += SVG.circle(MX(P.avg),cy,3,"#8493a0");
   if (!hiding()){
@@ -217,7 +227,7 @@ function buildMohr(){
          on top of each other — say the one thing that is actually true instead. */
       g += SVG.circle(MX(P.avg),cy,5,"var(--principal)");
       g += SVG.text(MX(P.avg),cy-16,"σ1 = σ2 = "+fmt(P.s1,1),{col:"var(--principal)",size:12.5,mono:true,weight:700});
-      g += SVG.text(MX(P.avg),cy+26,"the circle is a point — no shear on any plane",
+      g += SVG.text(MX(P.avg),cy+26,"in-plane circle is a point — but σ3 = 0, so τmax = σ1/2 out of plane",
                     {col:"var(--brass)",size:12,mono:true,weight:700});
     } else {
       [[P.s1,"σ1"],[P.s2,"σ2"]].forEach(([v,l])=>{
@@ -225,7 +235,7 @@ function buildMohr(){
         g += SVG.text(MX(v),cy-14,l+" = "+fmt(v,1),{col:"var(--principal)",size:12.5,mono:true,weight:700});
       });
       g += SVG.circle(MX(P.avg),MY(P.R),4.5,"var(--brass)");
-      g += SVG.text(MX(P.avg)+9,MY(P.R)+19,"τmax = "+fmt(P.R,1),{col:"var(--brass)",size:12,anchor:"start",mono:true,weight:700});
+      g += SVG.text(MX(P.avg)+9,MY(P.R)+19,"τmax in-plane = "+fmt(P.R,1),{col:"var(--brass)",size:12,anchor:"start",mono:true,weight:700});
     }
   }
   mohrBase=g; MG={cx,cy,MX,MY,k,P};
@@ -235,8 +245,13 @@ function drawMohr(){
   const x=MX(st.sxp), y=MY(st.txp), xc=MX(st.syp), yc=MY(-st.txp);
   if (theta>0.4){
     const R=P.R*k, ar=Math.max(26,R*0.3), a1=2*theta*D;
-    g += SVG.path(`M ${MX(P.avg)+ar} ${cy} A ${ar} ${ar} 0 ${2*theta>180?1:0} 1 ${MX(P.avg)+ar*Math.cos(a1)} ${cy+ar*Math.sin(a1)}`,"var(--principal)",1.8);
-    const m=a1/2;
+    /* The point starts at theta = 0, which is 2*theta_p BELOW the sigma axis on
+       screen, and travels counter-clockwise with the element. Sweep from there. */
+    const a0 = -2*P.thp*D, aE = a0 + a1;
+    g += SVG.path(`M ${MX(P.avg)+ar*Math.cos(a0)} ${cy+ar*Math.sin(a0)} `
+                + `A ${ar} ${ar} 0 ${a1*180/Math.PI>180?1:0} 0 `
+                + `${MX(P.avg)+ar*Math.cos(aE)} ${cy+ar*Math.sin(aE)}`,"var(--principal)",1.8);
+    const m=(a0+aE)/2;
     g += SVG.text(MX(P.avg)+(ar+17)*Math.cos(m),cy+(ar+17)*Math.sin(m)+4,"2θ",{col:"var(--principal)",size:14,mono:true,weight:700});
   }
   g += SVG.line(MX(P.avg),cy,x,y,"#10151b",1.8);
@@ -262,7 +277,7 @@ function drawOut(){
     {k:"σ1",        v:q(fmt(P.s1)),             tone:"red"},
     {k:"σ2",        v:q(fmt(P.s2)),             tone:"red"},
     {k:"θp",        v:q(angPlain(P.thp)),       tone:"red",  n:"planes of zero shear"},
-    {k:"τmax",      v:q(fmt(P.R)),              tone:"brass"},
+    {k:"τmax in-plane", v:q(fmt(P.R)), tone:"brass", n:"σ3 = 0, so check (σ1−σ3)/2 too"},
     {k:"θs",        v:q(angPlain(P.ths)),       tone:"brass",n:"45° from θp"},
     {k:"σavg",      v:q(fmt(P.avg)),                         n:"centre of Mohr's circle"}
   ]);
