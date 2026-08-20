@@ -209,7 +209,7 @@ function out(){
     {k:M("n") + " at ∞ life", v:q_(fmt(Se()/sa,2)), tone:"red", n:"Se / σa"}
   ]);
   let msg=null;
-  if(hiding()) msg=["<b>Predict mode.</b> Ask which correction takes the biggest bite before you reveal the waterfall.","neutral"];
+  if(hiding()) msg=["<b>Predict mode.</b> Which correction takes the biggest bite out of the specimen value? Guess before you reveal.","neutral"];
   else if(inf) msg=[`<b>Infinite life.</b> σa = ${fmt(sa,0)} MPa sits below Se = ${fmt(Se(),1)} MPa, with a margin of ${fmt(Se()/sa,2)}. Nothing on the S-N line applies — the part simply does not fail by fatigue.`,"neutral"];
   else if(sa>fFrac()*Sut) msg=[`<b>Above the 10³ anchor.</b> σa = ${fmt(sa,0)} MPa exceeds f·Sut = ${fmt(fFrac()*Sut,0)} MPa. This is low-cycle territory and the stress-life method does not apply here — you would need the strain-life approach.`];
   else msg=[`<b>Finite life: about ${sig(N,3)} cycles.</b> Se has been cut from ${fmt(Sep(),0)} to ${fmt(Se(),1)} MPa by the corrections — a loss of ${fmt((1-Se()/Sep())*100,0)}%.`];

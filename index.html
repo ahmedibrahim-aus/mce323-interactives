@@ -23,7 +23,7 @@
   <div>
     <span class="eyebrow">Dr. Ahmed Hanafy Ibrahim · Mechanical Design</span>
     <h1>Some things<br>don't survive<br>a <em>static slide</em>.</h1>
-    <p>Ten instruments for the parts of this course that move: stress that rotates with the cutting plane, criteria that disagree, teeth that mesh, and a diameter that has to answer to two failure modes at once.</p>
+    <p>Ten things to play with, for the parts of this course that move: stress that turns as you rotate the cutting plane, failure criteria that disagree with each other, gear teeth that mesh, and a shaft diameter that has to satisfy two failure modes at once. Drag something and watch what happens.</p>
   </div>
   <div class="instrument">
     <svg id="hero" viewBox="0 0 520 400" role="img" aria-label="A stress element rotating beside its Mohr circle"></svg>
@@ -34,7 +34,7 @@
 <section class="section">
   <header>
     <h2>The modules</h2>
-    <p>Every one opens on a worked example from the course notes, so it drops into the lecture you already give. Most carry a <b>Predict mode</b> that hides the answers, so the class commits before the reveal.</p>
+    <p>Each one opens on a worked example straight from your notes, so you can check it against the solution you already have. Most have a <b>Predict mode</b> that hides the answers — use it. Guess first, then reveal. Being wrong on purpose is how this material sticks.</p>
   </header>
 
   <div class="cards" id="cards"></div>
@@ -42,9 +42,10 @@
 
 <section class="section" style="padding-top:0">
   <header>
-    <span class="eyebrow">How to use them</span>
-    <h2>In the lecture, and afterwards</h2>
-    <p>Each module opens on a worked example from the course notes and reproduces its published answer, so you can put it on the projector mid-lecture without re-deriving anything. Arrow keys drive the main control and <b>Space</b> runs the animation, which matters when you are standing away from the laptop.</p>
+    <span class="eyebrow">How to get the most out of these</span>
+    <h2>Before the problem set, not after</h2>
+    <p>Open the module for whatever you are stuck on and move one slider at a time. Ask yourself which way the number should go before you drag it — if it moves the other way, you have found a gap worth chasing, and that is worth more than a correct answer you did not predict.</p>
+    <p>Arrow keys nudge the main control and <b>Space</b> runs the animation. Nothing to install, nothing to log into, and it works on your phone. These are not a substitute for the textbook or the lectures; they are for building the intuition that makes both easier to read.</p>
   </header>
 </section>
 
@@ -62,7 +63,7 @@ const MODULES=[
     d:"Rotate the cutting plane and the element, the θ-sweep and Mohr's circle move together. Principal planes appear exactly where the shear crosses zero.",
     thumb:thumbStress },
   { href:"modules/beam-diagrams.html", ch:"Ch 03", t:"Shear and Moment Diagrams",
-    d:"Move the loads and watch V and M rebuild. M is built up as the area under V, so the relationship you are teaching is the one the tool actually uses.",
+    d:"Move the loads and watch V and M rebuild underneath. M is built up as the area under V, so you can see where the maximum moment comes from instead of memorising a formula.",
     thumb:thumbBeam },
   { href:"modules/failure-envelopes.html", ch:"Ch 05", t:"Static Failure Envelopes",
     d:"Drag a stress state across the principal plane and watch MSS, distortion energy and Coulomb–Mohr disagree. The gap is the price of conservatism.",
@@ -71,7 +72,7 @@ const MODULES=[
     d:"Same amplitude, different mean stress, different life. Goodman, Gerber, Soderberg, ASME and the Langer yield line, all live.",
     thumb:thumbFatigue },
   { href:"modules/stress-concentration.html", ch:"Ch 05", t:"Stress Concentration",
-    d:"Read Kt off the chart the way the exam expects, see what ignoring it costs, then turn it into Kf through notch sensitivity.",
+    d:"Practise reading Kt off the chart, see what forgetting it would have cost you, then turn it into Kf through notch sensitivity.",
     thumb:thumbKt },
   { href:"modules/marin-sn.html", ch:"Ch 06", t:"Marin Factors and the S-N Line",
     d:"Build Se one correction at a time and watch the finite-life line drop and pivot underneath, then read a life straight off it.",
@@ -264,7 +265,11 @@ function thumbAgma(){
     g+=SVG.line(mx,my,px,py,"#10151b",1.4);
     g+=SVG.circle(px,py,6,"#fff","#10151b",2.4);
     g+=SVG.text(mx,my+R*mk+22,"2θ = "+fmt(2*th,0)+"°",{col:"#8493a0",size:11.5,mono:true});
-    g+=SVG.text(cx,cy+128,"θ = "+fmt(th,0)+"°",{col:"#8493a0",size:11.5,mono:true});
+    g+=SVG.text(cx,cy+124,"θ = "+fmt(th,0)+"°",{col:"#8493a0",size:11.5,mono:true});
+    /* the three stresses, live — the whole point is watching these change */
+    g+=SVG.mtext( 92,352,"σ_x′ = "+fmt(sxp,1), {col:"var(--dye)",  size:15,weight:700});
+    g+=SVG.mtext(250,352,"σ_y′ = "+fmt(syp,1), {col:"var(--dye-2)",size:15,weight:700});
+    g+=SVG.mtext(416,352,"τ_x′y′ = "+fmt(txp,1),{col:"var(--jade)", size:15,weight:700});
     if(Math.abs(txp)<0.25)
       g+=SVG.text(260,40,"τ = 0 — principal plane",{col:"var(--principal)",size:13,weight:700});
     svg.innerHTML=g;

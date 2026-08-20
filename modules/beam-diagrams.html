@@ -238,7 +238,7 @@ function out(S){
     {k:"needs " + M("S_y") + " >", v:q(fmt(sig*2,0)+" MPa"), n:"at a design factor of 2"}
   ]);
   let msg=null;
-  if(hiding()) msg=["<b>Predict mode.</b> Ask where the maximum moment is before revealing — and ask why V crossing zero is the clue.","neutral"];
+  if(hiding()) msg=["<b>Predict mode.</b> Where is the maximum moment, and how big? Work it out before you reveal — V crossing zero is the clue.","neutral"];
   else if(Math.abs(S.Mmax)<1) msg=["<b>No bending.</b> Add a load to see anything happen.","neutral"];
   else if(sup==="cant") msg=[`<b>Cantilever.</b> Maximum moment is always at the wall for downward loads — ${fmt(Math.abs(S.MA)/1000,1)} N·m here — and the moment is negative because the beam hogs.`,"neutral"];
   else msg=[`<b>M<sub>max</sub> = ${fmt(S.Mmax/1000,2)} N·m at x = ${fmt(S.xM,0)} mm.</b> Look at the shear diagram directly above: V passes through zero at that same station. It always does.`];

@@ -66,7 +66,7 @@
       <li><b>Maximum shear is always 45° from the principal planes</b> — for every state you can type in. And there, σ<sub>x′</sub> = σ<sub>y′</sub> = σ<sub>avg</sub>.</li>
       <li><b>Mohr's circle turns twice as fast.</b> Rotate the element θ and the point travels 2θ. Try <em>Pure torsion</em>: principal planes land at 45°, which is why a twisted piece of chalk breaks on a 45° helix.</li>
     </ol>
-    <p class="foot"><kbd>←</kbd> <kbd>→</kbd> step θ · <kbd>Shift</kbd> for a larger step · <kbd>Space</kbd> to sweep · <b>Predict mode</b> hides the answers so the class commits before the reveal.</p>
+    <p class="foot"><kbd>←</kbd> <kbd>→</kbd> step θ · <kbd>Shift</kbd> for a larger step · <kbd>Space</kbd> to sweep · <b>Predict mode</b> hides the answers — commit to a number before you reveal it.</p>
   </div>
 </div>
 
@@ -316,7 +316,7 @@ function drawOut(){
     {k:M("σ_avg"),      v:q(fmt(P.avg)),                         n:"center of Mohr's circle"}
   ]);
   if (hiding())
-    callout("note","<b>Predict mode.</b> Ask where the principal planes are and take a vote on the angle before you press Reveal.","neutral");
+    callout("note","<b>Predict mode.</b> Where are the principal planes? Commit to an angle before you press Reveal — being wrong here is useful.","neutral");
   else if (Math.abs(st.txp)<0.3)
     callout("note","<b>Zero shear.</b> This is a principal plane, and σ<sub>x′</sub> is at an extreme here. That is the definition, not a coincidence.");
   else if (Math.abs(Math.abs(st.txp)-P.R)<0.3)

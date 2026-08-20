@@ -13,7 +13,7 @@
 <header class="mod-head">
   <span class="eyebrow">Shigley ch. 5 &amp; 6 · Stress concentration and notch sensitivity</span>
   <h1>Stress Concentration</h1>
-  <p>Read K<sub>t</sub> off the chart the way the exam expects, then see what ignoring it would have cost. The same panel carries the step most students miss — turning a static K<sub>t</sub> into the fatigue factor K<sub>f</sub> through notch sensitivity.</p>
+  <p>Practise reading K<sub>t</sub> off the chart, then see what forgetting it would have cost you. The same panel carries the step most students miss — turning a static K<sub>t</sub> into the fatigue factor K<sub>f</sub> through notch sensitivity.</p>
 </header>
 
 <div class="wrap">
@@ -266,7 +266,7 @@ function out(){
     {k:M("K_f / K_t"), v:q_(fmt(Kf()/K,3)), n:"how much fatigue discounts the notch"}
   ]);
   let msg=null;
-  if(hiding()) msg=["<b>Predict mode.</b> Ask the class to read K<sub>t</sub> off the chart before you reveal it — and to say whether K<sub>f</sub> will be larger or smaller.","neutral"];
+  if(hiding()) msg=["<b>Predict mode.</b> Read K<sub>t</sub> off the chart yourself before you reveal it — and decide whether K<sub>f</sub> will come out larger or smaller.","neutral"];
   else if(K>2.8) msg=[`<b>Severe.</b> K<sub>t</sub> = ${fmt(K,2)} means the peak stress is nearly three times the nominal. Sizing this part on σ<sub>nom</sub> would overstate its safety factor by the same multiple.`];
   else if(r<1.2 && geo!=="hole") msg=[`<b>Sharp fillet.</b> At r = ${fmt(r,1)} mm most of the available benefit is still unclaimed — opening the radius to 3 mm would drop K<sub>t</sub> noticeably for almost no cost in material.`,"neutral"];
   else msg=[`<b>K<sub>t</sub> = ${fmt(K,2)}, K<sub>f</sub> = ${fmt(Kf(),2)}.</b> Use K<sub>t</sub> for the static check and K<sub>f</sub> for the fatigue check — they are not interchangeable, and the fatigue one is always the smaller.`,"neutral"];

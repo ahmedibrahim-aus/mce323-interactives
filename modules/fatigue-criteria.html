@@ -181,7 +181,7 @@ function out(){
   cells("out",rows);
 
   let msg=null;
-  if (hiding()) msg=["<b>Predict mode.</b> Ask which criterion governs, and whether the part yields before it fatigues.","neutral"];
+  if (hiding()) msg=["<b>Predict mode.</b> Which criterion governs here? And does this part yield before it ever fatigues? Commit to an answer, then reveal.","neutral"];
   else {
     const g=nGoodman(), ny2=nLanger();
     if (ny2<g) msg=[`<b>Yielding governs.</b> n<sub>y</sub> = ${fmt(ny2,2)} is below the fatigue numbers. At this mean stress the part yields on the first cycle — it never survives long enough to fatigue.`];

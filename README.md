@@ -1,8 +1,8 @@
 # MCE 323 — Interactive Modules
 
 Ten browser-based instruments for **MCE 323 Mechanical Design** (Shigley, SI), by
-Dr. Ahmed Hanafy Ibrahim. Built to be driven from the front of a lecture theatre on a
-projector, and to be opened afterwards by students on their own machines.
+Dr. Ahmed Hanafy Ibrahim. The site is written for students to use on their own —
+before the problem set, not after. It also projects cleanly in a lecture.
 
 **No build step. No dependencies. No internet needed once the page has loaded.**
 

@@ -179,7 +179,7 @@ function out(){
   cells("out",list);
 
   let msg="";
-  if (hiding()) msg=["<b>Predict mode.</b> Ask which criterion gives the lower factor of safety here, and by how much, before revealing.","neutral"];
+  if (hiding()) msg=["<b>Predict mode.</b> Which criterion gives the lower factor of safety here, and by how much? Decide before you reveal.","neutral"];
   else if (MAT.mode==="d"){
     const de=nDE(), mss=nMSS();
     if (Math.abs(sA-sB)<1e-6 && Math.abs(sA)>1e-9) msg=["<b>Equal in both directions, not hydrostatic.</b> With σ3 = 0 this state still distorts: σ′ = |σA|, so DE and MSS both predict yielding at σA = σB = Sy. True hydrostatic needs σ1 = σ2 = σ3, which on this plot is only the origin.","neutral"];
