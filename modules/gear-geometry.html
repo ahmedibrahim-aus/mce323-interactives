@@ -251,9 +251,27 @@ function drawMesh(){
 
     g += SVG.line(pitchX-back*ux,cy-back*uy,pitchX+fwd*ux,cy+fwd*uy,"var(--jade)",2);
 
-    /* the two points of tangency — the visible proof the construction is right */
-    g += SVG.circle(pitchX-t1*ux,cy-t1*uy,3.5,"var(--jade)");
-    g += SVG.circle(pitchX+t2*ux,cy+t2*uy,3.5,"var(--jade)");
+    /* Show WHY those two points are special. Step 3 of the construction is
+       "base circles tangent to pressure line", and a bare segment between two
+       dots is no evidence of it. Draw the base radius out to each point of
+       tangency and square the corner: a radius meeting a tangent at 90 degrees
+       is the whole claim, and now you can see it. */
+    const T1x = pitchX-t1*ux, T1y = cy-t1*uy;      /* on the pinion base circle */
+    const T2x = pitchX+t2*ux, T2y = cy+t2*uy;      /* on the gear base circle   */
+    const corner = (Tx,Ty,Ox,Oy,sgn) => {
+      const rl = Math.hypot(Tx-Ox,Ty-Oy), rx=(Tx-Ox)/rl, ry=(Ty-Oy)/rl, q=9;
+      const ax=Tx-rx*q,        ay=Ty-ry*q;
+      const bx=ax+sgn*ux*q,    by=ay+sgn*uy*q;
+      const cx2=Tx+sgn*ux*q,   cy2=Ty+sgn*uy*q;
+      /* solid, so it reads as a radius and not as another circle */
+      return SVG.line(Ox,Oy,Tx,Ty,"var(--dye)",1.1,null,0.85)
+           + `<polyline points="${ax.toFixed(1)},${ay.toFixed(1)} ${bx.toFixed(1)},${by.toFixed(1)} `
+           + `${cx2.toFixed(1)},${cy2.toFixed(1)}" fill="none" stroke="var(--dye)" stroke-width="1.3"/>`;
+    };
+    g += corner(T1x,T1y,x1,cy,+1);
+    g += corner(T2x,T2y,x2,cy,-1);
+    g += SVG.circle(T1x,T1y,4,"var(--jade)");
+    g += SVG.circle(T2x,T2y,4,"var(--jade)");
 
     /* The pressure angle is the whole point of this drawing, so dimension it the
        way a drawing would: an arc with a head at each end, spanning from the
