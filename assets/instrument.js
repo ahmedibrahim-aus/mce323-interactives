@@ -148,11 +148,15 @@ const SVG = {
     const dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy);
     if (L < 0.8) return "";
     const ux = dx / L, uy = dy / L;
-    const bx = x2 - ux * head, by = y2 - uy * head, px = -uy, py = ux;
+    /* An arrow shorter than its own head would otherwise put the base of the
+       head BEHIND the tail, drawing the shaft backwards and making a small
+       value look bigger than a large one. Shrink the head to fit instead. */
+    const h = Math.min(head, L * 0.65);
+    const bx = x2 - ux * h, by = y2 - uy * h, px = -uy, py = ux;
     return SVG.line(x1, y1, bx, by, col, w)
       + `<polygon points="${x2.toFixed(1)},${y2.toFixed(1)} `
-      + `${(bx + px * head * .40).toFixed(1)},${(by + py * head * .40).toFixed(1)} `
-      + `${(bx - px * head * .40).toFixed(1)},${(by - py * head * .40).toFixed(1)}" fill="${col}"/>`;
+      + `${(bx + px * h * .40).toFixed(1)},${(by + py * h * .40).toFixed(1)} `
+      + `${(bx - px * h * .40).toFixed(1)},${(by - py * h * .40).toFixed(1)}" fill="${col}"/>`;
   },
   /* Shear arrow: the head is halved along the shaft, which is how a shear
      stress is distinguished from a normal force on a drawing. `side` picks

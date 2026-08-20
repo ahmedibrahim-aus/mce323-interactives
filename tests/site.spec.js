@@ -438,6 +438,53 @@ test.describe('physics matches the course notes', () => {
 /* A phone must never scroll sideways. The figures are sized in viewBox units,
    so they scroll inside their own panel instead of shrinking into illegibility. */
 /* ------------------------------------------------------------------ */
+/* An arrow that is shorter than its own head used to draw its shaft backwards
+   past the tail, so a small stress rendered LONGER than a slightly larger one.
+   Measure the arrow's reach — the tip of its head, out from the element centre. */
+test('stress arrows stay proportional to the value, however small', async ({ page }) => {
+  await page.goto(url('modules/plane-stress.html'));
+  const scales = [];
+  for (const th of [10, 15, 20, 30, 50, 67.5, 80]) {
+    const r = await page.evaluate(t => {
+      const e = document.querySelector('#th'); e.value = t;
+      e.dispatchEvent(new Event('input', { bubbles: true }));
+      const svg = document.querySelector('#elem');
+      const C = { x: 250, y: 196 }, face = 66;
+      const d = (x, y) => Math.hypot(x - C.x, y - C.y) - face;
+      /* how far the arrow reaches out from the face. In tension the head tip is
+         the far end; in compression the arrow points inward and the TAIL is. */
+      const reach = col => {
+        const tips = [...svg.querySelectorAll('polygon')]
+          .filter(g => (g.getAttribute('fill') || '').includes(col))
+          .map(g => { const [px, py] = g.getAttribute('points').trim().split(/[ ,]+/).map(Number);
+                      return d(px, py); });
+        const tails = [...svg.querySelectorAll('line')]
+          .filter(l => (l.getAttribute('stroke') || '').includes(col))
+          .filter(l => +l.getAttribute('y1') < 370 && +l.getAttribute('y2') < 370)
+          .flatMap(l => [d(+l.getAttribute('x1'), +l.getAttribute('y1')),
+                         d(+l.getAttribute('x2'), +l.getAttribute('y2'))]);
+        return Math.max(0, ...tips, ...tails);
+      };
+      const cell = k => { const c = [...document.querySelectorAll('.cell')]
+        .find(el => el.querySelector('.k')?.textContent.trim() === k);
+        return parseFloat(c.querySelector('.v').textContent.replace(/[−–]/g, '-')); };
+      return { sx: cell('σx′'), sy: cell('σy′'), X: reach('--dye)'), Y: reach('--dye-2') };
+    }, th);
+    if (Math.abs(r.sx) > 0.4) scales.push(r.X / Math.abs(r.sx));
+    if (Math.abs(r.sy) > 0.4) scales.push(r.Y / Math.abs(r.sy));
+    if (Math.abs(r.sx) > 0.4 && Math.abs(r.sy) > 0.4) {
+      const d = Math.abs(r.sx) - Math.abs(r.sy);
+      const ok = Math.abs(d) < 0.2 ? Math.abs(r.X - r.Y) < 1.5     // equal stress, equal arrow
+               : d > 0 ? r.X > r.Y : r.Y > r.X;                     // else the bigger reaches further
+      expect(ok,
+        `θ=${th}: σx′=${r.sx} reached ${r.X.toFixed(1)}, σy′=${r.sy} reached ${r.Y.toFixed(1)}`
+      ).toBe(true);
+    }
+  }
+  const lo = Math.min(...scales), hi = Math.max(...scales);
+  expect(hi - lo, `one scale for both axes; drifted ${lo.toFixed(2)} to ${hi.toFixed(2)}`).toBeLessThan(0.3);
+});
+
 test.describe('the landing page moves', () => {
 
   test('every card reveals once it is scrolled to', async ({ page }) => {

@@ -325,6 +325,20 @@ function thumbAgma(u=0){
     svg.innerHTML=g;
   }
   paint();
+  if(reduce){
+    /* Windows "animation effects: off" and macOS "reduce motion" both land here.
+       Do not autoplay, but do not leave the page dead either — offer the run. */
+    const btn = document.createElement("button");
+    btn.className = "chip herorun";
+    btn.textContent = "▶  Run the sweep";
+    btn.addEventListener("click", ()=>{
+      btn.remove();
+      let last=0;
+      const go = ts => { if(!last) last=ts; th=(th+(ts-last)*0.012)%180; last=ts; paint(); requestAnimationFrame(go); };
+      requestAnimationFrame(go);
+    });
+    svg.parentElement.appendChild(btn);
+  }
   if(!reduce){
     let last=0;
     const loop=ts=>{ if(!last) last=ts; th=(th+(ts-last)*0.012)%180; last=ts; paint(); requestAnimationFrame(loop); };
