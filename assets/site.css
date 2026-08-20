@@ -250,9 +250,6 @@ kbd{
   background:var(--ground-2); border:1px solid var(--rule); border-radius:var(--r);
   padding:var(--s4); position:relative;
 }
-.instrument .herorun{
-  position:absolute; right:var(--s4); top:var(--s4); z-index:2;
-}
 .instrument .cap{
   position:absolute; left:var(--s4); bottom:var(--s3);
   font-family:var(--mono); font-size:10.5px; letter-spacing:.12em; color:var(--tick);

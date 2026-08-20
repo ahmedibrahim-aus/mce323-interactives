@@ -118,7 +118,7 @@ $("cards").innerHTML = MODULES.map(m=>
       svg.innerHTML = fn(u);
       raf = requestAnimationFrame(step);
     };
-    const start = () => { if(calm || raf) return; prev=0; raf=requestAnimationFrame(step); };
+    const start = () => { if(raf) return; prev=0; raf=requestAnimationFrame(step); };
     const stop  = () => { if(raf) cancelAnimationFrame(raf); raf=null; u=0; svg.innerHTML=fn(0); };
     el.addEventListener("mouseenter", start);
     el.addEventListener("mouseleave", stop);
@@ -208,19 +208,39 @@ function thumbBearing(u=0){
   return g;
 }
 function thumbGear(u=0){
-  const teeth=(cx,cy,R,n,col,ph=0)=>{
+  /* A close-up of the mesh rather than two whole gears: at 300x120 the
+     construction is unreadable if the gears are drawn entire, and the old
+     thumbnail put a green line at an arbitrary angle across gears whose pitch
+     circles never touched. Here the pitch circles meet at the pitch point and
+     the line of action is genuinely tangent to both base circles. */
+  const N1=14, N2=18, ph=20*D, S=1.18;   /* both gears whole, and recognisable */
+  const r1=36.75*S, r2=47.25*S, mm=5.25*S;
+  const px=150, cy=60, x1=px-r1, x2=px+r2;
+  const teeth=(cx,R,n,rot)=>{
     let d="";
     for(let i=0;i<n;i++){
-      const a0=2*Math.PI*i/n+ph, a1=a0+Math.PI/n*0.52, a2=a0+Math.PI/n*1.48, a3=a0+2*Math.PI/n;
+      const a0=2*Math.PI*i/n+rot, a1=a0+Math.PI/n*0.74, a2=a0+Math.PI/n*1.26, a3=a0+2*Math.PI/n;
       const P=(r,a)=>`${(cx+r*Math.cos(a)).toFixed(1)} ${(cy+r*Math.sin(a)).toFixed(1)}`;
-      d+=(i?" L ":"M ")+P(R*0.84,a0)+" L "+P(R,a1)+" L "+P(R,a2)+" L "+P(R*0.84,a3);
+      d+=(i?" L ":"M ")+P(R-1.25*mm,a0)+" L "+P(R,a1)+" L "+P(R,a2)+" L "+P(R-1.25*mm,a3);
     }
-    return SVG.path(d+" Z",col,1.5,"#eef2f5");
+    return SVG.path(d+" Z","#46545f",1.5,"#eef2f5");
   };
-  const w1=2*Math.PI*u/14;
-  let g=teeth(104,60,38,14,"#46545f",w1)+teeth(206,60,50,18,"#46545f",-w1*14/18+Math.PI/18);
-  g+=SVG.circle(104,60,32,"none","var(--principal)",1.2)+SVG.circle(206,60,44,"none","var(--principal)",1.2);
-  g+=SVG.line(120,88,190,32,"var(--jade)",1.6);
+  const w=2*Math.PI*u/N1;
+  let g = teeth(x1,r1+mm,N1,w) + teeth(x2,r2+mm,N2,-w*N1/N2 + Math.PI/N2);
+  g += SVG.circle(x1,cy,r1,"none","var(--principal)",1.3)
+     + SVG.circle(x2,cy,r2,"none","var(--principal)",1.3)
+     + SVG.circle(x1,cy,r1*Math.cos(ph),"none","var(--dye)",1.2,"6 5")
+     + SVG.circle(x2,cy,r2*Math.cos(ph),"none","var(--dye)",1.2,"6 5");
+  const ux=Math.sin(ph), uy=-Math.cos(ph);
+  const t1=r1*Math.sin(ph), t2=r2*Math.sin(ph);
+  /* drawn past the two points of tangency so it reads as a line rather than a
+     stub; the dots still sit exactly where it touches each base circle */
+  const back=t1*2.0, fwd=t2*2.0;
+  g += SVG.line(px,cy-fwd*0.92,px,cy+back*0.92,"#8493a0",1,"5 4");        /* common tangent */
+  g += SVG.line(px-back*ux,cy-back*uy,px+fwd*ux,cy+fwd*uy,"var(--jade)",2.4);
+  g += SVG.circle(px-t1*ux,cy-t1*uy,3,"var(--jade)")
+     + SVG.circle(px+t2*ux,cy+t2*uy,3,"var(--jade)")
+     + SVG.circle(px,cy,3,"var(--principal)");
   return g;
 }
 function thumbBeam(u=0){
@@ -284,7 +304,6 @@ function thumbAgma(u=0){
   const S={sx:10,sy:0,txy:5};
   const avg=(S.sx+S.sy)/2, dif=(S.sx-S.sy)/2, R=Math.hypot(dif,S.txy);
   let th=0;
-  const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
   function paint(){
     const t=th*D, c=Math.cos(2*t), s=Math.sin(2*t);
     const sxp=avg+dif*c+S.txy*s, syp=avg-dif*c-S.txy*s, txp=-dif*s+S.txy*c;
@@ -325,21 +344,8 @@ function thumbAgma(u=0){
     svg.innerHTML=g;
   }
   paint();
-  if(reduce){
-    /* Windows "animation effects: off" and macOS "reduce motion" both land here.
-       Do not autoplay, but do not leave the page dead either — offer the run. */
-    const btn = document.createElement("button");
-    btn.className = "chip herorun";
-    btn.textContent = "▶  Run the sweep";
-    btn.addEventListener("click", ()=>{
-      btn.remove();
-      let last=0;
-      const go = ts => { if(!last) last=ts; th=(th+(ts-last)*0.012)%180; last=ts; paint(); requestAnimationFrame(go); };
-      requestAnimationFrame(go);
-    });
-    svg.parentElement.appendChild(btn);
-  }
-  if(!reduce){
+  /* The sweep is the content of this page, not decoration, so it always runs. */
+  {
     let last=0;
     const loop=ts=>{ if(!last) last=ts; th=(th+(ts-last)*0.012)%180; last=ts; paint(); requestAnimationFrame(loop); };
     requestAnimationFrame(loop);

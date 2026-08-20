@@ -485,6 +485,40 @@ test('stress arrows stay proportional to the value, however small', async ({ pag
   expect(hi - lo, `one scale for both axes; drifted ${lo.toFixed(2)} to ${hi.toFixed(2)}`).toBeLessThan(0.3);
 });
 
+/* The gear card used to carry a green line at an arbitrary angle across gears
+   whose pitch circles never touched. Hold the thumbnail to the same standard as
+   the module: tangent to both base circles. */
+test('the gear card draws a real line of action', async ({ page }) => {
+  await page.goto(url('index.html'));
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await page.waitForTimeout(700);
+  const r = await page.evaluate(() => {
+    const svg = [...document.querySelectorAll('.card .thumb svg')]
+      .find(s => s.querySelector('line[stroke*="jade"]'));
+    const L = svg.querySelector('line[stroke*="jade"]');
+    const x1 = +L.getAttribute('x1'), y1 = +L.getAttribute('y1');
+    const x2 = +L.getAttribute('x2'), y2 = +L.getAttribute('y2');
+    const dist = (px, py) => Math.abs((y2 - y1) * px - (x2 - x1) * py + x2 * y1 - y2 * x1)
+                             / Math.hypot(x2 - x1, y2 - y1);
+    const base = [...svg.querySelectorAll('circle')]
+      .filter(c => (c.getAttribute('stroke-dasharray') || '') !== ''
+                && (c.getAttribute('stroke') || '').includes('dye'))
+      .map(c => ({ rb: +c.getAttribute('r'), d: dist(+c.getAttribute('cx'), +c.getAttribute('cy')) }));
+    const pitch = [...svg.querySelectorAll('circle')]
+      .filter(c => !(c.getAttribute('stroke-dasharray') || '')
+                && (c.getAttribute('stroke') || '').includes('principal'))
+      .map(c => ({ cx: +c.getAttribute('cx'), r: +c.getAttribute('r') }))
+      .sort((a, b) => a.cx - b.cx);
+    return { base, pitch, ang: Math.atan2(Math.abs(x2 - x1), Math.abs(y2 - y1)) * 180 / Math.PI };
+  });
+  expect(r.base.length, 'both base circles must be drawn').toBe(2);
+  for (const c of r.base) near(c.d, c.rb, 0.5);          // tangent to each
+  near(r.ang, 20, 0.2);                                   // measured from the common tangent
+  // and the pitch circles must actually touch
+  const gap = (r.pitch[1].cx - r.pitch[0].cx) - (r.pitch[0].r + r.pitch[1].r);
+  near(gap, 0, 0.5);
+});
+
 test.describe('the landing page moves', () => {
 
   test('every card reveals once it is scrolled to', async ({ page }) => {
@@ -517,19 +551,22 @@ test.describe('the landing page moves', () => {
     }
   });
 
-  test('reduced motion leaves the cards visible and still', async ({ browser }) => {
+  /* Reduced motion suppresses the scroll reveal — motion aimed at the reader —
+     but not the hero sweep or the hover previews, which are the content itself
+     and only run when asked for. */
+  test('reduced motion still shows the cards and still runs the sweep', async ({ browser }) => {
     const ctx = await browser.newContext({ reducedMotion: 'reduce' });
     const page = await ctx.newPage();
     await page.goto(url('index.html'));
-    await page.waitForTimeout(400);
+    await page.waitForTimeout(500);
     const hidden = await page.$$eval('.cards .card',
       els => els.filter(e => !e.classList.contains('in')).length);
     expect(hidden, 'reduced motion must not hide the cards').toBe(0);
-    const card = page.locator('.cards .card').first();
-    const before = await card.locator('.thumb svg').innerHTML();
-    await card.hover();
-    await page.waitForTimeout(400);
-    expect(await card.locator('.thumb svg').innerHTML()).toBe(before);
+
+    const a = await page.evaluate(() => document.querySelector('#hero').innerHTML);
+    await page.waitForTimeout(650);
+    const b = await page.evaluate(() => document.querySelector('#hero').innerHTML);
+    expect(a === b, 'the hero sweep must keep running').toBe(false);
     await ctx.close();
   });
 });
