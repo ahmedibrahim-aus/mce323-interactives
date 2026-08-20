@@ -437,6 +437,56 @@ test.describe('physics matches the course notes', () => {
 /* ------------------------------------------------------------------ */
 /* A phone must never scroll sideways. The figures are sized in viewBox units,
    so they scroll inside their own panel instead of shrinking into illegibility. */
+/* ------------------------------------------------------------------ */
+test.describe('the landing page moves', () => {
+
+  test('every card reveals once it is scrolled to', async ({ page }) => {
+    await page.goto(url('index.html'));
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await page.waitForTimeout(900);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForTimeout(600);
+    const hidden = await page.$$eval('.cards .card',
+      els => els.filter(e => !e.classList.contains('in')).length);
+    expect(hidden, 'a card that never reveals is invisible to the reader').toBe(0);
+  });
+
+  test('hovering a card runs its thumbnail', async ({ page }) => {
+    await page.goto(url('index.html'));
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await page.waitForTimeout(700);
+    // every card must animate — a static one is a card whose preview is dead
+    for (let i = 0; i < 10; i++) {
+      const card = page.locator('.cards .card').nth(i);
+      const before = await card.locator('.thumb svg').innerHTML();
+      await card.hover();
+      await page.waitForTimeout(420);
+      const during = await card.locator('.thumb svg').innerHTML();
+      expect(during, `card ${i} did not animate on hover`).not.toBe(before);
+      await page.mouse.move(0, 0);
+      await page.waitForTimeout(120);
+      const after = await card.locator('.thumb svg').innerHTML();
+      expect(after, `card ${i} did not settle back`).toBe(before);
+    }
+  });
+
+  test('reduced motion leaves the cards visible and still', async ({ browser }) => {
+    const ctx = await browser.newContext({ reducedMotion: 'reduce' });
+    const page = await ctx.newPage();
+    await page.goto(url('index.html'));
+    await page.waitForTimeout(400);
+    const hidden = await page.$$eval('.cards .card',
+      els => els.filter(e => !e.classList.contains('in')).length);
+    expect(hidden, 'reduced motion must not hide the cards').toBe(0);
+    const card = page.locator('.cards .card').first();
+    const before = await card.locator('.thumb svg').innerHTML();
+    await card.hover();
+    await page.waitForTimeout(400);
+    expect(await card.locator('.thumb svg').innerHTML()).toBe(before);
+    await ctx.close();
+  });
+});
+
 test.describe('phone layout', () => {
   for (const [rel] of PAGES) {
     test(`${rel} — no sideways scroll at 390px`, async ({ page }) => {

@@ -271,6 +271,10 @@ kbd{
 }
 .card:hover{ border-color:var(--ink); transform:translateY(-2px); box-shadow:var(--shadow) }
 .card .thumb{ background:var(--ground-2); border-bottom:1px solid var(--rule-2); padding:var(--s3) }
+/* cards arrive as you reach them */
+.cards .card{ opacity:0; transform:translateY(14px); transition:opacity .55s ease, transform .55s cubic-bezier(.22,.7,.28,1) }
+.cards .card.in{ opacity:1; transform:none }
+@media (prefers-reduced-motion:reduce){ .cards .card{ opacity:1; transform:none } }
 .card .thumb svg{ display:block; width:100%; height:auto }
 .card .body{ padding:var(--s3) var(--s4) var(--s4); display:flex; flex-direction:column; gap:6px; flex:1 }
 .card .ch{

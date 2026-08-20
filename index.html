@@ -99,9 +99,53 @@ $("cards").innerHTML = MODULES.map(m=>
      </div>
    </a>`).join("");
 
+/* ---------- the cards come alive ---------------------------------------------
+   Hovering a card runs its thumbnail: the element turns, the load walks the
+   span, the gears mesh. It is a preview of what the module does, not decoration,
+   which is why each one animates the quantity that module is actually about.
+   Everything here is skipped when the visitor asks for reduced motion. */
+(function liven(){
+  const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const cards = [...document.querySelectorAll(".cards .card")];
+
+  cards.forEach((el,i)=>{
+    const svg = el.querySelector(".thumb svg"), fn = MODULES[i].thumb;
+    let raf=null, u=0, prev=0;
+    const step = ts => {
+      if(!prev) prev = ts;
+      u = (u + (ts-prev)/3600) % 1;          /* one loop about every 3.6 s */
+      prev = ts;
+      svg.innerHTML = fn(u);
+      raf = requestAnimationFrame(step);
+    };
+    const start = () => { if(calm || raf) return; prev=0; raf=requestAnimationFrame(step); };
+    const stop  = () => { if(raf) cancelAnimationFrame(raf); raf=null; u=0; svg.innerHTML=fn(0); };
+    el.addEventListener("mouseenter", start);
+    el.addEventListener("mouseleave", stop);
+    el.addEventListener("focusin",  start);   /* keyboard users get it too */
+    el.addEventListener("focusout", stop);
+  });
+
+  /* and they arrive as you reach them, the way a drawing is plotted */
+  if(calm || !("IntersectionObserver" in window)){
+    cards.forEach(c=>c.classList.add("in"));
+    return;
+  }
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{
+      if(!e.isIntersecting) return;
+      const i = cards.indexOf(e.target);
+      e.target.style.transitionDelay = (i % 4) * 70 + "ms";
+      e.target.classList.add("in");
+      io.unobserve(e.target);
+    });
+  }, { rootMargin: "0px 0px -8% 0px", threshold: 0.12 });
+  cards.forEach(c=>io.observe(c));
+})();
+
 /* ---------- card thumbnails --------------------------------------------------- */
-function thumbStress(){
-  const cx=150,cy=60,a=26,t=22*D,c=Math.cos(t),s=Math.sin(t);
+function thumbStress(u=0){
+  const cx=150,cy=60,a=26,t=(22+180*u)*D,c=Math.cos(t),s=Math.sin(t);
   const X=(u,v)=>cx+(u*c-v*s), Y=(u,v)=>cy-(u*s+v*c);
   let g=SVG.centre(cx-70,cy,cx+70,cy)+SVG.centre(cx,cy-46,cx,cy+46);
   g+=`<polygon points="${X(-a,-a)},${Y(-a,-a)} ${X(a,-a)},${Y(a,-a)} ${X(a,a)},${Y(a,a)} ${X(-a,a)},${Y(-a,a)}" fill="#eef2f5" stroke="#46545f" stroke-width="1.6"/>`;
@@ -110,10 +154,10 @@ function thumbStress(){
   g+=SVG.arrow(X(0,a),Y(0,a),X(0,a+14),Y(0,a+14),"var(--dye-2)",2.2,7);
   g+=SVG.arrow(X(0,-a),Y(0,-a),X(0,-a-14),Y(0,-a-14),"var(--dye-2)",2.2,7);
   g+=SVG.circle(238,60,30,"none","#8493a0",1.4)+SVG.circle(238,60,2.5,"#8493a0");
-  g+=SVG.circle(238+30*Math.cos(0.8),60+30*Math.sin(0.8),4,"#fff","var(--principal)",2.2);
+  g+=SVG.circle(238+30*Math.cos(0.8+2*t),60+30*Math.sin(0.8+2*t),4,"#fff","var(--principal)",2.2);
   return g;
 }
-function thumbEnv(){
+function thumbEnv(u=0){
   const cx=150,cy=60,S=42,k=1/Math.sqrt(3);
   let d="";
   for(let i=0;i<=90;i++){ const t=i*4*D;
@@ -124,11 +168,13 @@ function thumbEnv(){
   const h=[[S,0],[S,S],[0,S],[-S,0],[-S,-S],[0,-S]];
   let hd=""; h.forEach((p,i)=>hd+=(i?" L ":"M ")+(cx+p[0])+" "+(cy-p[1]));
   g+=SVG.path(hd+" Z","var(--principal)",1.8);
-  g+=SVG.circle(cx+26,cy-14,4.5,"#fff","#10151b",2.2);
+  const oa=2*Math.PI*u, orr=30;
+  g+=SVG.circle(cx+orr*Math.cos(oa),cy-orr*Math.sin(oa),4.5,"#fff","#10151b",2.2);
   return g;
 }
-function thumbFatigue(){
+function thumbFatigue(u=0){
   const x0=40,y0=100,w=224,h=76;
+  const pp=0.30+0.30*(1-Math.cos(2*Math.PI*u))/2;
   let g=SVG.line(x0,y0,x0+w,y0,"#b9c4ce",1.2)+SVG.line(x0,y0,x0,y0-h,"#b9c4ce",1.2);
   g+=SVG.line(x0,y0-h*0.62,x0+w*0.92,y0,"var(--principal)",2);
   let d=""; for(let i=0;i<=40;i++){ const t=i/40, x=x0+w*0.92*t, y=y0-h*0.62*(1-t*t);
@@ -136,89 +182,93 @@ function thumbFatigue(){
   g+=SVG.path(d,"var(--jade)",2);
   g+=SVG.line(x0,y0-h*0.62,x0+w*0.60,y0,"var(--dye-2)",1.6);
   g+=SVG.line(x0,y0-h*0.86,x0+w*0.70,y0,"#10151b",1.4,"5 3");
-  g+=SVG.circle(x0+w*0.42,y0-h*0.26,4.5,"#fff","#10151b",2.2);
+  g+=SVG.circle(x0+w*(pp+0.12),y0-h*(0.62-0.52*pp),4.5,"#fff","#10151b",2.2);
   return g;
 }
-function thumbShaft(){
-  const cy=60;
+function thumbShaft(u=0){
+  const cy=60, hh=19+5*Math.sin(2*Math.PI*u);
   let g=SVG.centre(30,cy,270,cy);
   g+=SVG.rect(52,cy-30,86,60,"#eef2f5","#46545f",1.6);
-  g+=SVG.rect(138,cy-19,110,38,"#f6f8f9","#46545f",1.6);
-  for(let x=146;x<246;x+=12) g+=SVG.line(x,cy-17,x-8,cy+17,"#c3ced8",1);
-  g+=SVG.arrow(258,cy-19-14,258,cy-19,"var(--principal)",1.4,6);
-  g+=SVG.arrow(258,cy+19+14,258,cy+19,"var(--principal)",1.4,6);
+  g+=SVG.rect(138,cy-hh,110,2*hh,"#f6f8f9","#46545f",1.6);
+  for(let x=146;x<246;x+=12) g+=SVG.line(x,cy-hh+2,x-8,cy+hh-2,"#c3ced8",1);
+  g+=SVG.arrow(258,cy-hh-14,258,cy-hh,"var(--principal)",1.4,6);
+  g+=SVG.arrow(258,cy+hh+14,258,cy+hh,"var(--principal)",1.4,6);
   g+=SVG.text(268,cy+4,"⌀d",{col:"var(--principal)",size:11,anchor:"start",mono:true,weight:700});
   return g;
 }
-function thumbBearing(){
+function thumbBearing(u=0){
   const x0=42,y0=100,w=216,h=74;
+  const bp=0.18+0.62*(1-Math.cos(2*Math.PI*u))/2;
   let g=SVG.line(x0,y0,x0+w,y0,"#b9c4ce",1.2)+SVG.line(x0,y0,x0,y0-h,"#b9c4ce",1.2);
   for(let i=1;i<4;i++) g+=SVG.line(x0+w*i/4,y0,x0+w*i/4,y0-h,"#eef2f5",1);
   g+=SVG.line(x0+6,y0-h+6,x0+w-6,y0-14,"var(--dye)",2.2);
   g+=SVG.circle(x0+w*0.28,y0-h+6+(w-12)*0.28/(w-12)*0+ (y0-14-(y0-h+6))*0.28+(y0-h+6)-(y0-h+6),0,"none");
-  g+=SVG.circle(x0+w*0.30,y0-h+6+((y0-14)-(y0-h+6))*0.30,5,"#fff","var(--principal)",2.2);
+  g+=SVG.circle(x0+w*bp,y0-h+6+((y0-14)-(y0-h+6))*bp,5,"#fff","var(--principal)",2.2);
   g+=SVG.circle(x0+w*0.78,y0-h+6+((y0-14)-(y0-h+6))*0.78,4.5,"#fff","var(--jade)",2.2);
   return g;
 }
-function thumbGear(){
-  const teeth=(cx,cy,R,n,col)=>{
+function thumbGear(u=0){
+  const teeth=(cx,cy,R,n,col,ph=0)=>{
     let d="";
     for(let i=0;i<n;i++){
-      const a0=2*Math.PI*i/n, a1=a0+Math.PI/n*0.52, a2=a0+Math.PI/n*1.48, a3=a0+2*Math.PI/n;
+      const a0=2*Math.PI*i/n+ph, a1=a0+Math.PI/n*0.52, a2=a0+Math.PI/n*1.48, a3=a0+2*Math.PI/n;
       const P=(r,a)=>`${(cx+r*Math.cos(a)).toFixed(1)} ${(cy+r*Math.sin(a)).toFixed(1)}`;
       d+=(i?" L ":"M ")+P(R*0.84,a0)+" L "+P(R,a1)+" L "+P(R,a2)+" L "+P(R*0.84,a3);
     }
     return SVG.path(d+" Z",col,1.5,"#eef2f5");
   };
-  let g=teeth(104,60,38,14,"#46545f")+teeth(206,60,50,18,"#46545f");
+  const w1=2*Math.PI*u/14;
+  let g=teeth(104,60,38,14,"#46545f",w1)+teeth(206,60,50,18,"#46545f",-w1*14/18+Math.PI/18);
   g+=SVG.circle(104,60,32,"none","var(--principal)",1.2)+SVG.circle(206,60,44,"none","var(--principal)",1.2);
   g+=SVG.line(120,88,190,32,"var(--jade)",1.6);
   return g;
 }
-function thumbBeam(){
-  /* the three stacked diagrams, in the order they are drawn on the board:
-     loaded beam, then shear, then moment — each on its own baseline */
-  const L0=42, L1=262, xP=138;
+function thumbBeam(u=0){
+  /* the load walks along the span and V and M genuinely rebuild under it */
+  const L0=42, L1=262, span=L1-L0;
+  const pp = 0.22 + 0.56*(1-Math.cos(2*Math.PI*u))/2;      /* load position, 0..1 */
+  const xP = L0 + span*pp;
+  const RA = 1-pp, RB = pp;                                 /* reactions, unit load */
   let g="";
-  /* 1. the beam, its supports and the load */
   g += SVG.arrow(xP,4,xP,24,"var(--principal)",2.2,7);
   g += SVG.line(L0,30,L1,30,"#46545f",3.4);
   g += `<polygon points="${L0+6},30 ${L0-2},42 ${L0+14},42" fill="#8493a0"/>`
      + `<polygon points="${L1-6},30 ${L1-14},42 ${L1+2},42" fill="none" stroke="#8493a0" stroke-width="1.6"/>`;
-  /* 2. shear: a block up, a block down, meeting under the load */
-  const vy=68, vh=17;
-  g += `<rect x="${L0}" y="${vy-vh}" width="${xP-L0}" height="${vh}" fill="rgba(39,72,140,.20)" stroke="var(--dye)" stroke-width="1.8"/>`;
-  g += `<rect x="${xP}" y="${vy}" width="${L1-xP}" height="${vh*0.62}" fill="rgba(39,72,140,.20)" stroke="var(--dye)" stroke-width="1.8"/>`;
+  const vy=68, VS=26;
+  g += `<rect x="${L0}" y="${(vy-RA*VS).toFixed(1)}" width="${(xP-L0).toFixed(1)}" height="${(RA*VS).toFixed(1)}" fill="rgba(39,72,140,.20)" stroke="var(--dye)" stroke-width="1.8"/>`;
+  g += `<rect x="${xP.toFixed(1)}" y="${vy}" width="${(L1-xP).toFixed(1)}" height="${(RB*VS).toFixed(1)}" fill="rgba(39,72,140,.20)" stroke="var(--dye)" stroke-width="1.8"/>`;
   g += SVG.line(L0,vy,L1,vy,"#b9c4ce",1.1);
-  /* 3. moment: the triangle that peaks where the shear crosses zero */
-  const my=112, mp=84;
-  g += SVG.path(`M ${L0} ${my} L ${xP} ${mp} L ${L1} ${my} Z`,"var(--principal)",2,"rgba(168,50,46,.16)");
+  const my=112, peak = my - 30*4*pp*(1-pp);                 /* M peaks as p(1-p) */
+  g += SVG.path(`M ${L0} ${my} L ${xP.toFixed(1)} ${peak.toFixed(1)} L ${L1} ${my} Z`,
+                "var(--principal)",2,"rgba(168,50,46,.16)");
   g += SVG.line(L0,my,L1,my,"#b9c4ce",1.1);
-  /* the station they share */
   g += SVG.line(xP,44,xP,my,"#c3ced8",1,"3 4");
   return g;
 }
-function thumbKt(){
+function thumbKt(u=0){
   const x0=44,y0=100,w=212,h=74;
+  const kp=0.16+0.52*(1-Math.cos(2*Math.PI*u))/2, ky=1-0.62*kp*kp;
   let g=SVG.line(x0,y0,x0+w,y0,"#b9c4ce",1.2)+SVG.line(x0,y0,x0,y0-h,"#b9c4ce",1.2);
   let d=""; for(let i=0;i<=40;i++){ const t=i/40, x=x0+w*t, y=y0-h*(1-0.62*t*t);
     d+=(i?" L ":"M ")+x.toFixed(1)+" "+y.toFixed(1); }
   g+=SVG.path(d,"var(--dye)",2.2);
-  g+=SVG.line(x0+w*0.3,y0,x0+w*0.3,y0-h*0.945,"var(--principal)",1.4,"4 3");
-  g+=SVG.line(x0,y0-h*0.945,x0+w*0.3,y0-h*0.945,"var(--principal)",1.4,"4 3");
-  g+=SVG.circle(x0+w*0.3,y0-h*0.945,5,"#fff","var(--principal)",2.4);
+  g+=SVG.line(x0+w*kp,y0,x0+w*kp,y0-h*ky,"var(--principal)",1.4,"4 3");
+  g+=SVG.line(x0,y0-h*ky,x0+w*kp,y0-h*ky,"var(--principal)",1.4,"4 3");
+  g+=SVG.circle(x0+w*kp,y0-h*ky,5,"#fff","var(--principal)",2.4);
   return g;
 }
-function thumbMarin(){
-  const x0=46,y0=104,bw=26,v=[80,66,60,58,56,52];
+function thumbMarin(u=0){
+  const x0=46,y0=104,bw=26, f=(1-Math.cos(2*Math.PI*u))/2;
+  const v=[80,66,60,58,56,52].map((val,i)=>i?80+(val-80)*f:val);
   let g=SVG.line(x0-8,y0,266,y0,"#b9c4ce",1.2);
   v.forEach((val,i)=>{ const x=x0+i*36;
     g+=SVG.rect(x,y0-val,bw,val,i===0?"var(--dye)":"var(--principal)");
     if(i) g+=SVG.line(x-10,y0-v[i-1],x,y0-v[i-1],"#c3ced8",1,"3 2"); });
   return g;
 }
-function thumbAgma(){
-  const x0=44,y0=102,bw=26,vals=[26,32,44,60,64,66];
+function thumbAgma(u=0){
+  const x0=44,y0=102,bw=26, af=(1-Math.cos(2*Math.PI*u))/2;
+  const vals=[26,32,44,60,64,66].map((v,i)=>i?26+(v-26)*af:v);
   let g=SVG.line(x0-8,y0,266,y0,"#b9c4ce",1.2);
   vals.forEach((v,i)=>{
     const x=x0+i*36;
